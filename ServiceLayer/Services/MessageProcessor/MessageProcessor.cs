@@ -205,7 +205,7 @@ public class MessageProcessor : BaseService
             return false;
         }
         const string confirmFrase = "скорее да";
-        var isNeewDrawResponce = await _chatGptService.Asc(charId, userId,
+        var isNeewDrawResponce = await _chatGptService.Ask(charId, userId,
             $"Эта фраза '{text}' содержит просьбу нарисовать что-то? Ответь: '{confirmFrase}, чем нет' или 'скорее нет, чем да'");
         _logger.LogInformation(confirmFrase);
         return isNeewDrawResponce.Contains(confirmFrase, StringComparison.OrdinalIgnoreCase);
@@ -214,7 +214,7 @@ public class MessageProcessor : BaseService
     private async Task<bool> IsVoiceMessageToBot(long charId, long userId, string text)
     {
         const string confirmFrase = "скорее да";
-        string isNeewDrawResponce = await _chatGptService.Asc(charId, userId,
+        string isNeewDrawResponce = await _chatGptService.Ask(charId, userId,
             $"Эта фраза '{text}' обращена к тебе? Ответь: '{confirmFrase}, чем нет' или 'скорее нет, чем да'");
         _logger.LogInformation($"GPT Bot responce: {isNeewDrawResponce}");
         return isNeewDrawResponce.Contains(confirmFrase, StringComparison.OrdinalIgnoreCase);

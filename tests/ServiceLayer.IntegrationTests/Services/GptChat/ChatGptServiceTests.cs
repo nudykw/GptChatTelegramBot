@@ -35,13 +35,13 @@ public class ChatGptServiceTests : IClassFixture<TestAppFixture>
     }
 
     [Fact]
-    public async Task Asc_ShouldReturnResponse_AndSaveBilling()
+    public async Task Ask_ShouldReturnResponse_AndSaveBilling()
     {
         // Arrange
         var message = "Hello, this is a test message. Please reply with 'OK'.";
 
         // Act
-        var response = await _chatGptService.Asc(_testChatId, _testUserId, message);
+        var response = await _chatGptService.Ask(_testChatId, _testUserId, message);
 
         // Assert
         Assert.NotNull(response);

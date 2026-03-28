@@ -111,13 +111,13 @@ public class ChatGptService : BaseService, IChatService
         };
         return result;
     }
-    public async Task<string> Asc(long chatId, long userId, string message)
+    public async Task<string> Ask(long chatId, long userId, string message)
     {
         var chatResponce = await SendMessages2ChatAsync(chatId, userId, new List<Message>()
         {
             new Message(Role.User, message)
         });
-        _logger.LogInformation("Usage for asc '{0}: {1}", message,
+        _logger.LogInformation("Usage for ask '{0}: {1}", message,
             chatResponce.Usage?.TotalTokens);
         var sb = new StringBuilder();
         foreach (var responce in chatResponce.Choices)

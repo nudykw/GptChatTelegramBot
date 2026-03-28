@@ -27,11 +27,7 @@ public class ChatGptPriceUpdateTests
         var mockHttpClientFactory = new Mock<IHttpClientFactory>();
         var mockHandler = new Mock<HttpMessageHandler>();
 
-        var testData = new Dictionary<string, object>
-        {
-            { "gpt-4o-mini", new { input_cost_per_token = 0.00000015, output_cost_per_token = 0.0000006, litellm_provider = "openai" } }
-        };
-        var json = JsonSerializer.Serialize(testData);
+        var json = "{\"gpt-4o-mini\": {\"input_cost_per_token\": 0.00000015, \"output_cost_per_token\": 0.0000006, \"litellm_provider\": \"openai\"}}";
 
         mockHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -56,6 +52,9 @@ public class ChatGptPriceUpdateTests
 
         // Clear the static cache before testing
         ChatGptService._liveModelsCosts.Clear();
+        typeof(ChatGptService)
+            .GetField("_lastPriceUpdate", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            ?.SetValue(null, DateTime.MinValue);
 
         var service = new ChatGptService(mockServiceProvider.Object, mockLogger.Object, appSettings, mockHttpClientFactory.Object);
 

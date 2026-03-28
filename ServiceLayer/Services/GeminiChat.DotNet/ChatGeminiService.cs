@@ -1,4 +1,4 @@
-﻿using GeminiChat.DotNet;
+using GeminiChat.DotNet;
 using Microsoft.Extensions.Logging;
 using OpenAI;
 using OpenAI.Chat;
@@ -25,7 +25,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             //_gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
         }
 
-        public async Task<string> Asc(long chatId, long userId, string message)
+        public async Task<string> Ask(long chatId, long userId, string message)
         {
             var contents = new List<Content>() { new Content { Role = MessageRole.User, Parts = new List<Part>() { new() { Text = message } } } };
             var conversation = new GeminiRequest()
