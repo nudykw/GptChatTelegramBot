@@ -29,6 +29,8 @@ public class ChatGptService : BaseService, IChatService
         {"gpt-4-32k",  new GptModelCost(defTokens, 0.06M, 0.12M)},
         {"gpt-3.5-turbo-1106",  new GptModelCost(defTokens, 0.001M, 0.002M)},
         {"gpt-3.5-turbo-instruct",  new GptModelCost(defTokens, 0.0015M, 0.002M)},
+        {"gpt-4o-mini",  new GptModelCost(defTokens, 0.00015M, 0.0006M)},
+        {"gpt-4o",  new GptModelCost(defTokens, 0.005M, 0.015M)},
 
         {"Code interpreter",  new GptModelCost(1, 0.03M, 0.0M)},
         {"Retrieval",  new GptModelCost(1, 0.2M, 0.0M)},
@@ -51,10 +53,10 @@ public class ChatGptService : BaseService, IChatService
     private static GptModelCache gptModelCache = null;
 
     public ChatGptService(IServiceProvider serviceProvider, ILogger<ChatGptService> logger,
-        AppSettings appSettings)
+        AppSettings appSettings, OpenAIClient? openAiClient = null)
         : base(serviceProvider, logger)
     {
-        _api = new OpenAIClient(appSettings.GptChatConfiguration.APIKey);
+        _api = openAiClient ?? new OpenAIClient(appSettings.GptChatConfiguration.APIKey);
         _gptChatConfiguration = appSettings.GptChatConfiguration;
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
     }
@@ -68,6 +70,14 @@ public class ChatGptService : BaseService, IChatService
         }
         foreach (Model model in modelsResponce)
         {
+            // Pre-filter: only attempt chat check for known chat models or prefixes
+            if (!model.Id.StartsWith("gpt-") && 
+                !model.Id.StartsWith("o1-") && 
+                !gptModelsCosts.ContainsKey(model.Id))
+            {
+                continue;
+            }
+
             try
             {
                 ChatRequest chatRequest = new ChatRequest(new[] { new Message(Role.User, "Hi") }
