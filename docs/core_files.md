@@ -54,3 +54,13 @@ This document highlights the most important files in the repository to help you 
 **Google AI Implementation**
 - Bridges the gaps between the generic `IChatService` and Google's Gemini-specific API structure.
 - Handles the conversion of message history into a format Gemini can digest.
+
+## [BotCommands.cs](../ServiceLayer/Constans/BotCommands.cs)
+**Command Registry**
+- Centralized storage for all main bot commands (`/model`, `/provider`, `/billing`, `/restart`) and their Russian descriptions.
+- Used for both message routing in `UpdateHandler` and automatic menu synchronization in `ReceiverServiceBase`.
+
+## [ReceiverServiceBase.cs](../ServiceLayer/Services/Telegram/ReceiverServiceBase.cs)
+**The Update Receiver**
+- Now includes automatic command registration logic.
+- Calls `SetMyCommandsAsync` upon bot startup to ensure the Telegram menu is always up-to-date with the supported commands.

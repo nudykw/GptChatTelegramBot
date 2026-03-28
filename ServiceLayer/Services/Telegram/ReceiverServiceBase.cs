@@ -1,7 +1,9 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using ServiceLayer.Constans;
 
 namespace ServiceLayer.Services.Telegram
 {
@@ -42,6 +44,15 @@ namespace ServiceLayer.Services.Telegram
 
             var me = await _botClient.GetMe(stoppingToken);
             _logger.LogInformation("Start receiving updates for {BotName}", me.Username ?? "My Awesome Bot");
+
+            // Register bot commands
+            var commands = BotCommands.Descriptions.Select(x => new BotCommand
+            {
+                Command = x.Key.TrimStart('/'),
+                Description = x.Value
+            });
+            await _botClient.SetMyCommandsAsync(commands, cancellationToken: stoppingToken);
+            _logger.LogInformation("Bot commands registered successfully.");
 
             // Start receiving updates
             await _botClient.ReceiveAsync(

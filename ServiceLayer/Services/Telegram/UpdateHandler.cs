@@ -21,9 +21,6 @@ using Image = SixLabors.ImageSharp.Image;
 namespace ServiceLayer.Services.Telegram;
 public class UpdateHandler : BaseService, IUpdateHandler
 {
-    const string botCommandBilling = "/billing";
-    const string botCommandModel = "/model";
-    const string botCommandProvider = "/provider";
 
     private readonly ITelegramBotClient _botClient;
     private readonly User _botInfo;
@@ -106,10 +103,10 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
         var action = messageText.Split(' ')[0].Replace($"@{_botInfo.Username}", string.Empty) switch
         {
-            botCommandBilling => SendBillingInlineKeyboard(_botClient, message, cancellationToken),
-            botCommandModel => SendInlineKeyboard(_botClient, message, cancellationToken),
-            botCommandProvider => SendProviderInlineKeyboard(_botClient, message, cancellationToken),
-            "/restart" => FailingHandler(_botClient, message, cancellationToken),
+            BotCommands.Billing => SendBillingInlineKeyboard(_botClient, message, cancellationToken),
+            BotCommands.Model => SendInlineKeyboard(_botClient, message, cancellationToken),
+            BotCommands.Provider => SendProviderInlineKeyboard(_botClient, message, cancellationToken),
+            BotCommands.Restart => FailingHandler(_botClient, message, cancellationToken),
 
             "/keyboard" => SendReplyKeyboard(_botClient, message, cancellationToken),
             "/remove" => RemoveKeyboard(_botClient, message, cancellationToken),
@@ -142,7 +139,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             int index = 0;
             foreach (OpenAI.Models.Model? model in gptModels.OrderBy(p => p.Id).ToList())
             {
-                var data = $"{botCommandModel}:{model.Id}";
+                var data = $"{BotCommands.Model}:{model.Id}";
                 var choise = InlineKeyboardButton.WithCallbackData($"{model.Id} ({model.CreatedAt.ToShortDateString()})",
                     data);
                 if (gptModelsCosts.TryGetValue(model.Id, out var costs))
@@ -191,7 +188,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             int index = 0;
             foreach (string date in dates.OrderBy(p => p).ToList())
             {
-                var data = $"{botCommandBilling}:{date}";
+                var data = $"{BotCommands.Billing}:{date}";
                 var choise = InlineKeyboardButton.WithCallbackData(date, data);
                 if (index == 0 || (index % 2) == 0)
                 {
@@ -236,7 +233,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     ChatStrategy.Gemini => "Gemini",
                     _ => strategy.ToString()
                 };
-                choises.Add(new List<InlineKeyboardButton> { InlineKeyboardButton.WithCallbackData(text, $"{botCommandProvider}:{(int)strategy}") });
+                choises.Add(new List<InlineKeyboardButton> { InlineKeyboardButton.WithCallbackData(text, $"{BotCommands.Provider}:{(int)strategy}") });
             }
 
             InlineKeyboardMarkup replyMarkup = new(choises);
@@ -538,7 +535,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         }
         string originalMessageType = splitData[0];
         string data = splitData[1];
-        if (originalMessageType == botCommandModel)
+        if (originalMessageType == BotCommands.Model)
         {
             var (isSuckes, errorMessage) = await _messageProcessor.SelectGPTModel(data, callbackQuery.From.Id);
             if (!isSuckes)
@@ -565,7 +562,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
             return;
         }
-        if (originalMessageType == botCommandProvider)
+        if (originalMessageType == BotCommands.Provider)
         {
             if (Enum.TryParse<ChatStrategy>(data, out var strategy))
             {
@@ -595,7 +592,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
             return;
         }
-        if (originalMessageType == botCommandBilling)
+        if (originalMessageType == BotCommands.Billing)
         {
             var strData = data.Split('-');
             var startData = new DateTime(int.Parse(strData[0]), int.Parse(strData[1]), 1);
