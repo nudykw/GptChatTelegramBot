@@ -56,7 +56,15 @@ public class ChatGptPriceUpdateTests
             .GetField("_lastPriceUpdate", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
             ?.SetValue(null, DateTime.MinValue);
 
-        var service = new ChatGptService(mockServiceProvider.Object, mockLogger.Object, appSettings, mockHttpClientFactory.Object);
+        var config = new ChatProviderConfig
+        {
+            Name = "OpenAI",
+            ProviderType = ChatProviderType.OpenAI,
+            ApiKey = appSettings.GptChatConfiguration.APIKey,
+            ModelName = appSettings.GptChatConfiguration.ModelName
+        };
+
+        var service = new ChatGptService(mockServiceProvider.Object, mockLogger.Object, config, mockHttpClientFactory.Object);
 
         // Act
         // We call it once manually (though the constructor already calls it)

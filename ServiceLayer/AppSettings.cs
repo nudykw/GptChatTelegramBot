@@ -1,4 +1,4 @@
-﻿using ServiceLayer.Services.GeminiChat.DotNet.Configurations;
+using ServiceLayer.Services.GeminiChat.DotNet.Configurations;
 using ServiceLayer.Services.GptChat.Configurations;
 using ServiceLayer.Services.Telegram.Configuretions;
 
@@ -10,4 +10,5 @@ public class AppSettings
     public required TelegramBotConfiguration TelegramBotConfiguration { get; set; }
     public required GptChatConfiguration GptChatConfiguration { get; set; }
     public required GeminiChatConfiguration GeminiChatConfiguration { get; set; }
+    public List<ChatProviderConfig> ChatProviders { get; set; } = new();
 }

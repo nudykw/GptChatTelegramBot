@@ -52,7 +52,8 @@ static void ConfigureServices(HostBuilderContext context, IServiceCollection ser
     services.AddScoped<ReceiverService>();
     services.AddHostedService<PollingService>();
 
-    services.AddSingleton<ChatGptService>();
+    services.AddSingleton<IChatServiceFactory, ChatServiceFactory>();
+    services.AddSingleton<IChatService, ResilientChatService>();
 
     services.AddScoped<MessageProcessor>();
     services.AddScoped<AudioTranscriptorService>();

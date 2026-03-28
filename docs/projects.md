@@ -16,10 +16,38 @@ This is the entry point of the application. It is responsible for:
 **The Business Logic Heart**
 
 Everything related to processing user requests happens here. Key responsibilities include:
-- **AI Integrations**: Orchestrating calls to OpenAI (GPT-4, GPT-4o-mini) and Gemini.
+- **AI Integrations**: Orchestrating calls to OpenAI, Gemini, and other providers via `IChatService`.
+- **Factory Pattern**: Centralized service creation through `IChatServiceFactory` based on dynamic configuration.
+- **Failover & Resilience**: Automatic provider switching via `ResilientChatService` wrapper.
 - **Billing Logic**: Calculating the cost of AI usage (tokens) and preparing billing items for the database.
 - **Audio Processing**: Handling voice-to-text transcription via Whisper/OpenAI.
 - **Service Abstractions**: Defining the `IChatService` and other interfaces to ensure modularity.
+
+### [Service Configuration](../TelegramBotApp/appsettings.sample.json)
+
+The bot supports multiple AI providers. You can configure them in `appsettings.json`:
+
+```json
+"AppSettings": {
+  "ChatProviders": [
+    {
+      "Name": "OpenAI",
+      "ProviderType": "OpenAI",
+      "ApiKey": "sk-...",
+      "ModelName": "gpt-4o-mini"
+    },
+    {
+      "Name": "Gemini",
+      "ProviderType": "Gemini",
+      "ApiKey": "AIza...",
+      "ModelName": "gemini-pro"
+    }
+  ]
+}
+```
+
+> [!TIP]
+> Providers with API keys containing placeholders like `[YOUR_GEMINI_API_KEY]` will be automatically ignored by the `ChatServiceFactory`, so you can keep them in the configuration until you're ready to add the real keys.
 
 ---
 

@@ -5,9 +5,9 @@ using Microsoft.Extensions.Logging;
 using OpenAI.Images;
 using ServiceLayer.Constans;
 using ServiceLayer.Services.GptChat;
+using ServiceLayer.Utils;
 using ServiceLayer.Services.GptChat.Configurations;
 using ServiceLayer.Services.Telegram.Configuretions;
-using ServiceLayer.Utils;
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
@@ -19,26 +19,24 @@ namespace ServiceLayer.Services.MessageProcessor;
 public class MessageProcessor : BaseService
 {
     private readonly IRepository<HistoryMessage> _historyMessageRepository;
-    private readonly ChatGptService _chatGptService;
+    private readonly IChatService _chatService;
     private readonly ITelegramBotClient _telegramBotClient;
     private readonly string[] drawWords = new[]
     {
         "draw", "рисуй", "покажи", "малю"
     };
     private readonly TelegramBotConfiguration _telegramBotConfiguration;
-    private readonly GptChatConfiguration _gptChatConfiguration;
 
     public MessageProcessor(IServiceProvider serviceProvider, ILogger<MessageProcessor> logger,
-        IRepository<HistoryMessage> historyMessageRepository, ChatGptService chatGptService,
+        IRepository<HistoryMessage> historyMessageRepository, IChatService chatService,
         ITelegramBotClient telegramBotClient)
         : base(serviceProvider, logger)
     {
         _historyMessageRepository = historyMessageRepository;
-        _chatGptService = chatGptService;
+        _chatService = chatService;
         _telegramBotClient = telegramBotClient;
         AppSettings? appConfig = _serviceProvider.GetConfiguration<AppSettings>();
         _telegramBotConfiguration = appConfig.TelegramBotConfiguration;
-        _gptChatConfiguration = appConfig.GptChatConfiguration;
     }
 
     public async Task<string> ProcessMessage(long chatId, long messageId, long? parentMessageId,
@@ -103,7 +101,7 @@ public class MessageProcessor : BaseService
             var sb = new StringBuilder();
             try
             {
-                IReadOnlyList<string> imageResults = await _chatGptService.GenerateImage(chatId, fromUserId, msg);
+                IReadOnlyList<string> imageResults = await _chatService.GenerateImage(chatId, fromUserId, msg);
                 foreach (var image in imageResults.Where(p => !string.IsNullOrWhiteSpace(p)))
                 {
                     sb.AppendLine(image);
@@ -117,7 +115,7 @@ public class MessageProcessor : BaseService
         }
         else
         {
-            var gptChatResponce = await _chatGptService.SendMessages2ChatAsync(chatId, fromUserId, query);
+            var gptChatResponce = await _chatService.SendMessages2ChatAsync(chatId, fromUserId, query);
             var sb = new StringBuilder();
             foreach (var choice in gptChatResponce.Choices)
             {
@@ -168,14 +166,14 @@ public class MessageProcessor : BaseService
 
     internal async Task<IReadOnlyList<OpenAI.Models.Model>> GetGPTModels()
     {
-        IReadOnlyList<OpenAI.Models.Model> result = await _chatGptService.GetAvailibleModels();
+        IReadOnlyList<OpenAI.Models.Model> result = await _chatService.GetAvailibleModels();
         return result;
     }
 
     internal async Task<global::Telegram.Bot.Types.Message> ProcessImage(long chatId, int messageId, int? replyToMessagemessageId,
         long userId, string? messageText, string filePath, CancellationToken cancellationToken)
     {
-        var results = await _chatGptService.CreateImageEditAsync(chatId, userId, filePath, messageText);
+        var results = await _chatService.CreateImageEditAsync(chatId, userId, filePath, messageText);
         var sb = new StringBuilder();
         foreach (var image in results.Where(p => !string.IsNullOrWhiteSpace(p)))
         {
@@ -194,7 +192,7 @@ public class MessageProcessor : BaseService
 
     internal async Task<(bool, string)> SelectGPTModel(string? modelName)
     {
-        return await _chatGptService.SetGPTModel(modelName);
+        return await _chatService.SetGPTModel(modelName);
     }
 
     private async Task<bool> IsNeedDrawImage(long charId, long userId, string text)
@@ -205,7 +203,7 @@ public class MessageProcessor : BaseService
             return false;
         }
         const string confirmFrase = "скорее да";
-        var isNeewDrawResponce = await _chatGptService.Ask(charId, userId,
+        var isNeewDrawResponce = await _chatService.Ask(charId, userId,
             $"Эта фраза '{text}' содержит просьбу нарисовать что-то? Ответь: '{confirmFrase}, чем нет' или 'скорее нет, чем да'");
         _logger.LogInformation(confirmFrase);
         return isNeewDrawResponce.Contains(confirmFrase, StringComparison.OrdinalIgnoreCase);
@@ -214,7 +212,7 @@ public class MessageProcessor : BaseService
     private async Task<bool> IsVoiceMessageToBot(long charId, long userId, string text)
     {
         const string confirmFrase = "скорее да";
-        string isNeewDrawResponce = await _chatGptService.Ask(charId, userId,
+        string isNeewDrawResponce = await _chatService.Ask(charId, userId,
             $"Эта фраза '{text}' обращена к тебе? Ответь: '{confirmFrase}, чем нет' или 'скорее нет, чем да'");
         _logger.LogInformation($"GPT Bot responce: {isNeewDrawResponce}");
         return isNeewDrawResponce.Contains(confirmFrase, StringComparison.OrdinalIgnoreCase);

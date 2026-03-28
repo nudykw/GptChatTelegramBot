@@ -17,7 +17,7 @@ using ServiceLayer.Services.GptChat.Models;
 
 namespace ServiceLayer.Services.GptChat;
 
-public class ChatGptService : BaseService, IChatService
+internal class ChatGptService : BaseService, IChatService
 {
     private class GptModelCache
     {
@@ -56,17 +56,28 @@ public class ChatGptService : BaseService, IChatService
     };
 
     private readonly OpenAIClient _api;
-    private readonly GptChatConfiguration _gptChatConfiguration;
+    private readonly ChatProviderConfig _chatProviderConfiguration;
     private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
     private readonly IHttpClientFactory _httpClientFactory;
     private static GptModelCache gptModelCache = null;
 
     public ChatGptService(IServiceProvider serviceProvider, ILogger<ChatGptService> logger,
-        AppSettings appSettings, IHttpClientFactory httpClientFactory, OpenAIClient? openAiClient = null)
+        ChatProviderConfig chatProviderConfig, IHttpClientFactory httpClientFactory, OpenAIClient? openAiClient = null)
         : base(serviceProvider, logger)
     {
-        _api = openAiClient ?? new OpenAIClient(appSettings.GptChatConfiguration.APIKey);
-        _gptChatConfiguration = appSettings.GptChatConfiguration;
+        _chatProviderConfiguration = chatProviderConfig;
+        if (openAiClient != null)
+        {
+            _api = openAiClient;
+        }
+        else
+        {
+            var auth = new OpenAIAuthentication(_chatProviderConfiguration.ApiKey);
+            var settings = string.IsNullOrEmpty(_chatProviderConfiguration.BaseUrl) 
+                ? new OpenAISettings() 
+                : new OpenAISettings(domain: _chatProviderConfiguration.BaseUrl);
+            _api = new OpenAIClient(auth, settings);
+        }
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
         _httpClientFactory = httpClientFactory;
         
@@ -128,12 +139,13 @@ public class ChatGptService : BaseService, IChatService
     }
     public async Task<ChatResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
     {
-        ChatRequest chatRequest = new ChatRequest(messages, model:
-            _gptChatConfiguration.ModelName
-            //OpenAI.Models.Model.GPT3_5_Turbo_16K
-            );
+        var modelName = string.IsNullOrEmpty(_chatProviderConfiguration.ModelName) 
+            ? "gpt-4o-mini" 
+            : _chatProviderConfiguration.ModelName;
+
+        ChatRequest chatRequest = new ChatRequest(messages, model: modelName);
         ChatResponse result = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
-        await SaveBilling(_gptChatConfiguration.ModelName, telegramChatId, telegramUserId, result.Usage);
+        await SaveBilling(modelName, telegramChatId, telegramUserId, result.Usage);
         return result;
     }
 
@@ -196,7 +208,7 @@ public class ChatGptService : BaseService, IChatService
         return result;
     }
 
-    internal async Task<IReadOnlyList<string>> CreateImageEditAsync(long chatId, long telegramUserId,
+    public async Task<IReadOnlyList<string>> CreateImageEditAsync(long chatId, long telegramUserId,
         string filePath, string? messageText)
     {
         var imageEditRequest = new ImageEditRequest(
@@ -210,7 +222,7 @@ public class ChatGptService : BaseService, IChatService
         return results;
     }
 
-    internal async Task<(bool, string)> SetGPTModel(string? modelName)
+    public async Task<(bool, string)> SetGPTModel(string? modelName)
     {
         if (string.IsNullOrEmpty(modelName)) return (false, "Пустое название модели");
         try
@@ -224,7 +236,7 @@ public class ChatGptService : BaseService, IChatService
         {
             return (false, ex.Message);
         }
-        _gptChatConfiguration.ModelName = modelName;
+        _chatProviderConfiguration.ModelName = modelName;
         return (true, string.Empty);
     }
 

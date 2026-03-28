@@ -57,10 +57,18 @@ public class ChatGptServiceTests
 
     private ChatGptService CreateService(OpenAIClient? api = null)
     {
+        var config = new ChatProviderConfig
+        {
+            Name = "OpenAI",
+            ProviderType = ChatProviderType.OpenAI,
+            ApiKey = _appSettings.GptChatConfiguration.APIKey,
+            ModelName = _appSettings.GptChatConfiguration.ModelName
+        };
+
         return new ChatGptService(
             _mockServiceProvider.Object,
             _mockLogger.Object,
-            _appSettings,
+            config,
             _mockHttpClientFactory.Object,
             api);
     }

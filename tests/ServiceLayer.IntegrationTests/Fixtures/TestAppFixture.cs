@@ -46,6 +46,17 @@ public class TestAppFixture : IDisposable
         // Add HttpClient for pricing service
         services.AddHttpClient();
 
+        // Register default OpenAI provider config for tests
+        var openAiConfig = appSettings.ChatProviders.FirstOrDefault(p => p.ProviderType == ChatProviderType.OpenAI)
+            ?? new ChatProviderConfig
+            {
+                Name = "OpenAI-Default",
+                ProviderType = ChatProviderType.OpenAI,
+                ApiKey = appSettings.GptChatConfiguration.APIKey,
+                ModelName = appSettings.GptChatConfiguration.ModelName
+            };
+        services.AddSingleton(openAiConfig);
+
         // Add actual service we are testing
         services.AddSingleton<ChatGptService>();
 
