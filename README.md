@@ -6,4 +6,5 @@ The bot lets you chat with an AI via a Telegram bot, ask questions, and generate
 ---
 
 Перед компіляцією проєкту додайте свої ключі до файлу TelegramBotApp/appsettings.sample.json і перейменуйте його на appsettings.json
+
 Before compiling the project, add your keys to the TelegramBotApp/appsettings.sample.json file and rename it to appsettings.json
