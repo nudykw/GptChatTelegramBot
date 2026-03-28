@@ -6,6 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ServiceLayer.Services;
 using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.MessageProcessor;
+using Telegram.Bot;
+using Telegram.Bot.Requests;
+using Moq;
 
 namespace ServiceLayer.IntegrationTests.Fixtures;
 

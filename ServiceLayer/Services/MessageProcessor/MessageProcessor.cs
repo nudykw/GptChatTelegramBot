@@ -94,6 +94,9 @@ public class MessageProcessor : BaseService
         }
         string toSendText = string.Empty;
         string responceText = string.Empty;
+        string? usedProviderName = null;
+        string? usedModelName = null;
+
         if (await IsNeedDrawImage(chatId, fromUserId, message))
         {
             var botInfo = await _telegramBotClient.GetMe();
@@ -119,7 +122,7 @@ public class MessageProcessor : BaseService
             var sb = new StringBuilder();
             foreach (var choice in gptChatResponce.Choices)
             {
-                sb.AppendLine(choice.Message.ToString());
+                sb.AppendLine(choice);
             }
             responceText = sb.ToString();
             _logger.LogInformation("Message from gpt: {0}", responceText);
@@ -129,7 +132,9 @@ public class MessageProcessor : BaseService
                 responceText = responceText.ConvertMarkdownToHtml();
                 responceText = responceText.ConvertHtmlToTelegramHtml();
                 sb.AppendLine(responceText);
-                sb.AppendLine($"<i><u>Usage:</u>{gptChatResponce.Usage?.TotalTokens}</i>");
+                sb.AppendLine($"<i><u>Provider:</u> {gptChatResponce.ProviderName}</i>");
+                sb.AppendLine($"<i><u>Model:</u> {gptChatResponce.ModelName}</i>");
+                sb.AppendLine($"<i><u>Usage:</u> {gptChatResponce.TotalTokens}</i>");
             }
             else
             {
@@ -137,10 +142,13 @@ public class MessageProcessor : BaseService
                 responceHtml = responceHtml.ConvertHtmlToTelegramHtml();
                 responceText = responceHtml.ConvertHtmlToMarkdown();
                 sb.AppendLine(responceText);
-                sb.AppendLine($"Usage:{gptChatResponce.Usage?.TotalTokens}");
+                sb.AppendLine($"Provider: {gptChatResponce.ProviderName}");
+                sb.AppendLine($"Model: {gptChatResponce.ModelName}");
+                sb.AppendLine($"Usage: {gptChatResponce.TotalTokens}");
             }
             toSendText = sb.ToString();
-
+            usedProviderName = gptChatResponce.ProviderName;
+            usedModelName = gptChatResponce.ModelName;
         }
         var telegramResponce = await _telegramBotClient.SendMessage(
                 chatId: chatId,
@@ -157,7 +165,9 @@ public class MessageProcessor : BaseService
             ModifiedDate = DateTime.UtcNow,
             ParentMessageId = telegramResponce.ReplyToMessage.MessageId,
             RoleId = (int)OpenAI.Role.Assistant,
-            Text = responceText
+            Text = responceText,
+            ProviderName = usedProviderName,
+            ModelName = usedModelName
         };
         _historyMessageRepository.Add(historyMessage);
         await _historyMessageRepository.SaveChanges();

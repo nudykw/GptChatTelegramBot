@@ -154,15 +154,17 @@ public class ChatGptServiceTests
 
         // Assert
         Assert.NotNull(response);
-        Assert.Equal("gpt-4o-mini", response.Model);
-        Assert.Equal(30, response.Usage.TotalTokens);
+        Assert.Equal("gpt-4o-mini", response.ModelName);
+        Assert.Equal(30, response.TotalTokens);
+        Assert.Equal("OpenAI", response.ProviderName);
 
         _mockBillingRepository.Verify(r => r.Add(It.Is<GptBilingItem>(item => 
             item.TelegramChatInfoId == 123 && 
             item.TelegramUserInfoId == 456 && 
             item.PromptTokens == 10 && 
             item.CompletionTokens == 20 && 
-            item.TotalTokens == 30)), Times.Once);
+            item.TotalTokens == 30 &&
+            item.ProviderName == "OpenAI")), Times.Once);
     }
 
     [Fact]

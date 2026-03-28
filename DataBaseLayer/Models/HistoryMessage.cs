@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DataBaseLayer.Models
@@ -17,5 +17,7 @@ namespace DataBaseLayer.Models
         public required DateTime ModifiedDate { get; set; }
         public required string Text { get; set; }
         public string? FromUserName { get; set; }
+        public string? ProviderName { get; set; }
+        public string? ModelName { get; set; }
     }
 }

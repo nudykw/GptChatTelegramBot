@@ -60,7 +60,7 @@ public class ResilientChatService : IChatService
     public Task<IReadOnlyList<Model>> GetAvailibleModels()
         => ExecuteWithFallback(s => s.GetAvailibleModels(), nameof(GetAvailibleModels));
 
-    public Task<ChatResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
+    public Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
         => ExecuteWithFallback(s => s.SendMessages2ChatAsync(telegramChatId, telegramUserId, messages), nameof(SendMessages2ChatAsync));
 
     public Task<IReadOnlyList<string>> GenerateImage(long chatId, long telegramUserId, string prompt)

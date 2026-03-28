@@ -53,6 +53,7 @@ public class ChatGptServiceTests : IClassFixture<TestAppFixture>
         Assert.NotNull(billingItem);
         Assert.True(billingItem.TotalTokens > 0);
         Assert.True(billingItem.Cost > 0);
+        Assert.NotNull(billingItem.ProviderName);
     }
 
     [Fact]
@@ -67,13 +68,14 @@ public class ChatGptServiceTests : IClassFixture<TestAppFixture>
         // Assert
         Assert.NotNull(response);
         Assert.NotEmpty(response.Choices);
-        Assert.Contains("Hello User", response.Choices[0].Message.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Hello User", response.Choices[0], StringComparison.OrdinalIgnoreCase);
 
         // Verify Billing
         var billingItems = _billingRepository.GetAll().ToList();
         var billingItem = billingItems.LastOrDefault(p => p.TelegramChatInfoId == _testChatId);
         Assert.NotNull(billingItem);
         Assert.Equal("gpt-4o-mini", billingItem.ModelName);
+        Assert.NotNull(billingItem.ProviderName);
     }
 
     [Fact]

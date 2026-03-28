@@ -124,20 +124,20 @@ internal class ChatGptService : BaseService, IChatService
     }
     public async Task<string> Ask(long chatId, long userId, string message)
     {
-        var chatResponce = await SendMessages2ChatAsync(chatId, userId, new List<Message>()
+        var chatServiceResponce = await SendMessages2ChatAsync(chatId, userId, new List<Message>()
         {
             new Message(Role.User, message)
         });
         _logger.LogInformation("Usage for ask '{0}: {1}", message,
-            chatResponce.Usage?.TotalTokens);
+            chatServiceResponce.TotalTokens);
         var sb = new StringBuilder();
-        foreach (var responce in chatResponce.Choices)
+        foreach (var choice in chatServiceResponce.Choices)
         {
-            sb.AppendLine(responce.Message.ToString());
+            sb.AppendLine(choice);
         }
         return sb.ToString();
     }
-    public async Task<ChatResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
+    public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
     {
         var modelName = string.IsNullOrEmpty(_chatProviderConfiguration.ModelName) 
             ? "gpt-4o-mini" 
@@ -145,11 +145,17 @@ internal class ChatGptService : BaseService, IChatService
 
         ChatRequest chatRequest = new ChatRequest(messages, model: modelName);
         ChatResponse result = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
-        await SaveBilling(modelName, telegramChatId, telegramUserId, result.Usage);
-        return result;
+        await SaveBilling(modelName, _chatProviderConfiguration.Name, telegramChatId, telegramUserId, result.Usage);
+        return new ChatServiceResponse
+        {
+            Choices = result.Choices.Select(p => p.Message.ToString()).ToList(),
+            TotalTokens = result.Usage?.TotalTokens,
+            ProviderName = _chatProviderConfiguration.Name,
+            ModelName = modelName
+        };
     }
 
-    private async Task SaveBilling(string modelName, long telegramChatId, long telegramUserId, GptUsage usage)
+    private async Task SaveBilling(string modelName, string providerName, long telegramChatId, long telegramUserId, GptUsage usage)
     {
         if ((DateTime.UtcNow - _lastPriceUpdate).TotalHours > 24)
         {
@@ -175,6 +181,7 @@ internal class ChatGptService : BaseService, IChatService
             CompletionTokens = usage.CompletionTokens,
             TotalTokens = usage.TotalTokens,
             Cost = cost,
+            ProviderName = providerName
         };
         _gptBilingItemRepository.Add(dbGptBilingItem);
         await _gptBilingItemRepository.SaveChanges();
@@ -187,7 +194,7 @@ internal class ChatGptService : BaseService, IChatService
         IReadOnlyList<ImageResult> imageResults = await _api.ImagesEndPoint.GenerateImageAsync(request);
         _logger.LogInformation("Use model: {0} for generate image", request.Model);
         var results = imageResults.Select(p => p.Url).ToList();
-        await SaveBilling(request.Model, chatId, telegramUserId, new GptUsage(0, 1, 1));
+        await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, new GptUsage(0, 1, 1));
         return results;
     }
     public async Task<string> AudioTranscription(long chatId, long telegramUserId,
@@ -204,7 +211,7 @@ internal class ChatGptService : BaseService, IChatService
             temperature: (float?)temperature,
             language: language);
         string result = await _api.AudioEndpoint.CreateTranscriptionTextAsync(request);
-        await SaveBilling(request.Model, chatId, telegramUserId, new GptUsage(0, 1, 1));
+        await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, new GptUsage(0, 1, 1));
         return result;
     }
 
