@@ -222,7 +222,7 @@ public class ChatGptServiceTests
         var service = CreateService(api);
 
         // Act
-        var result = await service.GetAvailibleModels();
+        var result = await service.GetAvailibleModels(1);
 
         // Assert
         Assert.NotNull(result);

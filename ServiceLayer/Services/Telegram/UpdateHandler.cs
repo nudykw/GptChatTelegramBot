@@ -23,6 +23,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 {
     const string botCommandBilling = "/billing";
     const string botCommandModel = "/model";
+    const string botCommandProvider = "/provider";
 
     private readonly ITelegramBotClient _botClient;
     private readonly User _botInfo;
@@ -107,6 +108,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         {
             botCommandBilling => SendBillingInlineKeyboard(_botClient, message, cancellationToken),
             botCommandModel => SendInlineKeyboard(_botClient, message, cancellationToken),
+            botCommandProvider => SendProviderInlineKeyboard(_botClient, message, cancellationToken),
             "/restart" => FailingHandler(_botClient, message, cancellationToken),
 
             "/keyboard" => SendReplyKeyboard(_botClient, message, cancellationToken),
@@ -133,7 +135,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 action: ChatAction.Typing,
                 cancellationToken: cancellationToken);
             IReadOnlyList<OpenAI.Models.Model> gptModels = await ActionWithShowTypeng(message.Chat.Id, cancellationToken,
-                _messageProcessor.GetGPTModels());
+                _messageProcessor.GetGPTModels(message.From.Id));
 
             var choises = new List<List<InlineKeyboardButton>>();
             var choisesRow = new List<InlineKeyboardButton>();
@@ -214,6 +216,38 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 replyMarkup: replyMarkup,
                 cancellationToken: cancellationToken);
             return result;
+        }
+
+        async Task<Message> SendProviderInlineKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        {
+            await botClient.SendChatAction(
+                chatId: message.Chat.Id,
+                action: ChatAction.Typing,
+                cancellationToken: cancellationToken);
+
+            var choises = new List<List<InlineKeyboardButton>>();
+            
+            foreach (ChatStrategy strategy in Enum.GetValues(typeof(ChatStrategy)))
+            {
+                string text = strategy switch
+                {
+                    ChatStrategy.Auto => "🔄 Автоматическая ротация",
+                    ChatStrategy.OpenAI => "OpenAI",
+                    ChatStrategy.Gemini => "Gemini",
+                    _ => strategy.ToString()
+                };
+                choises.Add(new List<InlineKeyboardButton> { InlineKeyboardButton.WithCallbackData(text, $"{botCommandProvider}:{(int)strategy}") });
+            }
+
+            InlineKeyboardMarkup replyMarkup = new(choises);
+            return await botClient.SendMessage(
+                chatId: message.Chat.Id,
+                text: "Выберите стратегию работы с провайдерами:\n\n" +
+                      "🔄 *Автоматическая ротация* — бот сам выбирает доступный сервис.\n" +
+                      "🎯 *Конкретный провайдер* — бот будет использовать только выбранный сервис (без переключений при ошибках).",
+                replyMarkup: replyMarkup,
+                parseMode: ParseMode.Markdown,
+                cancellationToken: cancellationToken);
         }
 
         static async Task<Message> SendReplyKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
@@ -506,7 +540,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         string data = splitData[1];
         if (originalMessageType == botCommandModel)
         {
-            var (isSuckes, errorMessage) = await _messageProcessor.SelectGPTModel(data);
+            var (isSuckes, errorMessage) = await _messageProcessor.SelectGPTModel(data, callbackQuery.From.Id);
             if (!isSuckes)
             {
                 await _botClient.AnswerCallbackQuery(
@@ -529,6 +563,36 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 chatId: callbackQuery.Message!.Chat.Id,
                 text: $"Выбрана модель: {data}",
                 cancellationToken: cancellationToken);
+            return;
+        }
+        if (originalMessageType == botCommandProvider)
+        {
+            if (Enum.TryParse<ChatStrategy>(data, out var strategy))
+            {
+                await _messageProcessor.SetPreferredProvider(callbackQuery.From.Id, strategy);
+                
+                string strategyName = strategy switch
+                {
+                    ChatStrategy.Auto => "🔄 Автоматическая ротация",
+                    ChatStrategy.OpenAI => "OpenAI",
+                    ChatStrategy.Gemini => "Gemini",
+                    _ => strategy.ToString()
+                };
+
+                string responseText = strategy == ChatStrategy.Auto 
+                    ? $"Установлена стратегия: {strategyName}." 
+                    : $"Установлена стратегия: 🎯 Только {strategyName}.";
+
+                await _botClient.AnswerCallbackQuery(
+                    callbackQueryId: callbackQuery.Id,
+                    text: responseText,
+                    cancellationToken: cancellationToken);
+
+                await _botClient.SendMessage(
+                    chatId: callbackQuery.Message!.Chat.Id,
+                    text: responseText,
+                    cancellationToken: cancellationToken);
+            }
             return;
         }
         if (originalMessageType == botCommandBilling)

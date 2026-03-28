@@ -84,7 +84,7 @@ internal class ChatGptService : BaseService, IChatService
         // Initial async update
         _ = RefreshModelPricesAsync();
     }
-    public async Task<IReadOnlyList<Model>> GetAvailibleModels()
+    public async Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null)
     {
         IReadOnlyList<Model> modelsResponce = await _api.ModelsEndpoint.GetModelsAsync();
         var result = new List<Model>();
@@ -229,7 +229,7 @@ internal class ChatGptService : BaseService, IChatService
         return results;
     }
 
-    public async Task<(bool, string)> SetGPTModel(string? modelName)
+    public async Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null)
     {
         if (string.IsNullOrEmpty(modelName)) return (false, "Пустое название модели");
         try

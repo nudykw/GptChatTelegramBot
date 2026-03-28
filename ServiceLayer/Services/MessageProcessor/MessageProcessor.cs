@@ -174,9 +174,9 @@ public class MessageProcessor : BaseService
         return responceText;
     }
 
-    internal async Task<IReadOnlyList<OpenAI.Models.Model>> GetGPTModels()
+    internal async Task<IReadOnlyList<OpenAI.Models.Model>> GetGPTModels(long userId)
     {
-        IReadOnlyList<OpenAI.Models.Model> result = await _chatService.GetAvailibleModels();
+        IReadOnlyList<OpenAI.Models.Model> result = await _chatService.GetAvailibleModels(userId);
         return result;
     }
 
@@ -200,9 +200,21 @@ public class MessageProcessor : BaseService
         return telegramResponce;
     }
 
-    internal async Task<(bool, string)> SelectGPTModel(string? modelName)
+    internal async Task<(bool, string)> SelectGPTModel(string? modelName, long userId)
     {
-        return await _chatService.SetGPTModel(modelName);
+        return await _chatService.SetGPTModel(modelName, userId);
+    }
+
+    internal async Task SetPreferredProvider(long userId, ChatStrategy strategy)
+    {
+        var userRepository = _serviceProvider.GetRequiredService<IRepository<TelegramUserInfo>>();
+        var user = await userRepository.Get(p => p.Id == userId);
+        if (user != null)
+        {
+            user.PreferredProvider = strategy;
+            userRepository.Update(user);
+            await userRepository.SaveChanges();
+        }
     }
 
     private async Task<bool> IsNeedDrawImage(long charId, long userId, string text)

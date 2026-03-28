@@ -1,0 +1,9 @@
+namespace DataBaseLayer.Models
+{
+    public enum ChatStrategy
+    {
+        Auto = 0,
+        OpenAI = 1,
+        Gemini = 2
+    }
+}

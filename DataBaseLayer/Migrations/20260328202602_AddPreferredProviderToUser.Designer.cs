@@ -3,6 +3,7 @@ using System;
 using DataBaseLayer.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataBaseLayer.Migrations
 {
     [DbContext(typeof(SqlLiteContext))]
-    partial class SqlLiteContextModelSnapshot : ModelSnapshot
+    [Migration("20260328202602_AddPreferredProviderToUser")]
+    partial class AddPreferredProviderToUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -154,8 +157,9 @@ namespace DataBaseLayer.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("PreferredProvider")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("PreferredProvider")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Username")
                         .HasMaxLength(128)

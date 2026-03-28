@@ -43,7 +43,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             return result ?? string.Empty;
         }
 
-        public Task<IReadOnlyList<Model>> GetAvailibleModels()
+        public Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null)
         {
             IReadOnlyList<Model> result = new List<Model>() { new Model(GeminiModelName) };
             return Task.FromResult(result);
@@ -112,7 +112,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             throw new NotSupportedException("Gemini provider does not support image editing yet.");
         }
 
-        public async Task<(bool, string)> SetGPTModel(string? modelName)
+        public async Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null)
         {
             if (string.IsNullOrEmpty(modelName)) return (false, "Пустое название модели");
             _apiConfiguration.ModelName = modelName;

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -21,5 +21,6 @@ namespace DataBaseLayer.Models
         [MaxLength(128)]
         public string? Username { get; set; }
         public bool? IsPremium { get; set; }
+        public ChatStrategy PreferredProvider { get; set; }
     }
 }
