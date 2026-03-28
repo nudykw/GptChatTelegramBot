@@ -1,0 +1,11 @@
+/.vs
+bin/
+obj/
+TelegramBotApp/Properties/PublishProfiles/FolderProfile.pubxml.user
+TelegramBotApp/StoreContext.db
+/.vscode
+appsettings.json
+TelegramBotApp/Properties/PublishProfiles/FolderProfile.pubxml
+TelegramBotApp/Properties/PublishProfiles/FolderProfile.pubxml.user
+TelegramBotApp/Publish.cmd
+TelegramBotApp/Publish.sh
