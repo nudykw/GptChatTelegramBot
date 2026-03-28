@@ -1,22 +1,25 @@
-using GeminiChat.DotNet;
+using Google.GenAI;
+using Google.GenAI.Types;
 using Microsoft.Extensions.Logging;
-using OpenAI;
 using OpenAI.Audio;
 using OpenAI.Chat;
-using OpenAI.Models;
 using ServiceLayer.Services.GeminiChat.DotNet.Configurations;
 using ServiceLayer.Services.GptChat;
-using Content = GeminiChat.DotNet.Content;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using Microsoft.Extensions.DependencyInjection;
+using ServiceLayer.Constans;
+using Model = OpenAI.Models.Model;
+using GoogleContent = Google.GenAI.Types.Content;
+using GooglePart = Google.GenAI.Types.Part;
+using OpenAI;
 
 namespace ServiceLayer.Services.GeminiChat.DotNet
 {
     internal class ChatGeminiService : BaseService, IChatService
     {
         private ChatProviderConfig _apiConfiguration;
-        private GeminiClient _client;
+        private Client _client;
         private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
 
         public ChatGeminiService(IServiceProvider serviceProvider, ILogger<ChatGeminiService> logger,
@@ -24,55 +27,63 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             : base(serviceProvider, logger)
         {
             _apiConfiguration = chatProviderConfig;
-            var modelName = string.IsNullOrEmpty(_apiConfiguration.ModelName)
-                ? AiModel.GeminiPro
-                : _apiConfiguration.ModelName;
-            _client = new GeminiClient(_apiConfiguration.ApiKey, modelName, _apiConfiguration.BaseUrl);
+            
+            // Note: Official SDK handles endpoints. If BaseUrl is needed, 
+            // it would typically be configured via ClientOptions if supported.
+            _client = new Client(apiKey: _apiConfiguration.ApiKey);
             _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
         }
 
+        private string GetModelName() => string.IsNullOrEmpty(_apiConfiguration.ModelName) 
+            ? (string)AiModel.GeminiFlash 
+            : _apiConfiguration.ModelName;
+
         public async Task<string> Ask(long chatId, long userId, string message)
         {
-            var contents = new List<Content>() { new Content { Role = MessageRole.User, Parts = new List<Part>() { new() { Text = message } } } };
-            var conversation = new GeminiRequest()
-            {
-                Contents = contents
-            };
-            var result = await _client.PostAsync(conversation);
-            return result ?? string.Empty;
+            var modelName = GetModelName();
+            var response = await _client.Models.GenerateContentAsync(modelName, message);
+            
+            if (response.UsageMetadata != null)
+                await SaveBilling(modelName, _apiConfiguration.Name, chatId, userId, response.UsageMetadata);
+            
+            return response.Text ?? string.Empty;
         }
 
         public Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null)
         {
-            IReadOnlyList<Model> result = new List<Model>() { new Model(AiModel.GeminiPro) };
+            IReadOnlyList<Model> result = new List<Model>() 
+            { 
+                new Model(AiModel.GeminiPro),
+                new Model(AiModel.GeminiFlash)
+            };
             return Task.FromResult(result);
         }
 
         public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
         {
-            var contents = messages.Select(p => new Content
-            {
-                Role = p.Role == Role.User ? MessageRole.User : MessageRole.Model,
-                Parts = new List<Part>() { new() { Text = p.Content } }
-            }).ToList();
-            var conversation = new GeminiRequest()
-            {
-                Contents = contents
-            };
-            var result = await _client.PostAsync(conversation);
-            var modelName = string.IsNullOrEmpty(_apiConfiguration.ModelName) ? AiModel.GeminiPro : _apiConfiguration.ModelName;
+            var modelName = GetModelName();
             
-            await SaveBilling(modelName, _apiConfiguration.Name, telegramChatId, telegramUserId);
+            var contents = messages.Select(m => new GoogleContent
+            {
+                Role = m.Role == Role.User ? "user" : "model",
+                Parts = new List<GooglePart> { new GooglePart { Text = m.Content } }
+            }).ToList();
+
+            // Last message is the user prompt in GenerateContentAsync, or we can use the contents list directly
+            var response = await _client.Models.GenerateContentAsync(modelName, contents);
+            
+            if (response.UsageMetadata != null)
+                await SaveBilling(modelName, _apiConfiguration.Name, telegramChatId, telegramUserId, response.UsageMetadata);
 
             return new ChatServiceResponse
             {
-                Choices = new List<string> { result },
+                Choices = new List<string> { response.Text ?? string.Empty },
                 ProviderName = _apiConfiguration.Name,
                 ModelName = modelName
             };
         }
 
-        private async Task SaveBilling(string modelName, string providerName, long telegramChatId, long telegramUserId)
+        private async Task SaveBilling(string modelName, string providerName, long telegramChatId, long telegramUserId, GenerateContentResponseUsageMetadata usage)
         {
             if (_gptBilingItemRepository == null) return;
 
@@ -84,11 +95,10 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
                 ModifiedDate = DateTime.UtcNow,
                 TelegramChatInfoId = telegramChatId,
                 TelegramUserInfoId = telegramUserId,
-                // Gemini currently doesn't expose tokens in this basic client
-                PromptTokens = 0,
-                CompletionTokens = 0,
-                TotalTokens = 0,
-                Cost = 0
+                PromptTokens = usage.PromptTokenCount,
+                CompletionTokens = usage.CandidatesTokenCount,
+                TotalTokens = usage.TotalTokenCount,
+                Cost = 0 // Cost calculation can be added if price mapping is available
             };
             _gptBilingItemRepository.Add(dbGptBilingItem);
             await _gptBilingItemRepository.SaveChanges();
@@ -115,9 +125,9 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         {
             if (string.IsNullOrEmpty(modelName)) return (false, "Пустое название модели");
             _apiConfiguration.ModelName = modelName;
-            _client = new GeminiClient(_apiConfiguration.ApiKey, modelName, _apiConfiguration.BaseUrl);
             return (true, string.Empty);
         }
     }
 }
+
 

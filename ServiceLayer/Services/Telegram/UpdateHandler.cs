@@ -34,7 +34,6 @@ public class UpdateHandler : BaseService, IUpdateHandler
     {
         {AiModel.Gpt4Turbo,  "$0.01/$0.03"},
         {AiModel.Gpt4o,  "$0.01/$0.03"},
-        {AiModel.Gpt4,  "$0.03/$0.06"},
         {"gpt-4-32k",  "$0.06/$0.12"},
         {"gpt-3.5-turbo-1106",  "$0.001/$0.002"},
         {AiModel.Gpt35Turbo,  "$0.0015/$0.002"},

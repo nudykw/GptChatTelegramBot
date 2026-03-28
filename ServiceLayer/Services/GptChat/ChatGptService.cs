@@ -141,7 +141,7 @@ internal class ChatGptService : BaseService, IChatService
     public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
     {
         var modelName = string.IsNullOrEmpty(_chatProviderConfiguration.ModelName) 
-            ? AiModel.Gpt4oMini 
+            ? (string)AiModel.Gpt4oMini 
             : _chatProviderConfiguration.ModelName;
 
         ChatRequest chatRequest = new ChatRequest(messages, model: modelName);
