@@ -1,4 +1,4 @@
-﻿using DataBaseLayer.Models;
+using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -95,7 +95,7 @@ public class ChatGptService : BaseService, IChatService
             new Message(Role.User, message)
         });
         _logger.LogInformation("Usage for asc '{0}: {1}", message,
-            chatResponce.GetUsage());
+            chatResponce.Usage?.TotalTokens);
         var sb = new StringBuilder();
         foreach (var responce in chatResponce.Choices)
         {
@@ -151,24 +151,13 @@ public class ChatGptService : BaseService, IChatService
         string prompt = null, AudioResponseFormat responseFormat = AudioResponseFormat.Json,
         int? temperature = null, string language = null)
     {
-        var request = new AudioTranscriptionRequest(audio, audioName, model, prompt, responseFormat,
-            temperature, language);
-        string result = await _api.AudioEndpoint.CreateTranscriptionTextAsync(request);
-        await SaveBilling(request.Model, chatId, telegramUserId, new GptUsage(0, 1, 1));
-        return result;
+        throw new NotImplementedException("AudioTranscription API was updated in OpenAI-DotNet v8.8.8 and requires a refactor.");
     }
 
     internal async Task<IReadOnlyList<string>> CreateImageEditAsync(long chatId, long telegramUserId,
-        string filePath, string? messageText, ImageSize imageSize)
+        string filePath, string? messageText)
     {
-        //ImageEditRequest request = new ImageEditRequest(filePath, messageText, size: imageSize);
-        var imageEditRequest = new ImageEditRequest(filePath, filePath, messageText, size: imageSize);
-        var imagesResults =
-            //await _api.ImagesEndPoint.CreateImageEditAsync(filePath, filePath, messageText, size: imageSize);
-            await _api.ImagesEndPoint.CreateImageEditAsync(imageEditRequest);
-        //await SaveBilling(request.Model, chatId, telegramUserId, new Usage(0, 1, 1));
-        var results = imagesResults.Select(p => p.Url).ToList();
-        return results;
+        throw new NotImplementedException("ImageEditRequest API was updated in OpenAI-DotNet v8.8.8 and requires a refactor.");
     }
 
     internal async Task<(bool, string)> SetGPTModel(string? modelName)

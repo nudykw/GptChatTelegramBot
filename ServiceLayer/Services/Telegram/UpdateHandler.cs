@@ -1,4 +1,4 @@
-﻿using DataBaseLayer.Models;
+using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,7 +47,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         : base(serviceProvider, logger)
     {
         _botClient = botClient;
-        _botInfo = botClient.GetMeAsync().Result;
+        _botInfo = botClient.GetMe().Result;
         _messageProcessor = messageProcessor;
         _audioTranscriptorService = audioTranscriptorService;
         _telegramChatInfoRepository = _serviceProvider.GetService<IRepository<TelegramChatInfo>>();
@@ -87,9 +87,9 @@ public class UpdateHandler : BaseService, IUpdateHandler
         if (voiceMessage != null)
         {
             message.Text = voiceMessage;
-            _botClient.SendTextMessageAsync(
+            _botClient.SendMessage(
             chatId: message.Chat.Id,
-            replyToMessageId: message.MessageId,
+            replyParameters: new ReplyParameters() { MessageId = message.MessageId },
             text: $"Вы сказали: {voiceMessage}",
             cancellationToken: cancellationToken);
         }
@@ -128,9 +128,9 @@ public class UpdateHandler : BaseService, IUpdateHandler
         // You can process responses in BotOnCallbackQueryReceived handler
         async Task<Message> SendInlineKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
-            await botClient.SendChatActionAsync(
+            await botClient.SendChatAction(
                 chatId: message.Chat.Id,
-                chatAction: ChatAction.Typing,
+                action: ChatAction.Typing,
                 cancellationToken: cancellationToken);
             IReadOnlyList<OpenAI.Models.Model> gptModels = await ActionWithShowTypeng(message.Chat.Id, cancellationToken,
                 _messageProcessor.GetGPTModels());
@@ -165,7 +165,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
 
             InlineKeyboardMarkup replyMarkup = new(choises);
-            var result = await botClient.SendTextMessageAsync(
+            var result = await botClient.SendMessage(
                 chatId: message.Chat.Id,
                 text: "Выберите модель для ответов:",
                 replyMarkup: replyMarkup,
@@ -175,9 +175,9 @@ public class UpdateHandler : BaseService, IUpdateHandler
         }
         async Task<Message> SendBillingInlineKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
-            await botClient.SendChatActionAsync(
+            await botClient.SendChatAction(
                 chatId: message.Chat.Id,
-                chatAction: ChatAction.Typing,
+                action: ChatAction.Typing,
                 cancellationToken: cancellationToken);
             var dates = _gptBilingItemRepository
             .GetAll()
@@ -208,7 +208,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
 
             InlineKeyboardMarkup replyMarkup = new(choises);
-            Message result = await botClient.SendTextMessageAsync(
+            Message result = await botClient.SendMessage(
                 chatId: message.Chat.Id,
                 text: "Выберите дату за которую нужно отобразить билинг:",
                 replyMarkup: replyMarkup,
@@ -228,7 +228,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 ResizeKeyboard = true
             };
 
-            return await botClient.SendTextMessageAsync(
+            return await botClient.SendMessage(
                 chatId: message.Chat.Id,
                 text: "Choose",
                 replyMarkup: replyKeyboardMarkup,
@@ -237,7 +237,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
         static async Task<Message> RemoveKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
-            return await botClient.SendTextMessageAsync(
+            return await botClient.SendMessage(
                 chatId: message.Chat.Id,
                 text: "Removing keyboard",
                 replyMarkup: new ReplyKeyboardRemove(),
@@ -246,7 +246,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
         static async Task<Message> SendFile(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
-            await botClient.SendChatActionAsync(
+            await botClient.SendChatAction(
                 message.Chat.Id,
                 ChatAction.UploadPhoto,
                 cancellationToken: cancellationToken);
@@ -255,7 +255,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             await using FileStream fileStream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             var fileName = filePath.Split(Path.DirectorySeparatorChar).Last();
 
-            return await botClient.SendPhotoAsync(
+            return await botClient.SendPhoto(
                 chatId: message.Chat.Id,
                 photo: new InputFileStream(fileStream, fileName),
                 caption: "Nice Picture",
@@ -271,7 +271,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     KeyboardButton.WithRequestContact("Contact"),
                 });
 
-            return await botClient.SendTextMessageAsync(
+            return await botClient.SendMessage(
                 chatId: message.Chat.Id,
                 text: "Who or Where are you?",
                 replyMarkup: RequestReplyKeyboard,
@@ -288,7 +288,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                                  "/request     - request location or contact\n" +
                                  "/inline_mode - send keyboard with Inline Query";
 
-            return await botClient.SendTextMessageAsync(
+            return await botClient.SendMessage(
                 chatId: message.Chat.Id,
                 text: usage,
                 replyMarkup: new ReplyKeyboardRemove(),
@@ -306,13 +306,13 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
             if (message.Document != null && message.Document.MimeType.Contains("image"))
             {
-                global::Telegram.Bot.Types.File file = await botClient.GetFileAsync(message.Document.FileId);
+                var file = await botClient.GetFile(message.Document.FileId);
                 using (TempFileCollection tempFiles = new TempFileCollection())
                 {
                     string temFileName = tempFiles.AddExtension(Path.GetExtension(message.Document.FileName));
                     using (var tempFileStream = new FileStream(temFileName, FileMode.Create))
                     {
-                        await botClient.DownloadFileAsync(temFileName, tempFileStream);
+                        await botClient.DownloadFile(temFileName, tempFileStream);
                         tempFileStream.Close();
                     }
                     await ActionWithShowTypeng(message.Chat.Id, cancellationToken, _messageProcessor.ProcessImage(message.Chat.Id,
@@ -327,7 +327,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             if (message.Photo != null)
             {
                 var photo = message.Photo.Last(p => p.FileSize < 4 * 1024000);
-                global::Telegram.Bot.Types.File file = await botClient.GetFileAsync(photo.FileId);
+                var file = await botClient.GetFile(photo.FileId);
                 using (TempFileCollection tempFiles = new TempFileCollection())
                 {
                     string temFileName = tempFiles.AddExtension("png");
@@ -337,7 +337,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                         {
                             using (var telegramImageStream = new MemoryStream())
                             {
-                                await botClient.DownloadFileAsync(file.FilePath, telegramImageStream);
+                                await botClient.DownloadFile(file.FilePath, telegramImageStream);
                                 telegramImageStream.Flush();
                                 telegramImageStream.Seek(0, SeekOrigin.Begin);
                                 using (var image = Image.Load<Rgba32>(telegramImageStream))
@@ -368,7 +368,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     cancellationToken));
             return null;
             /*
-            return await botClient.SendTextMessageAsync(
+            return await botClient.SendMessage(
                 chatId: message.Chat.Id,
                 text: responce,
                 replyMarkup: new ReplyKeyboardRemove(),
@@ -381,12 +381,12 @@ public class UpdateHandler : BaseService, IUpdateHandler
             if (message.Voice != null)
             {
                 Voice voiceMessage = message.Voice;
-                global::Telegram.Bot.Types.File file = await botClient.GetFileAsync(voiceMessage.FileId);
+                var file = await botClient.GetFile(voiceMessage.FileId);
                 var voiceFilePath = $"{voiceMessage.FileId}.ogg";
 
                 using (var saveVoiceStream = new FileStream(voiceFilePath, FileMode.Create))
                 {
-                    await botClient.DownloadFileAsync(file.FilePath, saveVoiceStream);
+                    await botClient.DownloadFile(file.FilePath, saveVoiceStream);
                     saveVoiceStream.Seek(0, SeekOrigin.Begin);
                     var messageText = await _audioTranscriptorService
                         .AudioTranscription(message.Chat.Id, message.From.Id, saveVoiceStream, voiceFilePath);
@@ -400,7 +400,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             InlineKeyboardMarkup inlineKeyboard = new(
                 InlineKeyboardButton.WithSwitchInlineQueryCurrentChat("Inline Mode"));
 
-            return await botClient.SendTextMessageAsync(
+            return await botClient.SendMessage(
                 chatId: message.Chat.Id,
                 text: "Press the button to start Inline Query",
                 replyMarkup: inlineKeyboard,
@@ -427,8 +427,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
             {
                 Id = chat.Id,
                 ChatType = chat.Type.ToString(),
-                Description = chat.Description,
-                InviteLink = chat.InviteLink,
+                Description = null,
+                InviteLink = null,
                 Title = chat.Title,
                 Username = chat.Username
             };
@@ -509,23 +509,23 @@ public class UpdateHandler : BaseService, IUpdateHandler
             var (isSuckes, errorMessage) = await _messageProcessor.SelectGPTModel(data);
             if (!isSuckes)
             {
-                await _botClient.AnswerCallbackQueryAsync(
+                await _botClient.AnswerCallbackQuery(
                     callbackQueryId: callbackQuery.Id,
                     text: $"Не удалось выбрать модель: {data}. {errorMessage}",
                     cancellationToken: cancellationToken);
 
-                await _botClient.SendTextMessageAsync(
+                await _botClient.SendMessage(
                     chatId: callbackQuery.Message!.Chat.Id,
                     text: $"Не удалось выбрать: {data}. {errorMessage}",
                     cancellationToken: cancellationToken);
                 return;
             }
-            await _botClient.AnswerCallbackQueryAsync(
+            await _botClient.AnswerCallbackQuery(
                 callbackQueryId: callbackQuery.Id,
                 text: $"Выбрана модель: {data}",
                 cancellationToken: cancellationToken);
 
-            await _botClient.SendTextMessageAsync(
+            await _botClient.SendMessage(
                 chatId: callbackQuery.Message!.Chat.Id,
                 text: $"Выбрана модель: {data}",
                 cancellationToken: cancellationToken);
@@ -538,13 +538,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             var endData = startData.AddMonths(1);
 
             var billingUsersIds = new List<long>() { callbackQuery.Message.From.Id };
-            if (callbackQuery.Message.Chat.ActiveUsernames != null && callbackQuery.Message.Chat.ActiveUsernames.Any())
-            {
-                foreach (var ativeUser in callbackQuery.Message.Chat.ActiveUsernames)
-                {
-                    _logger.LogInformation($"Active User: {ativeUser}");
-                }
-            }
+            // ActiveUsernames properties no longer exist on Chat
             var bilingByUsers = _gptBilingItemRepository.GetAll()
                 .AsNoTracking()
                 .Include(p => p.TelegramUserInfo)
@@ -580,12 +574,12 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
             sb.AppendLine();
             sb.AppendLine("Donate to: 4731 1856 1625 8247");
-            await _botClient.AnswerCallbackQueryAsync(
+            await _botClient.AnswerCallbackQuery(
             callbackQueryId: callbackQuery.Id,
             text: "Billing: ",
                 cancellationToken: cancellationToken);
 
-            await _botClient.SendTextMessageAsync(
+            await _botClient.SendMessage(
                 chatId: callbackQuery.Message!.Chat.Id,
                 text: sb.ToString(),
                 cancellationToken: cancellationToken);
@@ -606,7 +600,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 inputMessageContent: new InputTextMessageContent("hello"))
         };
 
-        await _botClient.AnswerInlineQueryAsync(
+        await _botClient.AnswerInlineQuery(
             inlineQueryId: inlineQuery.Id,
             results: results,
             cacheTime: 0,
@@ -618,7 +612,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
     {
         _logger.LogInformation("Received inline result: {ChosenInlineResultId}", chosenInlineResult.ResultId);
 
-        await _botClient.SendTextMessageAsync(
+        await _botClient.SendMessage(
             chatId: chosenInlineResult.From.Id,
             text: $"You chose result with Id: {chosenInlineResult.ResultId}",
             cancellationToken: cancellationToken);
@@ -636,7 +630,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         return Task.CompletedTask;
     }
 
-    public async Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
+    public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source, CancellationToken cancellationToken)
     {
         var ErrorMessage = exception switch
         {
@@ -657,9 +651,9 @@ public class UpdateHandler : BaseService, IUpdateHandler
         var result = action;
         var typingAction = new Func<Task>(() =>
         {
-            Task result = _botClient.SendChatActionAsync(
+            Task result = _botClient.SendChatAction(
                 chatId: chatId,
-                chatAction: ChatAction.Typing,
+                action: ChatAction.Typing,
                 cancellationToken: cancellationToken);
             return result;
         });
@@ -691,7 +685,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 e = ex.InnerException;
                 _logger.LogError(e.Message);
             }
-            await _botClient.SendTextMessageAsync(
+            await _botClient.SendMessage(
                 chatId: chatId,
                 text: ex.Flatten().Message,
                 cancellationToken: cancellationToken);

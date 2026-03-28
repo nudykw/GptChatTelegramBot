@@ -1,4 +1,4 @@
-﻿using DataBaseLayer.Models;
+using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -11,6 +11,7 @@ using ServiceLayer.Utils;
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Message = OpenAI.Chat.Message;
 
@@ -97,7 +98,7 @@ public class MessageProcessor : BaseService
         string responceText = string.Empty;
         if (await IsNeedDrawImage(chatId, fromUserId, message))
         {
-            var botInfo = await _telegramBotClient.GetMeAsync();
+            var botInfo = await _telegramBotClient.GetMe();
             var msg = message.Replace(botInfo.Username, string.Empty);
             var sb = new StringBuilder();
             try
@@ -130,7 +131,7 @@ public class MessageProcessor : BaseService
                 responceText = responceText.ConvertMarkdownToHtml();
                 responceText = responceText.ConvertHtmlToTelegramHtml();
                 sb.AppendLine(responceText);
-                sb.AppendLine($"<i><u>Usage:</u>{gptChatResponce.GetUsage()}</i>");
+                sb.AppendLine($"<i><u>Usage:</u>{gptChatResponce.Usage?.TotalTokens}</i>");
             }
             else
             {
@@ -138,16 +139,16 @@ public class MessageProcessor : BaseService
                 responceHtml = responceHtml.ConvertHtmlToTelegramHtml();
                 responceText = responceHtml.ConvertHtmlToMarkdown();
                 sb.AppendLine(responceText);
-                sb.AppendLine($"Usage:{gptChatResponce.GetUsage().EncodeToMarkdown()}");
+                sb.AppendLine($"Usage:{gptChatResponce.Usage?.TotalTokens}");
             }
             toSendText = sb.ToString();
 
         }
-        var telegramResponce = await _telegramBotClient.SendTextMessageAsync(
+        var telegramResponce = await _telegramBotClient.SendMessage(
                 chatId: chatId,
                 text: toSendText,
                 parseMode: _telegramBotConfiguration.DefaultParseMode,
-                replyToMessageId: (int?)messageId,
+                replyParameters: new ReplyParameters() { MessageId = (int)messageId },
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken);
         historyMessage = new HistoryMessage
@@ -174,18 +175,18 @@ public class MessageProcessor : BaseService
     internal async Task<global::Telegram.Bot.Types.Message> ProcessImage(long chatId, int messageId, int? replyToMessagemessageId,
         long userId, string? messageText, string filePath, CancellationToken cancellationToken)
     {
-        var results = await _chatGptService.CreateImageEditAsync(chatId, userId, filePath, messageText, ImageSize.Medium);
+        var results = await _chatGptService.CreateImageEditAsync(chatId, userId, filePath, messageText);
         var sb = new StringBuilder();
         foreach (var image in results.Where(p => !string.IsNullOrWhiteSpace(p)))
         {
             sb.AppendLine(image);
         }
         var toSendText = sb.ToString();
-        var telegramResponce = await _telegramBotClient.SendTextMessageAsync(
+        var telegramResponce = await _telegramBotClient.SendMessage(
                 chatId: chatId,
                 text: toSendText,
                 parseMode: _telegramBotConfiguration.DefaultParseMode,
-                replyToMessageId: (int?)messageId,
+                replyParameters: replyToMessagemessageId.HasValue ? new ReplyParameters() { MessageId = replyToMessagemessageId.Value } : null,
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken);
         return telegramResponce;

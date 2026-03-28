@@ -7,18 +7,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.66" />
-    <PackageReference Include="Markdig" Version="0.37.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
+    <PackageReference Include="Markdig" Version="1.1.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
-    <PackageReference Include="OpenAI-DotNet" Version="8.3.0" />
-    <PackageReference Include="ReverseMarkdown" Version="4.6.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
+    <PackageReference Include="OpenAI-DotNet" Version="8.8.8" />
+    <PackageReference Include="ReverseMarkdown" Version="5.2.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="System.CodeDom" Version="9.0.0" />
-    <PackageReference Include="Telegram.Bot" Version="19.0.0" />
+    <PackageReference Include="Telegram.Bot" Version="22.9.5.3" />
   </ItemGroup>
 
   <ItemGroup>
