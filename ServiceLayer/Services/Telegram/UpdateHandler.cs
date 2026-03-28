@@ -32,12 +32,12 @@ public class UpdateHandler : BaseService, IUpdateHandler
     private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
     private static Dictionary<string, string> gptModelsCosts = new Dictionary<string, string>()
     {
-        {"gpt-4-1106-preview",  "$0.01/$0.03"},
-        {"gpt-4-1106-vision-preview",  "$0.01/$0.03"},
-        {"gpt-4",  "$0.03/$0.06"},
+        {AiModel.Gpt4Turbo,  "$0.01/$0.03"},
+        {AiModel.Gpt4o,  "$0.01/$0.03"},
+        {AiModel.Gpt4,  "$0.03/$0.06"},
         {"gpt-4-32k",  "$0.06/$0.12"},
         {"gpt-3.5-turbo-1106",  "$0.001/$0.002"},
-        {"gpt-3.5-turbo-instruct",  "$0.0015/$0.002"},
+        {AiModel.Gpt35Turbo,  "$0.0015/$0.002"},
     };
 
     public UpdateHandler(IServiceProvider serviceProvider, ILogger<UpdateHandler> logger,
@@ -234,8 +234,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 string text = strategy switch
                 {
                     ChatStrategy.Auto => "🔄 Автоматическая ротация",
-                    ChatStrategy.OpenAI => "OpenAI",
-                    ChatStrategy.Gemini => "Gemini",
+                    ChatStrategy.OpenAI => AiProvider.OpenAI.DisplayName,
+                    ChatStrategy.Gemini => AiProvider.Gemini.DisplayName,
                     _ => strategy.ToString()
                 };
                 choises.Add(new List<InlineKeyboardButton> { InlineKeyboardButton.WithCallbackData(text, $"{BotCommand.Provider}:{(int)strategy}") });
@@ -576,8 +576,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 string strategyName = strategy switch
                 {
                     ChatStrategy.Auto => "🔄 Автоматическая ротация",
-                    ChatStrategy.OpenAI => "OpenAI",
-                    ChatStrategy.Gemini => "Gemini",
+                    ChatStrategy.OpenAI => AiProvider.OpenAI.DisplayName,
+                    ChatStrategy.Gemini => AiProvider.Gemini.DisplayName,
                     _ => strategy.ToString()
                 };
 

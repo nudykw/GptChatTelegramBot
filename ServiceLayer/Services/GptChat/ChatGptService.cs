@@ -38,8 +38,8 @@ internal class ChatGptService : BaseService, IChatService
         {"gpt-4-32k",  new GptModelCost(defTokens, 0.06M, 0.12M)},
         {"gpt-3.5-turbo-1106",  new GptModelCost(defTokens, 0.001M, 0.002M)},
         {"gpt-3.5-turbo-instruct",  new GptModelCost(defTokens, 0.0015M, 0.002M)},
-        {"gpt-4o-mini",  new GptModelCost(defTokens, 0.00015M, 0.0006M)},
-        {"gpt-4o",  new GptModelCost(defTokens, 0.005M, 0.015M)},
+        {AiModel.Gpt4oMini,  new GptModelCost(defTokens, 0.00015M, 0.0006M)},
+        {AiModel.Gpt4o,  new GptModelCost(defTokens, 0.005M, 0.015M)},
 
         {"Code interpreter",  new GptModelCost(1, 0.03M, 0.0M)},
         {"Retrieval",  new GptModelCost(1, 0.2M, 0.0M)},
@@ -141,7 +141,7 @@ internal class ChatGptService : BaseService, IChatService
     public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
     {
         var modelName = string.IsNullOrEmpty(_chatProviderConfiguration.ModelName) 
-            ? "gpt-4o-mini" 
+            ? AiModel.Gpt4oMini 
             : _chatProviderConfiguration.ModelName;
 
         ChatRequest chatRequest = new ChatRequest(messages, model: modelName);

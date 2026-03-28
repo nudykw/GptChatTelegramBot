@@ -18,6 +18,8 @@ This repository follows a structured documentation approach. Always refer to the
 2. **Suggest and Implement Tests**: For every change to business logic or service implementation, you MUST suggest writing new tests or updating existing ones in the `tests/` directory.
 3. **Run Relevant Tests Only**: When adding or modifying a service, identify the corresponding `Trait("Service", "ServiceName")` and run only those tests using `dotnet test --filter Service=ServiceName` to optimize execution time and avoid side effects in integration tests.
 4. **Communication Language**: Always communicate with the user in Russian. If no localized version exists, keep guidelines, rules, and documentation in English.
+5. **Use Constants for Recurring Strings**: If a string literal is used more than once in the codebase, it MUST be extracted into a constant (preferably in `ServiceLayer.Constants` or as a `StaticEnumBase` member).
+6. **Use Type-Safe Enums for Entity Values**: For entities having multiple predefined values, use either standard C# `enum` or the `IStaticStringEnum` pattern (via `StaticStringEnumBase`) to ensure type safety and discoverability.
 
 ### How to use these files:
 1. **Analyze project structure** before making changes to solution layout or dependencies.

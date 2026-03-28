@@ -18,7 +18,6 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         private ChatProviderConfig _apiConfiguration;
         private GeminiClient _client;
         private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
-        const string GeminiModelName = "gemini-pro";
 
         public ChatGeminiService(IServiceProvider serviceProvider, ILogger<ChatGeminiService> logger,
             ChatProviderConfig chatProviderConfig)
@@ -26,7 +25,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         {
             _apiConfiguration = chatProviderConfig;
             var modelName = string.IsNullOrEmpty(_apiConfiguration.ModelName)
-                ? GeminiModelName
+                ? AiModel.GeminiPro
                 : _apiConfiguration.ModelName;
             _client = new GeminiClient(_apiConfiguration.ApiKey, modelName, _apiConfiguration.BaseUrl);
             _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
@@ -45,7 +44,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
 
         public Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null)
         {
-            IReadOnlyList<Model> result = new List<Model>() { new Model(GeminiModelName) };
+            IReadOnlyList<Model> result = new List<Model>() { new Model(AiModel.GeminiPro) };
             return Task.FromResult(result);
         }
 
@@ -61,7 +60,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
                 Contents = contents
             };
             var result = await _client.PostAsync(conversation);
-            var modelName = string.IsNullOrEmpty(_apiConfiguration.ModelName) ? GeminiModelName : _apiConfiguration.ModelName;
+            var modelName = string.IsNullOrEmpty(_apiConfiguration.ModelName) ? AiModel.GeminiPro : _apiConfiguration.ModelName;
             
             await SaveBilling(modelName, _apiConfiguration.Name, telegramChatId, telegramUserId);
 
