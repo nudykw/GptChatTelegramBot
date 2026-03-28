@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ServiceLayer.Services.GptChat;
 using ServiceLayer.Services.GptChat.Configurations;
 using ServiceLayer.Services;
+using ServiceLayer.Constans;
 using System.Net;
 using System.Text.Json;
 using System.Collections.Generic;
@@ -60,7 +61,7 @@ public class ChatGptPriceUpdateTests
         var config = new ChatProviderConfig
         {
             Name = "OpenAI",
-            ProviderType = ChatProviderType.OpenAI,
+            ProviderType = AiProvider.OpenAI,
             ApiKey = appSettings.GptChatConfiguration.APIKey,
             ModelName = appSettings.GptChatConfiguration.ModelName
         };

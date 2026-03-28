@@ -1,17 +1,34 @@
+using ServiceLayer.Utils;
+
 namespace ServiceLayer.Constans;
 
-public static class BotCommands
+/// <summary>
+/// Статические команды бота.
+/// </summary>
+public sealed class BotCommand : StaticStringEnumBase<BotCommand>, IStaticStringEnum<BotCommand>
 {
-    public const string Billing = "/billing";
-    public const string Model = "/model";
-    public const string Provider = "/provider";
-    public const string Restart = "/restart";
-
-    public static readonly Dictionary<string, string> Descriptions = new()
+    private BotCommand(string value, string description) : base(value)
     {
-        { Billing, "Показать статистику использования" },
-        { Model, "Выбрать модель GPT" },
-        { Provider, "Выбрать провайдера ИИ" },
-        { Restart, "Перезагрузить бота" }
-    };
+        Description = description;
+    }
+
+    /// <summary>
+    /// Описание команды для меню Telegram.
+    /// </summary>
+    public string Description { get; }
+
+    public static readonly BotCommand Billing = new("/billing", "Показать статистику использования");
+    public static readonly BotCommand Model = new("/model", "Выбрать модель GPT");
+    public static readonly BotCommand Provider = new("/provider", "Выбрать провайдера ИИ");
+    public static readonly BotCommand Restart = new("/restart", "Перезагрузить бота");
+
+    /// <summary>
+    /// Команды обычно не регистрозависимы.
+    /// </summary>
+    public static bool DefaultIgnoreCase => true;
+
+    /// <summary>
+    /// Неявное преобразование из строки (для удобства парсинга сообщений).
+    /// </summary>
+    public static implicit operator BotCommand?(string? value) => FromString(value);
 }

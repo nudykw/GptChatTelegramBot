@@ -12,6 +12,7 @@ using ServiceLayer.Services.Telegram.Configuretions;
 using ServiceLayer.Services;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
+using ServiceLayer.Constans;
 using System.Text.Json;
 using System.Net;
 using System.Text;
@@ -63,7 +64,7 @@ public class ChatGptServiceTests
         var config = new ChatProviderConfig
         {
             Name = "OpenAI",
-            ProviderType = ChatProviderType.OpenAI,
+            ProviderType = AiProvider.OpenAI,
             ApiKey = _appSettings.GptChatConfiguration.APIKey,
             ModelName = _appSettings.GptChatConfiguration.ModelName
         };

@@ -9,6 +9,7 @@ using ServiceLayer.Services.GptChat;
 using ServiceLayer.Services.MessageProcessor;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
+using ServiceLayer.Constans;
 using Moq;
 
 namespace ServiceLayer.IntegrationTests.Fixtures;
@@ -51,11 +52,11 @@ public class TestAppFixture : IDisposable
         services.AddHttpClient();
 
         // Register default OpenAI provider config for tests
-        var openAiConfig = appSettings.ChatProviders.FirstOrDefault(p => p.ProviderType == ChatProviderType.OpenAI)
+        var openAiConfig = appSettings.ChatProviders.FirstOrDefault(p => p.ProviderType == AiProvider.OpenAI)
             ?? new ChatProviderConfig
             {
                 Name = "OpenAI-Default",
-                ProviderType = ChatProviderType.OpenAI,
+                ProviderType = AiProvider.OpenAI,
                 ApiKey = appSettings.GptChatConfiguration.APIKey,
                 ModelName = appSettings.GptChatConfiguration.ModelName
             };

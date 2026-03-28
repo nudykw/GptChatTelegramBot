@@ -7,6 +7,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
+using ServiceLayer.Constans;
+
 namespace ServiceLayer.Services;
 
 public class ChatServiceFactory : IChatServiceFactory
@@ -26,7 +28,7 @@ public class ChatServiceFactory : IChatServiceFactory
 
     private void ValidateAndLoadProviders()
     {
-        var uniqueProviders = new HashSet<(ChatProviderType Type, string ApiKey, string? BaseUrl)>();
+        var uniqueProviders = new HashSet<(AiProvider Type, string ApiKey, string? BaseUrl)>();
 
         foreach (var config in _appSettings.ChatProviders)
         {
@@ -62,11 +64,10 @@ public class ChatServiceFactory : IChatServiceFactory
             throw new Exception($"Chat provider '{providerName}' not found.");
         }
 
-        return config.ProviderType switch
-        {
-            ChatProviderType.OpenAI => ActivatorUtilities.CreateInstance<ChatGptService>(_serviceProvider, config),
-            ChatProviderType.Gemini => ActivatorUtilities.CreateInstance<ChatGeminiService>(_serviceProvider, config),
-            _ => throw new Exception($"Unsupported provider type: {config.ProviderType}")
-        };
+        var type = config.ProviderType;
+        if (type == AiProvider.OpenAI) return ActivatorUtilities.CreateInstance<ChatGptService>(_serviceProvider, config);
+        if (type == AiProvider.Gemini) return ActivatorUtilities.CreateInstance<ChatGeminiService>(_serviceProvider, config);
+        
+        throw new Exception($"Unsupported provider type: {config.ProviderType}");
     }
 }

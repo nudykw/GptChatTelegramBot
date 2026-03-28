@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using ServiceLayer.Services;
+using ServiceLayer.Constans;
 using Xunit;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,13 +32,13 @@ public class ChatServiceFactoryTests
                 new ChatProviderConfig
                 {
                     Name = "ValidProvider",
-                    ProviderType = ChatProviderType.OpenAI,
+                    ProviderType = AiProvider.OpenAI,
                     ApiKey = "real-api-key"
                 },
                 new ChatProviderConfig
                 {
                     Name = "PlaceholderProvider",
-                    ProviderType = ChatProviderType.Gemini,
+                    ProviderType = AiProvider.Gemini,
                     ApiKey = "[YOUR_GEMINI_API_KEY]"
                 }
             }

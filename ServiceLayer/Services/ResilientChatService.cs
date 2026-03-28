@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
+using ServiceLayer.Constans;
 
 namespace ServiceLayer.Services;
 
@@ -34,25 +35,25 @@ public class ResilientChatService : IChatService
             var user = await _telegramUserInfoRepository.Get(p => p.Id == userId.Value);
             if (user != null && user.PreferredProvider != ChatStrategy.Auto)
             {
-                var providerType = user.PreferredProvider switch
+                var aiProvider = user.PreferredProvider switch
                 {
-                    ChatStrategy.OpenAI => ChatProviderType.OpenAI,
-                    ChatStrategy.Gemini => ChatProviderType.Gemini,
-                    _ => (ChatProviderType?)null
+                    ChatStrategy.OpenAI => AiProvider.OpenAI,
+                    ChatStrategy.Gemini => AiProvider.Gemini,
+                    _ => null
                 };
 
-                if (providerType.HasValue)
+                if (aiProvider != null)
                 {
-                    var preferredProvider = providers.FirstOrDefault(p => p.ProviderType == providerType.Value);
+                    var preferredProvider = providers.FirstOrDefault(p => p.ProviderType == aiProvider);
                     if (preferredProvider != null)
-                        {
-                        _logger.LogInformation("Using preferred provider type {ProviderType} for {Method} (Strict Mode)", providerType.Value, methodName);
+                    {
+                        _logger.LogInformation("Using preferred provider type {ProviderType} for {Method} (Strict Mode)", aiProvider.Value, methodName);
                         var service = _chatServiceFactory.CreateService(preferredProvider.Name);
                         return await action(service);
                     }
                     else
                     {
-                        _logger.LogWarning("Preferred provider type {ProviderType} not found in configuration. Falling back to rotation.", providerType.Value);
+                        _logger.LogWarning("Preferred provider type {ProviderType} not found in configuration. Falling back to rotation.", aiProvider.Value);
                     }
                 }
             }

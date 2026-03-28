@@ -1,6 +1,7 @@
 using Moq;
 using Microsoft.Extensions.Logging;
 using ServiceLayer.Services;
+using ServiceLayer.Constans;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using OpenAI.Models;
@@ -41,8 +42,8 @@ public class ResilientChatServiceTests
 
         var providers = new List<ChatProviderConfig>
         {
-            new ChatProviderConfig { Name = "P1", ProviderType = ChatProviderType.OpenAI, ApiKey = "K1" },
-            new ChatProviderConfig { Name = "P2", ProviderType = ChatProviderType.Gemini, ApiKey = "K2" }
+            new ChatProviderConfig { Name = "P1", ProviderType = AiProvider.OpenAI, ApiKey = "K1" },
+            new ChatProviderConfig { Name = "P2", ProviderType = AiProvider.Gemini, ApiKey = "K2" }
         };
         _mockFactory.Setup(f => f.GetAvailableProviders()).Returns(providers);
 
@@ -83,8 +84,8 @@ public class ResilientChatServiceTests
 
         var providers = new List<ChatProviderConfig>
         {
-            new ChatProviderConfig { Name = "OpenAI-1", ProviderType = ChatProviderType.OpenAI, ApiKey = "K1" },
-            new ChatProviderConfig { Name = "Gemini-1", ProviderType = ChatProviderType.Gemini, ApiKey = "K2" }
+            new ChatProviderConfig { Name = "OpenAI-1", ProviderType = AiProvider.OpenAI, ApiKey = "K1" },
+            new ChatProviderConfig { Name = "Gemini-1", ProviderType = AiProvider.Gemini, ApiKey = "K2" }
         };
         _mockFactory.Setup(f => f.GetAvailableProviders()).Returns(providers);
 
@@ -120,8 +121,8 @@ public class ResilientChatServiceTests
 
         var providers = new List<ChatProviderConfig>
         {
-            new ChatProviderConfig { Name = "OpenAI-1", ProviderType = ChatProviderType.OpenAI, ApiKey = "K1" },
-            new ChatProviderConfig { Name = "Gemini-1", ProviderType = ChatProviderType.Gemini, ApiKey = "K2" }
+            new ChatProviderConfig { Name = "OpenAI-1", ProviderType = AiProvider.OpenAI, ApiKey = "K1" },
+            new ChatProviderConfig { Name = "Gemini-1", ProviderType = AiProvider.Gemini, ApiKey = "K2" }
         };
         _mockFactory.Setup(f => f.GetAvailableProviders()).Returns(providers);
 

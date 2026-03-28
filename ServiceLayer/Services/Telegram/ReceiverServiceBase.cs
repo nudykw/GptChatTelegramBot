@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging;
-using Telegram.Bot;
-using Telegram.Bot.Polling;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 using ServiceLayer.Constans;
+using global::Telegram.Bot;
+using global::Telegram.Bot.Types;
+using global::Telegram.Bot.Types.Enums;
+using global::Telegram.Bot.Polling;
 
 namespace ServiceLayer.Services.Telegram
 {
@@ -14,12 +14,12 @@ namespace ServiceLayer.Services.Telegram
     public abstract class ReceiverServiceBase<TUpdateHandler> : BaseService, IReceiverService
         where TUpdateHandler : IUpdateHandler
     {
-        private readonly ITelegramBotClient _botClient;
+        private readonly global::Telegram.Bot.ITelegramBotClient _botClient;
         private readonly IUpdateHandler _updateHandler;
 
         internal ReceiverServiceBase(IServiceProvider serviceProvider,
             ILogger<ReceiverServiceBase<TUpdateHandler>> logger,
-            ITelegramBotClient botClient,
+            global::Telegram.Bot.ITelegramBotClient botClient,
             TUpdateHandler updateHandler)
             : base(serviceProvider, logger)
         {
@@ -46,12 +46,12 @@ namespace ServiceLayer.Services.Telegram
             _logger.LogInformation("Start receiving updates for {BotName}", me.Username ?? "My Awesome Bot");
 
             // Register bot commands
-            var commands = BotCommands.Descriptions.Select(x => new BotCommand
+            var commands = ServiceLayer.Constans.BotCommand.GetAll().Select(x => new global::Telegram.Bot.Types.BotCommand
             {
-                Command = x.Key.TrimStart('/'),
-                Description = x.Value
+                Command = x.Value.TrimStart('/'),
+                Description = x.Description
             });
-            await _botClient.SetMyCommandsAsync(commands, cancellationToken: stoppingToken);
+            await _botClient.SetMyCommands(commands, cancellationToken: stoppingToken);
             _logger.LogInformation("Bot commands registered successfully.");
 
             // Start receiving updates

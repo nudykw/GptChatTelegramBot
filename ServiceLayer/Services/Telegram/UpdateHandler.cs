@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ServiceLayer.Constans;
+using BotCommand = ServiceLayer.Constans.BotCommand;
 using ServiceLayer.Services.AudioTranscriptor;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -101,22 +102,26 @@ public class UpdateHandler : BaseService, IUpdateHandler
             return;
         }
 
-        var action = messageText.Split(' ')[0].Replace($"@{_botInfo.Username}", string.Empty) switch
+        var actionText = messageText.Split(' ')[0].Replace($"@{_botInfo.Username}", string.Empty);
+        var command = BotCommand.FromString(actionText);
+
+        var action = command?.Value switch
         {
-            BotCommands.Billing => SendBillingInlineKeyboard(_botClient, message, cancellationToken),
-            BotCommands.Model => SendInlineKeyboard(_botClient, message, cancellationToken),
-            BotCommands.Provider => SendProviderInlineKeyboard(_botClient, message, cancellationToken),
-            BotCommands.Restart => FailingHandler(_botClient, message, cancellationToken),
-
-            "/keyboard" => SendReplyKeyboard(_botClient, message, cancellationToken),
-            "/remove" => RemoveKeyboard(_botClient, message, cancellationToken),
-            "/photo" => SendFile(_botClient, message, cancellationToken),
-            "/request" => RequestContactAndLocation(_botClient, message, cancellationToken),
-            "/inline_mode" => StartInlineQuery(_botClient, message, cancellationToken),
-            "/throw" => FailingHandler(_botClient, message, cancellationToken),
-            _ => ProcessMessage(_botClient, message, cancellationToken)
-
-        }; ;
+            var v when v == BotCommand.Billing => SendBillingInlineKeyboard(_botClient, message, cancellationToken),
+            var v when v == BotCommand.Model => SendInlineKeyboard(_botClient, message, cancellationToken),
+            var v when v == BotCommand.Provider => SendProviderInlineKeyboard(_botClient, message, cancellationToken),
+            var v when v == BotCommand.Restart => FailingHandler(_botClient, message, cancellationToken),
+            _ => actionText switch
+            {
+                "/keyboard" => SendReplyKeyboard(_botClient, message, cancellationToken),
+                "/remove" => RemoveKeyboard(_botClient, message, cancellationToken),
+                "/photo" => SendFile(_botClient, message, cancellationToken),
+                "/request" => RequestContactAndLocation(_botClient, message, cancellationToken),
+                "/inline_mode" => StartInlineQuery(_botClient, message, cancellationToken),
+                "/throw" => FailingHandler(_botClient, message, cancellationToken),
+                _ => ProcessMessage(_botClient, message, cancellationToken)
+            }
+        };
         Message sentMessage = await action;
         if (sentMessage != null)
         {
@@ -139,7 +144,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             int index = 0;
             foreach (OpenAI.Models.Model? model in gptModels.OrderBy(p => p.Id).ToList())
             {
-                var data = $"{BotCommands.Model}:{model.Id}";
+                var data = $"{BotCommand.Model}:{model.Id}";
                 var choise = InlineKeyboardButton.WithCallbackData($"{model.Id} ({model.CreatedAt.ToShortDateString()})",
                     data);
                 if (gptModelsCosts.TryGetValue(model.Id, out var costs))
@@ -188,7 +193,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             int index = 0;
             foreach (string date in dates.OrderBy(p => p).ToList())
             {
-                var data = $"{BotCommands.Billing}:{date}";
+                var data = $"{BotCommand.Billing}:{date}";
                 var choise = InlineKeyboardButton.WithCallbackData(date, data);
                 if (index == 0 || (index % 2) == 0)
                 {
@@ -233,7 +238,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     ChatStrategy.Gemini => "Gemini",
                     _ => strategy.ToString()
                 };
-                choises.Add(new List<InlineKeyboardButton> { InlineKeyboardButton.WithCallbackData(text, $"{BotCommands.Provider}:{(int)strategy}") });
+                choises.Add(new List<InlineKeyboardButton> { InlineKeyboardButton.WithCallbackData(text, $"{BotCommand.Provider}:{(int)strategy}") });
             }
 
             InlineKeyboardMarkup replyMarkup = new(choises);
@@ -535,7 +540,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         }
         string originalMessageType = splitData[0];
         string data = splitData[1];
-        if (originalMessageType == BotCommands.Model)
+        if (originalMessageType == BotCommand.Model)
         {
             var (isSuckes, errorMessage) = await _messageProcessor.SelectGPTModel(data, callbackQuery.From.Id);
             if (!isSuckes)
@@ -562,7 +567,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
             return;
         }
-        if (originalMessageType == BotCommands.Provider)
+        if (originalMessageType == BotCommand.Provider)
         {
             if (Enum.TryParse<ChatStrategy>(data, out var strategy))
             {
@@ -592,7 +597,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
             return;
         }
-        if (originalMessageType == BotCommands.Billing)
+        if (originalMessageType == BotCommand.Billing)
         {
             var strData = data.Split('-');
             var startData = new DateTime(int.Parse(strData[0]), int.Parse(strData[1]), 1);

@@ -1,5 +1,6 @@
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
+using ServiceLayer.Constans;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenAI;
@@ -271,7 +272,7 @@ internal class ChatGptService : BaseService, IChatService
                     {
                         var modelId = kvp.Key;
                         var info = kvp.Value;
-                        if (string.Equals(info.Provider, "openai", StringComparison.OrdinalIgnoreCase) 
+                        if (string.Equals(info.Provider, AiProvider.OpenAI.Value, StringComparison.OrdinalIgnoreCase) 
                             && info.InputCostPerToken.HasValue 
                             && info.OutputCostPerToken.HasValue)
                         {
