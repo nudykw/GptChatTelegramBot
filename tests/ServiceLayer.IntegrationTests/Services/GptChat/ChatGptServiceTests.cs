@@ -8,8 +8,11 @@ using ServiceLayer.IntegrationTests.Fixtures;
 using ServiceLayer.Services.GptChat;
 using System.Text;
 
+using Xunit;
+
 namespace ServiceLayer.IntegrationTests.Services.GptChat;
 
+[Trait("Service", "ChatGptService")]
 public class ChatGptServiceTests : IClassFixture<TestAppFixture>
 {
     private readonly ChatGptService _chatGptService;

@@ -16,6 +16,7 @@ This repository follows a structured documentation approach. Always refer to the
 ### 🛠️ Mandatory Development Rules:
 1. **Actualize Documentation**: After changing any service (especially in `ServiceLayer`), you MUST immediately update the relevant documentation in `docs/` to reflect the changes.
 2. **Suggest and Implement Tests**: For every change to business logic or service implementation, you MUST suggest writing new tests or updating existing ones in the `tests/` directory.
+3. **Run Relevant Tests Only**: When adding or modifying a service, identify the corresponding `Trait("Service", "ServiceName")` and run only those tests using `dotnet test --filter Service=ServiceName` to optimize execution time and avoid side effects in integration tests.
 
 ### How to use these files:
 1. **Analyze project structure** before making changes to solution layout or dependencies.

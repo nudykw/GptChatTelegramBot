@@ -35,3 +35,16 @@ To run tests for a specific project:
 ```bash
 dotnet test tests/ServiceLayer.UnitTests
 ```
+
+## Running Specific Service Tests
+Tests are categorized by service using xUnit `Trait` attributes. This allows you to run only the tests relevant to the service you are working on.
+
+To run only tests for `ChatGptService`:
+```bash
+dotnet test --filter Service=ChatGptService
+```
+
+To run only tests for `ChatServiceFactory`:
+```bash
+dotnet test --filter Service=ChatServiceFactory
+```

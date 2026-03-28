@@ -16,6 +16,7 @@ using ServiceLayer.Services.GeminiChat.DotNet.Configurations;
 
 namespace ServiceLayer.UnitTests;
 
+[Trait("Service", "ChatGptService")]
 public class ChatGptPriceUpdateTests
 {
     [Fact]

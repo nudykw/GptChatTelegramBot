@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ServiceLayer.IntegrationTests.Services.GptChat;
 
+[Trait("Service", "ChatGptService")]
 public class ChatGptPriceIntegrationTests : IClassFixture<TestAppFixture>
 {
     private readonly ChatGptService _service;

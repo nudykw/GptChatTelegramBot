@@ -7,6 +7,7 @@ using System.Linq;
 
 namespace ServiceLayer.UnitTests;
 
+[Trait("Service", "ChatServiceFactory")]
 public class ChatServiceFactoryTests
 {
     private readonly Mock<IServiceProvider> _serviceProviderMock;

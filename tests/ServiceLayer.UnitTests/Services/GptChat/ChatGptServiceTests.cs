@@ -17,8 +17,11 @@ using System.Net;
 using System.Text;
 using System.Reflection;
 
+using Xunit;
+
 namespace ServiceLayer.UnitTests.Services.GptChat;
 
+[Trait("Service", "ChatGptService")]
 public class ChatGptServiceTests
 {
     private readonly Mock<IServiceProvider> _mockServiceProvider;
