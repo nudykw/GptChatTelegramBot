@@ -151,13 +151,31 @@ public class ChatGptService : BaseService, IChatService
         string prompt = null, AudioResponseFormat responseFormat = AudioResponseFormat.Json,
         int? temperature = null, string language = null)
     {
-        throw new NotImplementedException("AudioTranscription API was updated in OpenAI-DotNet v8.8.8 and requires a refactor.");
+        var request = new AudioTranscriptionRequest(
+            audio: audio,
+            audioName: audioName,
+            model: model,
+            prompt: prompt,
+            responseFormat: responseFormat,
+            temperature: (float?)temperature,
+            language: language);
+        string result = await _api.AudioEndpoint.CreateTranscriptionTextAsync(request);
+        await SaveBilling(request.Model, chatId, telegramUserId, new GptUsage(0, 1, 1));
+        return result;
     }
 
     internal async Task<IReadOnlyList<string>> CreateImageEditAsync(long chatId, long telegramUserId,
         string filePath, string? messageText)
     {
-        throw new NotImplementedException("ImageEditRequest API was updated in OpenAI-DotNet v8.8.8 and requires a refactor.");
+        var imageEditRequest = new ImageEditRequest(
+            imagePath: filePath,
+            maskPath: filePath,
+            prompt: messageText ?? "",
+            numberOfResults: 1,
+            size: OpenAI.Images.ImageSize.Medium);
+        var imagesResults = await _api.ImagesEndPoint.CreateImageEditAsync(imageEditRequest);
+        var results = imagesResults.Select(p => p.Url).ToList();
+        return results;
     }
 
     internal async Task<(bool, string)> SetGPTModel(string? modelName)
