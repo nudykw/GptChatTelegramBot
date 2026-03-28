@@ -10,6 +10,10 @@ using OpenAI.Models;
 using ServiceLayer.Services.GptChat.Configurations;
 using ServiceLayer.Services.GptChat.Models;
 using System.Text;
+using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Net.Http;
+using ServiceLayer.Services.GptChat.Models;
 
 namespace ServiceLayer.Services.GptChat;
 
@@ -21,6 +25,10 @@ public class ChatGptService : BaseService, IChatService
         internal IReadOnlyList<Model> Models { get; set; }
     }
     private const int defTokens = 1000;
+    internal static readonly ConcurrentDictionary<string, GptModelCost> _liveModelsCosts = new();
+    internal static DateTime _lastPriceUpdate = DateTime.MinValue;
+    internal static readonly object _priceLock = new();
+
     private static Dictionary<string, GptModelCost> gptModelsCosts = new Dictionary<string, GptModelCost>()
     {
         {"gpt-4-1106-preview",  new GptModelCost(defTokens, 0.01M, 0.03M)},
@@ -50,15 +58,20 @@ public class ChatGptService : BaseService, IChatService
     private readonly OpenAIClient _api;
     private readonly GptChatConfiguration _gptChatConfiguration;
     private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
+    private readonly IHttpClientFactory _httpClientFactory;
     private static GptModelCache gptModelCache = null;
 
     public ChatGptService(IServiceProvider serviceProvider, ILogger<ChatGptService> logger,
-        AppSettings appSettings, OpenAIClient? openAiClient = null)
+        AppSettings appSettings, IHttpClientFactory httpClientFactory, OpenAIClient? openAiClient = null)
         : base(serviceProvider, logger)
     {
         _api = openAiClient ?? new OpenAIClient(appSettings.GptChatConfiguration.APIKey);
         _gptChatConfiguration = appSettings.GptChatConfiguration;
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
+        _httpClientFactory = httpClientFactory;
+        
+        // Initial async update
+        _ = RefreshModelPricesAsync();
     }
     public async Task<IReadOnlyList<Model>> GetAvailibleModels()
     {
@@ -126,7 +139,16 @@ public class ChatGptService : BaseService, IChatService
 
     private async Task SaveBilling(string modelName, long telegramChatId, long telegramUserId, GptUsage usage)
     {
-        gptModelsCosts.TryGetValue(modelName, out GptModelCost? modelCost);
+        if ((DateTime.UtcNow - _lastPriceUpdate).TotalHours > 24)
+        {
+            _ = RefreshModelPricesAsync();
+        }
+
+        if (!_liveModelsCosts.TryGetValue(modelName, out GptModelCost? modelCost))
+        {
+            gptModelsCosts.TryGetValue(modelName, out modelCost);
+        }
+
         decimal? cost = modelCost == null
             ? 0M
             : ((usage.PromptTokens * modelCost.Input) + (usage.CompletionTokens * modelCost.Output)) / modelCost.PerTokens;
@@ -204,5 +226,56 @@ public class ChatGptService : BaseService, IChatService
         }
         _gptChatConfiguration.ModelName = modelName;
         return (true, string.Empty);
+    }
+
+    internal async Task RefreshModelPricesAsync()
+    {
+        lock (_priceLock)
+        {
+            if ((DateTime.UtcNow - _lastPriceUpdate).TotalMinutes < 60) return;
+            _lastPriceUpdate = DateTime.UtcNow;
+        }
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("User-Agent", "GPTChatTelegramBot-PriceFetcher");
+            var response = await client.GetAsync("https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<Dictionary<string, LiteLlmModelInfo>>(content);
+                if (data != null)
+                {
+                    _logger.LogInformation("Downloaded {0} models from LiteLLM", data.Count);
+                    foreach (var kvp in data)
+                    {
+                        var modelId = kvp.Key;
+                        var info = kvp.Value;
+                        if (string.Equals(info.Provider, "openai", StringComparison.OrdinalIgnoreCase) 
+                            && info.InputCostPerToken.HasValue 
+                            && info.OutputCostPerToken.HasValue)
+                        {
+                            var inputPrice = (decimal)info.InputCostPerToken.Value * defTokens;
+                            var outputPrice = (decimal)info.OutputCostPerToken.Value * defTokens;
+                            _liveModelsCosts[modelId] = new GptModelCost(defTokens, inputPrice, outputPrice);
+                        }
+                    }
+                    _logger.LogInformation("Successfully updated {0} OpenAI model prices from LiteLLM", _liveModelsCosts.Count);
+                }
+                else
+                {
+                    _logger.LogWarning("Downloaded LiteLLM data is null");
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Failed to download LiteLLM prices: {0} {1}", response.StatusCode, response.ReasonPhrase);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update model prices from LiteLLM");
+        }
     }
 }

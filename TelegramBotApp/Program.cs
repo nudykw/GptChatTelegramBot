@@ -1,4 +1,4 @@
-﻿using DataBaseLayer;
+using DataBaseLayer;
 using DataBaseLayer.Contexts;
 using DataBaseLayer.Repositories;
 using Microsoft.Extensions.Configuration;
@@ -39,10 +39,11 @@ static void ConfigureServices(HostBuilderContext context, IServiceCollection ser
     // More read:
     //  https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests?view=aspnetcore-5.0#typed-clients
     //  https://docs.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests
+    services.AddHttpClient();
     services.AddHttpClient("telegram_bot_client")
             .AddTypedClient<ITelegramBotClient>((httpClient, sp) =>
             {
-                AppSettings? appConfig = sp.GetConfiguration<AppSettings>();
+                AppSettings appConfig = sp.GetConfiguration<AppSettings>();
                 TelegramBotClientOptions options = new(appConfig.TelegramBotConfiguration.BotToken);
                 return new TelegramBotClient(options, httpClient);
             });
@@ -62,5 +63,6 @@ static void InitConfigs(HostBuilderContext context, IServiceCollection services)
     var appSection = context.Configuration.GetSection(AppSettings.Configuration);
     services.Configure<AppSettings>(appSection);
     var appSettings = appSection.Get<AppSettings>();
+    if (appSettings == null) throw new Exception("AppSettings is null");
     services.AddSingleton(appSettings);
 }

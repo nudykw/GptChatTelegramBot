@@ -43,6 +43,9 @@ public class TestAppFixture : IDisposable
         // Add logging
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
 
+        // Add HttpClient for pricing service
+        services.AddHttpClient();
+
         // Add actual service we are testing
         services.AddSingleton<ChatGptService>();
 
