@@ -29,5 +29,9 @@ namespace DataBaseLayer.Models
         /// </summary>
         [MaxLength(128)]
         public string? SelectedModel { get; set; }
+
+        public decimal Balance { get; set; }
+        public DateTime? BalanceModifiedAt { get; set; }
+        public DateTime? LastAiInteraction { get; set; }
     }
 }

@@ -185,6 +185,29 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             };
             _gptBilingItemRepository.Add(dbGptBilingItem);
             await _gptBilingItemRepository.SaveChanges();
+
+            // Update user balance
+            var userRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
+            if (userRepository != null)
+            {
+                var user = await userRepository.Get(p => p.Id == telegramUserId);
+                if (user != null)
+                {
+                    var appConfig = _serviceProvider.GetConfiguration<AppSettings>();
+                    bool isIgnored = appConfig?.TelegramBotConfiguration?.IgnoredBalanceUserIds?.Contains(telegramUserId) == true ||
+                                     appConfig?.TelegramBotConfiguration?.OwnerId == telegramUserId;
+
+                    if (!isIgnored)
+                    {
+                        // Note: Cost is currently 0 for Gemini in this implementation
+                        // If cost calculation is implemented for Gemini, it will deduct correctly
+                        user.Balance -= dbGptBilingItem.Cost ?? 0;
+                    }
+                    user.LastAiInteraction = DateTime.UtcNow;
+                    userRepository.Update(user);
+                    await userRepository.SaveChanges();
+                }
+            }
         }
 
         public Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt)

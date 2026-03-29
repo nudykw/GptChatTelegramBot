@@ -133,7 +133,7 @@
     <value> **Зараз: {0}**</value>
   </data>
   <data name="Desc_billing" xml:space="preserve">
-    <value>Показати статистику використання. (Тільки для адмінів та власника)</value>
+    <value>Статистика використання. (Тільки для адмінів та власника). Правила: Власник/виключені - безлім. Якщо InitialBalance > 0, баланс поповнюється через 24г після закінчення.</value>
   </data>
   <data name="Desc_model" xml:space="preserve">
     <value>Вибрати модель ШІ для відповідей.</value>
@@ -152,6 +152,12 @@
   </data>
   <data name="Desc_restart" xml:space="preserve">
     <value>Перезавантажити бота. (Тільки для адмінів та власника)</value>
+  </data>
+  <data name="Desc_set_balance" xml:space="preserve">
+    <value>Встановити баланс користувачу за Id. Формат: /set_balance {userId} {amount}. Приклад: /set_balance 1234567 150.5 (Тільки для адмінів). Поповнення через 24г при 0.</value>
+  </data>
+  <data name="Desc_users_balance" xml:space="preserve">
+    <value>Показати баланс усіх користувачів (Тільки для адмінів)</value>
   </data>
   <data name="GroupContextInfo" xml:space="preserve">
     <value>
@@ -198,5 +204,47 @@
   </data>
   <data name="NoProvidersConfigured" xml:space="preserve">
     <value>Чат-провайдери не налаштовані.</value>
+  </data>
+  <data name="InsufficientCredits" xml:space="preserve">
+    <value>❌ Недостатньо кредитів на вашому балансі.</value>
+  </data>
+  <data name="TryAgainLater" xml:space="preserve">
+    <value>Ви можете спробувати ще раз через 24 години, коли ваш баланс буде автоматично поповнено.</value>
+  </data>
+  <data name="Desc_users_balance" xml:space="preserve">
+    <value>Показати баланс усіх користувачів (Тільки для адмінів)</value>
+  </data>
+  <data name="UsersBalanceHeader" xml:space="preserve">
+    <value>Баланси користувачів:</value>
+  </data>
+  <data name="UsersBalanceItem" xml:space="preserve">
+    <value>{0} ({1}): {2} (зміна: {3})</value>
+  </data>
+  <data name="TimeAgo_JustNow" xml:space="preserve">
+    <value>щойно</value>
+  </data>
+  <data name="TimeAgo_Minutes" xml:space="preserve">
+    <value>{0}хв тому</value>
+  </data>
+  <data name="TimeAgo_Hours" xml:space="preserve">
+    <value>{0}год тому</value>
+  </data>
+  <data name="TimeAgo_Days" xml:space="preserve">
+    <value>{0}дн тому</value>
+  </data>
+  <data name="TimeAgo_Never" xml:space="preserve">
+    <value>ніколи</value>
+  </data>
+  <data name="SetBalance_Usage" xml:space="preserve">
+    <value>Використання: /set_balance {userId} {amount}</value>
+  </data>
+  <data name="SetBalance_Success" xml:space="preserve">
+    <value>✅ Баланс користувача {0} ({1}) встановлено на {2}</value>
+  </data>
+  <data name="SetBalance_UserNotFound" xml:space="preserve">
+    <value>❌ Користувача с ID {0} не знайдено</value>
+  </data>
+  <data name="SetBalance_InvalidFormat" xml:space="preserve">
+    <value>❌ Некоректний формат. Введіть числові ID та суму.</value>
   </data>
 </root>

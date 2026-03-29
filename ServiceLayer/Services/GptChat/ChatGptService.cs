@@ -218,6 +218,7 @@ internal class ChatGptService : BaseService, IChatService
         decimal? cost = modelCost == null
             ? 0M
             : ((usage.PromptTokens * modelCost.Input) + (usage.CompletionTokens * modelCost.Output)) / modelCost.PerTokens;
+        
         var dbGptBilingItem = new GptBilingItem
         {
             CreationDate = DateTime.UtcNow,
@@ -233,6 +234,31 @@ internal class ChatGptService : BaseService, IChatService
         };
         _gptBilingItemRepository.Add(dbGptBilingItem);
         await _gptBilingItemRepository.SaveChanges();
+
+        // Update user balance
+        var userRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
+        if (userRepository != null)
+        {
+            var user = await userRepository.Get(p => p.Id == telegramUserId);
+            if (user != null)
+            {
+                var appConfig = _serviceProvider.GetConfiguration<AppSettings>();
+                var config = appConfig?.TelegramBotConfiguration;
+                bool isIgnored = config?.IgnoredBalanceUserIds?.Contains(telegramUserId) == true ||
+                                 config?.OwnerId == telegramUserId;
+                bool isFree = config?.InitialBalance == 0;
+
+                if (!isIgnored && !isFree)
+                {
+                    user.Balance -= cost ?? 0;
+                    user.BalanceModifiedAt = DateTime.UtcNow;
+                }
+                user.LastAiInteraction = DateTime.UtcNow;
+                userRepository.Update(user);
+                await userRepository.SaveChanges();
+            }
+        }
+
         return cost;
     }
 

@@ -133,7 +133,7 @@
     <value> **Now: {0}**</value>
   </data>
   <data name="Desc_billing" xml:space="preserve">
-    <value>Show usage statistics. (Admins &amp; Owner only)</value>
+    <value>Show usage statistics. (Admins &amp; Owner only). Billing Rules: Owner/Ignored are exempt. If InitialBalance > 0, balance refills 24h after last activity if at 0.</value>
   </data>
   <data name="Desc_model" xml:space="preserve">
     <value>Select AI model for responses.</value>
@@ -152,6 +152,12 @@
   </data>
   <data name="Desc_restart" xml:space="preserve">
     <value>Restart bot. (Admins &amp; Owner only)</value>
+  </data>
+  <data name="Desc_set_balance" xml:space="preserve">
+    <value>Set user balance by Id. Format: /set_balance {userId} {amount}. Example: /set_balance 1234567 150.5 (Admins only). Billing: Refills 24h after 0 reach.</value>
+  </data>
+  <data name="Desc_users_balance" xml:space="preserve">
+    <value>Show all users' balances (Admins only)</value>
   </data>
   <data name="GroupContextInfo" xml:space="preserve">
     <value>
@@ -207,5 +213,47 @@
   </data>
   <data name="ConfirmPhrase_Yes" xml:space="preserve">
     <value>rather yes</value>
+  </data>
+  <data name="InsufficientCredits" xml:space="preserve">
+    <value>❌ Insufficient credits on your balance.</value>
+  </data>
+  <data name="TryAgainLater" xml:space="preserve">
+    <value>You can try again in 24 hours when your balance is automatically replenished.</value>
+  </data>
+  <data name="Desc_users_balance" xml:space="preserve">
+    <value>Show all users' balances (Admins only)</value>
+  </data>
+  <data name="UsersBalanceHeader" xml:space="preserve">
+    <value>Users' Balances:</value>
+  </data>
+  <data name="UsersBalanceItem" xml:space="preserve">
+    <value>{0} ({1}): {2} (last changed: {3})</value>
+  </data>
+  <data name="TimeAgo_JustNow" xml:space="preserve">
+    <value>just now</value>
+  </data>
+  <data name="TimeAgo_Minutes" xml:space="preserve">
+    <value>{0}m ago</value>
+  </data>
+  <data name="TimeAgo_Hours" xml:space="preserve">
+    <value>{0}h ago</value>
+  </data>
+  <data name="TimeAgo_Days" xml:space="preserve">
+    <value>{0}d ago</value>
+  </data>
+  <data name="TimeAgo_Never" xml:space="preserve">
+    <value>never</value>
+  </data>
+  <data name="SetBalance_Usage" xml:space="preserve">
+    <value>Usage: /set_balance {userId} {amount}</value>
+  </data>
+  <data name="SetBalance_Success" xml:space="preserve">
+    <value>✅ Balance for user {0} ({1}) set to {2}</value>
+  </data>
+  <data name="SetBalance_UserNotFound" xml:space="preserve">
+    <value>❌ User with ID {0} not found</value>
+  </data>
+  <data name="SetBalance_InvalidFormat" xml:space="preserve">
+    <value>❌ Invalid format. Please provide numeric User ID and Amount.</value>
   </data>
 </root>

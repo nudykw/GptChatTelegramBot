@@ -65,6 +65,8 @@ Before compiling the project, add your keys to the `TelegramBotApp/appsettings.s
 - `/draw <prompt>` — Generate an image from a text description. You can also just send a text prompt to generate an image. **<Required>**
 - `/lang [language]` — Change the bot's interface language. **[Optional]**
 - `/help` — Show the list of available commands.
+- `/users_balance` — Show all users' balances. **(Admins only)**
+- `/set_balance <userId> <amount>` — Set a user's balance. Format: `/set_balance 1234567 150.5`. **(Admins only)**
 - `/restart` — Restart the bot service. **(Admins & Owner only)**
 
 > [!TIP]
@@ -102,3 +104,23 @@ To restrict administrative commands (like `/billing` and `/restart`) and identif
 - Go to [DeepSeek Platform](https://platform.deepseek.com/api_keys).
 - Create a new API key.
 - In `appsettings.json`, set `ProviderType` to `"OpenAI"` and `BaseUrl` to `https://api.deepseek.com`.
+
+## 💳 Billing System
+
+The bot includes a built-in billing system to manage AI usage costs.
+
+### ⚙️ How it works:
+- **Exempt Users**: The `OwnerId` and any IDs in `IgnoredBalanceUserIds` have unlimited access.
+- **Consumption**: Each AI interaction (chat or image generation) deducts from the user's `Balance`.
+- **Replenishment**: If a user's balance reaches 0, it is automatically replenished to the `InitialBalance` value **24 hours after their last interaction**.
+- **Admin Management**: Admins can manually view all balances with `/users_balance` and adjust them with `/set_balance`.
+
+### 🛡️ Disabling Billing
+To disable the billing system entirely and allow all users unlimited access, set `InitialBalance` to `0` in your `appsettings.json`:
+
+```json
+"TelegramBotConfiguration": {
+  "InitialBalance": 0
+}
+```
+

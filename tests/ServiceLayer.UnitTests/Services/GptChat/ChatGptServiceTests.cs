@@ -1,6 +1,7 @@
 using Moq;
 using Moq.Protected;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
 using OpenAI.Chat;
@@ -29,6 +30,7 @@ public class ChatGptServiceTests
     private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
     private readonly Mock<IDynamicLocalizer> _mockLocalizer;
     private readonly Mock<IRepository<GptBilingItem>> _mockBillingRepository;
+    private readonly Mock<IRepository<TelegramUserInfo>> _mockUserInfoRepository;
     private readonly Mock<HttpMessageHandler> _mockHandler;
     private readonly AppSettings _appSettings;
 
@@ -39,6 +41,7 @@ public class ChatGptServiceTests
         _mockHttpClientFactory = new Mock<IHttpClientFactory>();
         _mockLocalizer = new Mock<IDynamicLocalizer>();
         _mockBillingRepository = new Mock<IRepository<GptBilingItem>>();
+        _mockUserInfoRepository = new Mock<IRepository<TelegramUserInfo>>();
         _mockHandler = new Mock<HttpMessageHandler>();
 
         _appSettings = new AppSettings
@@ -49,6 +52,14 @@ public class ChatGptServiceTests
         _mockServiceProvider
             .Setup(x => x.GetService(typeof(IRepository<GptBilingItem>)))
             .Returns(_mockBillingRepository.Object);
+
+        _mockServiceProvider
+            .Setup(x => x.GetService(typeof(IRepository<TelegramUserInfo>)))
+            .Returns(_mockUserInfoRepository.Object);
+
+        _mockServiceProvider
+            .Setup(x => x.GetService(typeof(IOptions<AppSettings>)))
+            .Returns(Mock.Of<IOptions<AppSettings>>(o => o.Value == _appSettings));
 
         var httpClient = new HttpClient(_mockHandler.Object);
         _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
@@ -204,5 +215,123 @@ public class ChatGptServiceTests
         Assert.Contains(result, m => m.Id == "gpt-4");
         Assert.Contains(result, m => m.Id == "gpt-4o-mini");
         Assert.DoesNotContain(result, m => m.Id == "unknown-model");
+    }
+
+    [Fact]
+    public async Task SaveBilling_ShouldDeductBalanceAndSetLastAiInteraction()
+    {
+        // Arrange
+        var userId = 456L;
+        var chatId = 123L;
+        var initialBalance = 0.1M;
+        var user = new TelegramUserInfo { Id = userId, Balance = initialBalance, FirstName = "Test", IsBot = false };
+        
+        _mockUserInfoRepository.Setup(r => r.Get(It.IsAny<System.Linq.Expressions.Expression<System.Func<TelegramUserInfo, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var jsonResponse = JsonSerializer.Serialize(new 
+        {
+            id = "chatcmpl-123",
+            @object = "chat.completion",
+            created = 1677652288,
+            model = "gpt-4o-mini",
+            choices = new[]
+            {
+                new { message = new { role = "assistant", content = "Response" }, finish_reason = "stop", index = 0 }
+            },
+            usage = new { prompt_tokens = 1000, completion_tokens = 1000, total_tokens = 2000 }
+        });
+
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync", 
+                ItExpr.IsAny<HttpRequestMessage>(), 
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(jsonResponse, Encoding.UTF8, "application/json")
+            });
+
+        var api = new OpenAIClient(new OpenAIAuthentication("sk-test-key"), client: new HttpClient(_mockHandler.Object));
+        var service = CreateService(api);
+
+        // Act
+        await service.SendMessages2ChatAsync(chatId, userId, new List<Message> { new Message(Role.User, "Test") });
+
+        // Assert
+        Assert.True(user.Balance < initialBalance, $"Balance {user.Balance} should be less than {initialBalance}");
+        Assert.NotNull(user.LastAiInteraction);
+        _mockUserInfoRepository.Verify(r => r.Update(user), Times.Once);
+        _mockUserInfoRepository.Verify(r => r.SaveChanges(), Times.Once);
+    }
+
+    [Fact]
+    public async Task SaveBilling_ShouldNotDeductBalanceForOwner()
+    {
+        // Arrange
+        var ownerId = 7342855906L;
+        _appSettings.TelegramBotConfiguration.OwnerId = ownerId;
+        var user = new TelegramUserInfo { Id = ownerId, Balance = 1.0M, FirstName = "Owner", IsBot = false };
+        
+        _mockUserInfoRepository.Setup(r => r.Get(It.IsAny<System.Linq.Expressions.Expression<System.Func<TelegramUserInfo, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var jsonResponse = JsonSerializer.Serialize(new 
+        {
+            id = "chatcmpl-123",
+            choices = new[] { new { message = new { role = "assistant", content = "OK" } } },
+            usage = new { prompt_tokens = 100, completion_tokens = 100, total_tokens = 200 }
+        });
+
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(jsonResponse) });
+
+        var api = new OpenAIClient(new OpenAIAuthentication("sk-test-key"), client: new HttpClient(_mockHandler.Object));
+        var service = CreateService(api);
+
+        // Act
+        await service.SendMessages2ChatAsync(1, ownerId, new List<Message> { new Message(Role.User, "test") });
+
+        // Assert
+        Assert.Equal(1.0M, user.Balance); // Should not change
+        Assert.NotNull(user.LastAiInteraction); // But should still update interaction time
+    }
+
+    [Fact]
+    public async Task SaveBilling_ShouldNotDeductBalanceWhenInitialBalanceIsZero()
+    {
+        // Arrange
+        var userId = 456L;
+        var chatId = 123L;
+        var initialUserBalance = 1.0M;
+        _appSettings.TelegramBotConfiguration.InitialBalance = 0M; // Make it free
+        
+        var user = new TelegramUserInfo { Id = userId, Balance = initialUserBalance, FirstName = "Test", IsBot = false };
+        
+        _mockUserInfoRepository.Setup(r => r.Get(It.IsAny<System.Linq.Expressions.Expression<System.Func<TelegramUserInfo, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var jsonResponse = JsonSerializer.Serialize(new 
+        {
+            id = "chatcmpl-123",
+            choices = new[] { new { message = new { role = "assistant", content = "OK" } } },
+            usage = new { prompt_tokens = 100, completion_tokens = 100, total_tokens = 200 }
+        });
+
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent(jsonResponse) });
+
+        var api = new OpenAIClient(new OpenAIAuthentication("sk-test-key"), client: new HttpClient(_mockHandler.Object));
+        var service = CreateService(api);
+
+        // Act
+        await service.SendMessages2ChatAsync(chatId, userId, new List<Message> { new Message(Role.User, "test") });
+
+        // Assert
+        Assert.Equal(initialUserBalance, user.Balance); // Should NOT change
+        Assert.NotNull(user.LastAiInteraction);
     }
 }

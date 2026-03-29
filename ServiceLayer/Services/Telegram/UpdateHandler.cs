@@ -37,6 +37,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
     private readonly IRepository<TelegramChatInfo>? _telegramChatInfoRepository;
     private readonly IRepository<TelegramUserInfo>? _telegramUserInfoRepository;
     private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
+    private readonly IRepository<BalanceHistory>? _balanceHistoryRepository;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IDynamicLocalizer _localizer;
     private readonly IUserContext _userContext;
@@ -73,6 +74,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         _telegramChatInfoRepository = _serviceProvider.GetService<IRepository<TelegramChatInfo>>();
         _telegramUserInfoRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
+        _balanceHistoryRepository = _serviceProvider.GetService<IRepository<BalanceHistory>>();
     }
 
     public Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -181,18 +183,30 @@ public class UpdateHandler : BaseService, IUpdateHandler
         await TrySaveMessageInfoAsync(chat, user);
 
         _logger.LogInformation("Receive message type: {MessageType}", message.Type);
+        
+        // Voice messages always need AI if we want to transcribe them
+        if (message.Voice != null)
+        {
+            if (!await CheckBalanceAndReplenish(message.From.Id, message.Chat.Id, cancellationToken))
+            {
+                return;
+            }
+        }
+
         var voiceMessage = await VoiceMessageToText(_botClient, message);
         if (voiceMessage != null)
         {
             message.Text = voiceMessage;
-            _botClient.SendMessage(
-            chatId: message.Chat.Id,
-            replyParameters: new ReplyParameters() { MessageId = message.MessageId },
-            text: _localizer["YouSaid", voiceMessage],
-            cancellationToken: cancellationToken);
+            await _botClient.SendMessage(
+                chatId: message.Chat.Id,
+                replyParameters: new ReplyParameters() { MessageId = message.MessageId },
+                text: _localizer["YouSaid", voiceMessage],
+                cancellationToken: cancellationToken);
         }
-        if (message.Text is not { } && message.Caption is not { })
+
+        if (message.Text is not { } && message.Caption is not { } && message.Photo == null && message.Document == null)
             return;
+        
         var messageText = message.Text ?? message.Caption ?? string.Empty;
         _logger.LogInformation("Text: {MessageType}", messageText);
 
@@ -228,6 +242,20 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
         }
 
+        // Identify if this is an AI action that costs balance
+        bool isAiAction = (command?.Value == BotCommand.Draw) || 
+                         (message.Photo != null) || 
+                         (message.Document != null && message.Document.MimeType.Contains("image")) ||
+                         (command == null && !new[] { "/keyboard", "/remove", "/photo", "/request", "/inline_mode", "/throw", "/help" }.Contains(actionText));
+
+        if (isAiAction)
+        {
+            if (!await CheckBalanceAndReplenish(message.From.Id, message.Chat.Id, cancellationToken))
+            {
+                return;
+            }
+        }
+
         var action = command?.Value switch
         {
             var v when v == BotCommand.Billing => SendBillingInlineKeyboard(_botClient, message, cancellationToken),
@@ -237,6 +265,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
             var v when v == BotCommand.Draw => _messageProcessor.ProcessDrawCommand(message.Chat.Id, message.MessageId, message.From.Id, messageText.Replace(actionText, string.Empty).Trim(), cancellationToken),
             var v when v == BotCommand.Help => Usage(_botClient, message, cancellationToken),
             var v when v == BotCommand.Restart => FailingHandler(_botClient, message, cancellationToken),
+            var v when v == BotCommand.UsersBalance => ShowUsersBalance(_botClient, message, cancellationToken),
+            var v when v == BotCommand.SetBalance => SetUserBalance(_botClient, message, cancellationToken),
             _ => actionText switch
             {
                 "/keyboard" => SendReplyKeyboard(_botClient, message, cancellationToken),
@@ -716,6 +746,118 @@ public class UpdateHandler : BaseService, IUpdateHandler
 #pragma warning restore RCS1163 // Unused parameter.
     }
 
+    private async Task<Message> ShowUsersBalance(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+    {
+        await botClient.SendChatAction(
+            chatId: message.Chat.Id,
+            action: ChatAction.Typing,
+            cancellationToken: cancellationToken);
+
+        var users = _telegramUserInfoRepository.GetAll()
+            .OrderBy(u => u.Id)
+            .ToList();
+
+        var sb = new StringBuilder();
+        sb.AppendLine(_localizer["UsersBalanceHeader"]);
+        sb.AppendLine();
+
+        foreach (var u in users)
+        {
+            var timeAgo = FormatTimeAgo(u.BalanceModifiedAt);
+            // UsersBalanceItem format: {0} ({1}): {2} (last changed: {3})
+            sb.AppendLine(_localizer["UsersBalanceItem", 
+                u.FirstName + (string.IsNullOrEmpty(u.LastName) ? "" : " " + u.LastName), 
+                u.Id, 
+                u.Balance.ToString("0.######"), 
+                timeAgo]);
+        }
+
+        return await botClient.SendMessage(
+            chatId: message.Chat.Id,
+            text: sb.ToString(),
+            cancellationToken: cancellationToken);
+    }
+
+    private async Task<Message> SetUserBalance(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+    {
+        await botClient.SendChatAction(
+            chatId: message.Chat.Id,
+            action: ChatAction.Typing,
+            cancellationToken: cancellationToken);
+
+        var text = message.Text ?? string.Empty;
+        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length < 3)
+        {
+            return await botClient.SendMessage(
+                chatId: message.Chat.Id,
+                text: _localizer["SetBalance_Usage"],
+                cancellationToken: cancellationToken);
+        }
+
+        bool userIdParsed = long.TryParse(parts[1], out long targetUserId);
+        bool amountParsed = decimal.TryParse(parts[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal amount)
+                           || decimal.TryParse(parts[2], out amount);
+
+        if (!userIdParsed || !amountParsed)
+        {
+            return await botClient.SendMessage(
+                chatId: message.Chat.Id,
+                text: _localizer["SetBalance_InvalidFormat"],
+                cancellationToken: cancellationToken);
+        }
+
+        var dbUser = await _telegramUserInfoRepository.Get(u => u.Id == targetUserId);
+        if (dbUser == null)
+        {
+            return await botClient.SendMessage(
+                chatId: message.Chat.Id,
+                text: _localizer["SetBalance_UserNotFound", targetUserId],
+                cancellationToken: cancellationToken);
+        }
+
+        var oldBalance = dbUser.Balance;
+        dbUser.Balance = amount;
+        dbUser.BalanceModifiedAt = DateTime.UtcNow;
+        _telegramUserInfoRepository.Update(dbUser);
+
+        if (_balanceHistoryRepository != null)
+        {
+            var historyRecord = new BalanceHistory
+            {
+                UserId = targetUserId,
+                Amount = amount - oldBalance, // delta
+                ModifiedById = message.From?.Id,
+                CreatedAt = DateTime.UtcNow,
+                Source = "Admin"
+            };
+            _balanceHistoryRepository.Add(historyRecord);
+            await _balanceHistoryRepository.SaveChanges();
+        }
+
+        await _telegramUserInfoRepository.SaveChanges();
+
+        return await botClient.SendMessage(
+            chatId: message.Chat.Id,
+            text: _localizer["SetBalance_Success", 
+                dbUser.FirstName + (string.IsNullOrEmpty(dbUser.LastName) ? "" : " " + dbUser.LastName), 
+                dbUser.Id, 
+                dbUser.Balance.ToString("0.######")],
+            cancellationToken: cancellationToken);
+    }
+
+    private string FormatTimeAgo(DateTime? dateTime)
+    {
+        if (!dateTime.HasValue) return _localizer["TimeAgo_Never"];
+        
+        var diff = DateTime.UtcNow - dateTime.Value;
+        if (diff.TotalSeconds < 60) return _localizer["TimeAgo_JustNow"];
+        if (diff.TotalMinutes < 60) return _localizer["TimeAgo_Minutes", (int)diff.TotalMinutes];
+        if (diff.TotalHours < 24) return _localizer["TimeAgo_Hours", (int)diff.TotalHours];
+        return _localizer["TimeAgo_Days", (int)diff.TotalDays];
+    }
+
     private async Task TrySaveMessageInfoAsync(Chat chat, User? user)
     {
         TelegramChatInfo? dbChat = await _telegramChatInfoRepository.Get(p => p.Id == chat.Id);
@@ -745,7 +887,9 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     IsPremium = user.IsPremium,
                     LastName = user.LastName,
                     Username = user.Username,
-                    LanguageCode = user.LanguageCode
+                    LanguageCode = user.LanguageCode,
+                    Balance = _appSettings.TelegramBotConfiguration.InitialBalance,
+                    BalanceModifiedAt = DateTime.UtcNow
                 };
                 _telegramUserInfoRepository.Add(dbUser);
             }
@@ -1136,5 +1280,48 @@ public class UpdateHandler : BaseService, IUpdateHandler
         }
 
         return scope;
+    }
+
+    internal async Task<bool> CheckBalanceAndReplenish(long userId, long chatId, CancellationToken cancellationToken)
+    {
+        var config = _appSettings.TelegramBotConfiguration;
+        if ((config.IgnoredBalanceUserIds != null && config.IgnoredBalanceUserIds.Contains(userId)) || 
+            config.OwnerId == userId || 
+            config.InitialBalance == 0)
+        {
+            return true;
+        }
+
+        var dbUser = await _telegramUserInfoRepository.Get(p => p.Id == userId);
+        if (dbUser == null) return true; // Should not happen
+
+        if (dbUser.Balance > 0)
+        {
+            return true;
+        }
+
+        // Check for 24h replenishment
+        if (dbUser.LastAiInteraction.HasValue && (DateTime.UtcNow - dbUser.LastAiInteraction.Value).TotalHours >= 24)
+        {
+            dbUser.Balance = config.InitialBalance;
+            dbUser.BalanceModifiedAt = DateTime.UtcNow;
+            _telegramUserInfoRepository.Update(dbUser);
+            await _telegramUserInfoRepository.SaveChanges();
+            return true;
+        }
+        else if (!dbUser.LastAiInteraction.HasValue)
+        {
+             // First interaction case if migration didn't set it
+             dbUser.Balance = config.InitialBalance;
+             dbUser.BalanceModifiedAt = DateTime.UtcNow;
+             _telegramUserInfoRepository.Update(dbUser);
+             await _telegramUserInfoRepository.SaveChanges();
+             return true;
+        }
+
+        // Inform user about insufficient credits
+        var message = $"{_localizer["InsufficientCredits"]}\n\n{_localizer["TryAgainLater"]}";
+        await _botClient.SendMessage(chatId, message, cancellationToken: cancellationToken);
+        return false;
     }
 }

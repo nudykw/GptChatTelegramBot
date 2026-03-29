@@ -23,16 +23,21 @@ namespace ServiceLayer.UnitTests.Services.MessageProcessor
         private readonly Mock<IDynamicLocalizer> _localizerMock = new();
         private readonly Mock<IRepository<HistoryMessage>> _historyRepositoryMock = new();
 
+        private readonly AppSettings _appSettings;
         private readonly MessageProcessorClass _sut;
 
         public MessageProcessorTests()
         {
             // Mock AppSettings
-            var appSettings = new AppSettings { 
-                TelegramBotConfiguration = new ServiceLayer.Services.Telegram.Configuretions.TelegramBotConfiguration()
+            _appSettings = new AppSettings { 
+                TelegramBotConfiguration = new ServiceLayer.Services.Telegram.Configuretions.TelegramBotConfiguration
+                {
+                    OwnerId = 7342855906L,
+                    InitialBalance = 0.1M
+                }
             };
             var optionsMock = new Mock<IOptions<AppSettings>>();
-            optionsMock.Setup(x => x.Value).Returns(appSettings);
+            optionsMock.Setup(x => x.Value).Returns(_appSettings);
             _serviceProviderMock.Setup(x => x.GetService(typeof(IOptions<AppSettings>)))
                 .Returns(optionsMock.Object);
 
@@ -89,6 +94,38 @@ namespace ServiceLayer.UnitTests.Services.MessageProcessor
 
             // Assert
             Assert.Equal("en", result);
+        }
+
+        [Fact]
+        public async Task GetBalanceDisplay_ShouldReturnCorrectFormatForRegularUser()
+        {
+            // Arrange
+            var userId = 123L;
+            var user = new TelegramUserInfo { Id = userId, Balance = 0.005M, FirstName = "Test", IsBot = false };
+            _userInfoRepositoryMock.Setup(r => r.Get(It.IsAny<System.Linq.Expressions.Expression<System.Func<TelegramUserInfo, bool>>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(user);
+
+            // Act
+            var result = await _sut.GetBalanceDisplay(userId);
+
+            // Assert
+            Assert.Equal(" | B: $0.0050", result);
+        }
+
+        [Fact]
+        public async Task GetBalanceDisplay_ShouldReturnUnlimitedForOwner()
+        {
+            // Arrange
+            var ownerId = 7342855906L;
+            var user = new TelegramUserInfo { Id = ownerId, Balance = 0.0M, FirstName = "Owner", IsBot = false };
+            _userInfoRepositoryMock.Setup(r => r.Get(It.IsAny<System.Linq.Expressions.Expression<System.Func<TelegramUserInfo, bool>>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(user);
+
+            // Act
+            var result = await _sut.GetBalanceDisplay(ownerId);
+
+            // Assert
+            Assert.Equal(" (Unlimited)", result);
         }
     }
 }

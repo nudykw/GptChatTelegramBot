@@ -30,6 +30,8 @@ public sealed class BotCommand : StaticStringEnumBase<BotCommand>, IStaticString
     public static readonly BotCommand Lang = new("/lang", "Change language (e.g. /lang German)");
     public static readonly BotCommand Help = new("/help", "Show help info");
     public static readonly BotCommand Restart = new("/restart", "Restart the bot", BotCommandScope.Owner | BotCommandScope.AnyAdmin);
+    public static readonly BotCommand UsersBalance = new("/users_balance", "Show all users' balances", BotCommandScope.AnyAdmin);
+    public static readonly BotCommand SetBalance = new("/set_balance", "Set user balance by Id", BotCommandScope.AnyAdmin);
 
     /// <summary>
     /// Commands are typically case-insensitive.

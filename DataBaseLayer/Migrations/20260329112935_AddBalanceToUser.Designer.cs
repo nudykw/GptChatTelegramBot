@@ -3,6 +3,7 @@ using System;
 using DataBaseLayer.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,39 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataBaseLayer.Migrations
 {
     [DbContext(typeof(SqlLiteContext))]
-    partial class SqlLiteContextModelSnapshot : ModelSnapshot
+    [Migration("20260329112935_AddBalanceToUser")]
+    partial class AddBalanceToUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
-
-            modelBuilder.Entity("DataBaseLayer.Models.BalanceHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long?>("ModifiedById")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Source")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("BalanceHistories");
-                });
 
             modelBuilder.Entity("DataBaseLayer.Models.CachedTranslation", b =>
                 {
@@ -201,9 +177,6 @@ namespace DataBaseLayer.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("Balance")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("BalanceModifiedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FirstName")

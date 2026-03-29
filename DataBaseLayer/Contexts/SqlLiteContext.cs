@@ -33,6 +33,7 @@ namespace DataBaseLayer.Contexts
         public DbSet<TelegramChatInfo> TelegramChatInfos { get; set; }
         public DbSet<TelegramUserInfo> TelegramUserInfos { get; set; }
         public DbSet<CachedTranslation> CachedTranslations { get; set; }
+        public DbSet<BalanceHistory> BalanceHistories { get; set; }
         #endregion
     }
 }

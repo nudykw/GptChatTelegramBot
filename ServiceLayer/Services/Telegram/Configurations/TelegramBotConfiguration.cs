@@ -23,4 +23,14 @@ public class TelegramBotConfiguration
     /// Bot owner ID for access to administrative commands.
     /// </summary>
     public long? OwnerId { get; set; }
+
+    /// <summary>
+    /// Initial balance for new users and top-up amount.
+    /// </summary>
+    public decimal InitialBalance { get; set; } = 0.1M;
+
+    /// <summary>
+    /// List of user IDs whose balance should not be deducted.
+    /// </summary>
+    public List<long> IgnoredBalanceUserIds { get; set; } = new();
 }

@@ -125,15 +125,19 @@ public class MessageProcessor : BaseService
             }
             responceText = sb.ToString();
             _logger.LogInformation("Message from gpt: {0}", responceText);
+            var balanceDisplay = await GetBalanceDisplay(fromUserId);
             var summary = $"{gptChatResponce.ProviderName} | {gptChatResponce.ModelName} | " +
                           $"In:{gptChatResponce.PromptTokens} Out:{gptChatResponce.CompletionTokens}" +
                           (gptChatResponce.ReasoningTokens > 0 ? $" (R:{gptChatResponce.ReasoningTokens})" : "") +
-                          $" | T:{gptChatResponce.TotalTokens} | {gptChatResponce.TokensPerSecond:F1}t/s | {gptChatResponce.LatencySeconds:F1}s | ${gptChatResponce.Cost:F4}";
+                          $" | T:{gptChatResponce.TotalTokens} | {gptChatResponce.TokensPerSecond:F1}t/s | {gptChatResponce.LatencySeconds:F1}s | ${gptChatResponce.Cost:F4}{balanceDisplay}";
 
             if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
             {
                 responceText = responceText.ConvertMarkdownToHtml();
                 responceText = responceText.ConvertHtmlToTelegramHtml();
+                // Avoid duplicating the response text twice if sb already has it
+                // Actually sb was empty before, then responceText was added, then summary.
+                sb.Clear(); // Clear to rebuild with correct HTML
                 sb.AppendLine(responceText);
                 sb.AppendLine($"<tg-spoiler><i>{summary}</i></tg-spoiler>");
             }
@@ -142,6 +146,7 @@ public class MessageProcessor : BaseService
                 var responceHtml = responceText.ConvertMarkdownToHtml();
                 responceHtml = responceHtml.ConvertHtmlToTelegramHtml();
                 responceText = responceHtml.ConvertHtmlToMarkdown();
+                sb.Clear();
                 sb.AppendLine(responceText);
                 sb.AppendLine($"||_{summary}_||"); // Markdown spoiler and italic
             }
@@ -199,9 +204,10 @@ public class MessageProcessor : BaseService
                 sb.AppendLine(image);
             }
 
+            var balanceDisplay = await GetBalanceDisplay(fromUserId);
             var summary = $"{gptImageResponce.ProviderName} | {gptImageResponce.ModelName} | " +
                           $"In:{gptImageResponce.PromptTokens} Out:{gptImageResponce.CompletionTokens} | " +
-                          $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}";
+                          $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}{balanceDisplay}";
 
             if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
             {
@@ -235,9 +241,10 @@ public class MessageProcessor : BaseService
             sb.AppendLine(image);
         }
 
+        var balanceDisplay = await GetBalanceDisplay(userId);
         var summary = $"{gptImageResponce.ProviderName} | {gptImageResponce.ModelName} | " +
                       $"In:{gptImageResponce.PromptTokens} Out:{gptImageResponce.CompletionTokens} | " +
-                      $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}";
+                      $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}{balanceDisplay}";
 
         if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
         {
@@ -356,5 +363,18 @@ public class MessageProcessor : BaseService
         _logger.LogInformation($"GPT Bot response: {isNeewDrawResponce}");
         return isNeewDrawResponce.Contains(confirmPhrase, StringComparison.OrdinalIgnoreCase);
 
+    }
+
+    internal async Task<string> GetBalanceDisplay(long userId)
+    {
+        var user = await _telegramUserInfoRepository.Get(p => p.Id == userId);
+        if (user == null) return string.Empty;
+        
+        bool isIgnored = _telegramBotConfiguration.IgnoredBalanceUserIds?.Contains(userId) == true ||
+                         _telegramBotConfiguration.OwnerId == userId;
+        
+        if (isIgnored) return " (Unlimited)";
+        
+        return $" | B: ${user.Balance.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)}";
     }
 }
