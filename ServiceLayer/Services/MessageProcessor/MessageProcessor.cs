@@ -99,35 +99,7 @@ public class MessageProcessor : BaseService
 
         if (await IsNeedDrawImage(chatId, fromUserId, message))
         {
-            var botInfo = await _telegramBotClient.GetMe();
-            var msg = message.Replace(botInfo.Username, string.Empty);
-            var sb = new StringBuilder();
-            try
-            {
-                var gptImageResponce = await _chatService.GenerateImage(chatId, fromUserId, msg);
-                foreach (var image in gptImageResponce.Choices.Where(p => !string.IsNullOrWhiteSpace(p)))
-                {
-                    sb.AppendLine(image);
-                }
-
-                var summary = $"{gptImageResponce.ProviderName} | {gptImageResponce.ModelName} | " +
-                              $"In:{gptImageResponce.PromptTokens} Out:{gptImageResponce.CompletionTokens} | " +
-                              $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}";
-
-                if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
-                {
-                    sb.AppendLine($"<tg-spoiler><i>{summary}</i></tg-spoiler>");
-                }
-                else
-                {
-                    sb.AppendLine($"||_{summary}_||");
-                }
-            }
-            catch (Exception ex)
-            {
-                sb.AppendLine(ex.Message);
-            }
-            toSendText = sb.ToString();
+            toSendText = await InternalProcessDrawImage(chatId, fromUserId, message);
         }
         else
         {
@@ -185,6 +157,52 @@ public class MessageProcessor : BaseService
         _historyMessageRepository.Add(historyMessage);
         await _historyMessageRepository.SaveChanges();
         return responceText;
+    }
+
+    public async Task<global::Telegram.Bot.Types.Message> ProcessDrawCommand(long chatId, long messageId, long fromUserId, string prompt, CancellationToken cancellationToken)
+    {
+        var toSendText = await InternalProcessDrawImage(chatId, fromUserId, prompt);
+        var telegramResponce = await _telegramBotClient.SendMessage(
+                chatId: chatId,
+                text: toSendText,
+                parseMode: _telegramBotConfiguration.DefaultParseMode,
+                replyParameters: new ReplyParameters() { MessageId = (int)messageId },
+                replyMarkup: new ReplyKeyboardRemove(),
+                cancellationToken: cancellationToken);
+        return telegramResponce;
+    }
+
+    private async Task<string> InternalProcessDrawImage(long chatId, long fromUserId, string message)
+    {
+        var botInfo = await _telegramBotClient.GetMe();
+        var msg = message.Replace(botInfo.Username, string.Empty);
+        var sb = new StringBuilder();
+        try
+        {
+            var gptImageResponce = await _chatService.GenerateImage(chatId, fromUserId, msg);
+            foreach (var image in gptImageResponce.Choices.Where(p => !string.IsNullOrWhiteSpace(p)))
+            {
+                sb.AppendLine(image);
+            }
+
+            var summary = $"{gptImageResponce.ProviderName} | {gptImageResponce.ModelName} | " +
+                          $"In:{gptImageResponce.PromptTokens} Out:{gptImageResponce.CompletionTokens} | " +
+                          $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}";
+
+            if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
+            {
+                sb.AppendLine($"<tg-spoiler><i>{summary}</i></tg-spoiler>");
+            }
+            else
+            {
+                sb.AppendLine($"||_{summary}_||");
+            }
+        }
+        catch (Exception ex)
+        {
+            sb.AppendLine(ex.Message);
+        }
+        return sb.ToString();
     }
 
     internal async Task<IReadOnlyList<OpenAI.Models.Model>> GetGPTModels(long userId)
