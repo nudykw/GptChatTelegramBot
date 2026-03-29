@@ -6,8 +6,6 @@ using OpenAI;
 using OpenAI.Chat;
 using OpenAI.Models;
 using ServiceLayer.Services.GptChat;
-using ServiceLayer.Services.GptChat.Configurations;
-using ServiceLayer.Services.GeminiChat.DotNet.Configurations;
 using ServiceLayer.Services.Telegram.Configuretions;
 using ServiceLayer.Services;
 using DataBaseLayer.Models;
@@ -42,12 +40,6 @@ public class ChatGptServiceTests
 
         _appSettings = new AppSettings
         {
-            GptChatConfiguration = new GptChatConfiguration
-            {
-                APIKey = "sk-test-key",
-                ModelName = "gpt-4o-mini"
-            },
-            GeminiChatConfiguration = new GeminiChatConfiguration { APIKey = "test-gemini-key" },
             TelegramBotConfiguration = new TelegramBotConfiguration { BotToken = "test-bot-token" }
         };
 
@@ -65,8 +57,8 @@ public class ChatGptServiceTests
         {
             Name = "OpenAI",
             ProviderType = AiProvider.OpenAI,
-            ApiKey = _appSettings.GptChatConfiguration.APIKey,
-            ModelName = _appSettings.GptChatConfiguration.ModelName
+            ApiKey = "sk-test-key",
+            ModelName = "gpt-4o-mini"
         };
 
         return new ChatGptService(

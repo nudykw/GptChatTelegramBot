@@ -2,7 +2,6 @@ using Moq;
 using Moq.Protected;
 using Microsoft.Extensions.Logging;
 using ServiceLayer.Services.GptChat;
-using ServiceLayer.Services.GptChat.Configurations;
 using ServiceLayer.Services;
 using ServiceLayer.Constans;
 using System.Net;
@@ -13,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using ServiceLayer.Services.Telegram.Configuretions;
-using ServiceLayer.Services.GeminiChat.DotNet.Configurations;
 
 namespace ServiceLayer.UnitTests;
 
@@ -47,9 +45,7 @@ public class ChatGptPriceUpdateTests
 
         var appSettings = new AppSettings
         {
-            GptChatConfiguration = new GptChatConfiguration { APIKey = "sk-test-key-1234567890", ModelName = "gpt-4o-mini" },
-            TelegramBotConfiguration = new TelegramBotConfiguration { BotToken = "test-bot" },
-            GeminiChatConfiguration = new GeminiChatConfiguration { APIKey = "test-gemini" }
+            TelegramBotConfiguration = new TelegramBotConfiguration { BotToken = "test-bot" }
         };
 
         // Clear the static cache before testing
@@ -62,8 +58,8 @@ public class ChatGptPriceUpdateTests
         {
             Name = "OpenAI",
             ProviderType = AiProvider.OpenAI,
-            ApiKey = appSettings.GptChatConfiguration.APIKey,
-            ModelName = appSettings.GptChatConfiguration.ModelName
+            ApiKey = "sk-test-key-1234567890",
+            ModelName = "gpt-4o-mini"
         };
 
         var service = new ChatGptService(mockServiceProvider.Object, mockLogger.Object, config, mockHttpClientFactory.Object);

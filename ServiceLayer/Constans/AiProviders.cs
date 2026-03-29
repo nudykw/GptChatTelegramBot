@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using ServiceLayer.Utils;
 
 namespace ServiceLayer.Constans;
@@ -5,6 +6,7 @@ namespace ServiceLayer.Constans;
 /// <summary>
 /// Провайдеры ИИ.
 /// </summary>
+[TypeConverter(typeof(StaticStringEnumTypeConverter<AiProvider>))]
 public sealed class AiProvider : StaticStringEnumBase<AiProvider>, IStaticStringEnum<AiProvider>
 {
     private AiProvider(string value, string displayName) : base(value)

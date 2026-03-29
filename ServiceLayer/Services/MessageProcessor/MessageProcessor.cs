@@ -6,7 +6,7 @@ using OpenAI.Images;
 using ServiceLayer.Constans;
 using ServiceLayer.Services.GptChat;
 using ServiceLayer.Utils;
-using ServiceLayer.Services.GptChat.Configurations;
+
 using ServiceLayer.Services.Telegram.Configuretions;
 using System.Text;
 using Telegram.Bot;

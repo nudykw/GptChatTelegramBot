@@ -1,4 +1,8 @@
+using System.ComponentModel;
+using System.Globalization;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ServiceLayer.Utils;
 
@@ -6,6 +10,7 @@ namespace ServiceLayer.Utils;
 /// Базовая реализация для статических перечислений (мультитонов).
 /// </summary>
 /// <typeparam name="TSelf">Тип наследника.</typeparam>
+[JsonConverter(typeof(StaticStringEnumJsonConverterFactory))]
 public abstract class StaticStringEnumBase<TSelf> : IStaticStringEnum<TSelf> 
     where TSelf : StaticStringEnumBase<TSelf>, IStaticStringEnum<TSelf>
 {
@@ -48,6 +53,22 @@ public abstract class StaticStringEnumBase<TSelf> : IStaticStringEnum<TSelf>
         return GetAll().FirstOrDefault(i => string.Equals(i.Value, value, comp));
     }
 
+    public static TSelf Parse(string s, IFormatProvider? provider = null)
+    {
+        return FromString(s) ?? throw new FormatException($"Invalid value for {typeof(TSelf).Name}: {s}");
+    }
+
+    public static bool TryParse(string? value, out TSelf? result)
+    {
+        result = FromString(value);
+        return result != null;
+    }
+
+    public static bool TryParse(string? value, IFormatProvider? provider, out TSelf? result)
+    {
+        return TryParse(value, out result);
+    }
+
     private static bool GetDefaultIgnoreCase() => TSelf.DefaultIgnoreCase;
 
     // Неявное преобразование в строку
@@ -76,4 +97,60 @@ public abstract class StaticStringEnumBase<TSelf> : IStaticStringEnum<TSelf>
     }
 
     public override int GetHashCode() => Value.GetHashCode();
+}
+
+/// <summary>
+/// TypeConverter для поддержки ConfigurationBinder и других механизмов .NET.
+/// Должен быть применен к конкретному наследнику: [TypeConverter(typeof(StaticStringEnumTypeConverter&lt;T&gt;))]
+/// </summary>
+public class StaticStringEnumTypeConverter<T> : TypeConverter where T : StaticStringEnumBase<T>, IStaticStringEnum<T>
+{
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) =>
+        sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+
+    public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object? value)
+    {
+        if (value is string s)
+        {
+            return T.FromString(s);
+        }
+        return base.ConvertFrom(context, culture, value);
+    }
+}
+
+/// <summary>
+/// Фабрика для создания JsonConverter для любых наследников StaticStringEnumBase.
+/// </summary>
+public class StaticStringEnumJsonConverterFactory : JsonConverterFactory
+{
+    public override bool CanConvert(Type typeToConvert)
+    {
+        return typeToConvert.IsGenericType && typeToConvert.GetGenericTypeDefinition() == typeof(StaticStringEnumBase<>) 
+            || (typeToConvert.BaseType?.IsGenericType == true && typeToConvert.BaseType.GetGenericTypeDefinition() == typeof(StaticStringEnumBase<>));
+    }
+
+    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+    {
+        Type tSelf = typeToConvert;
+        Type converterType = typeof(StaticStringEnumJsonConverter<>).MakeGenericType(tSelf);
+        return (JsonConverter)Activator.CreateInstance(converterType)!;
+    }
+}
+
+/// <summary>
+/// JsonConverter для конкретного типа TSelf.
+/// </summary>
+public class StaticStringEnumJsonConverter<TSelf> : JsonConverter<TSelf> 
+    where TSelf : StaticStringEnumBase<TSelf>, IStaticStringEnum<TSelf>
+{
+    public override TSelf? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        string? value = reader.GetString();
+        return TSelf.FromString(value);
+    }
+
+    public override void Write(Utf8JsonWriter writer, TSelf value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.Value);
+    }
 }

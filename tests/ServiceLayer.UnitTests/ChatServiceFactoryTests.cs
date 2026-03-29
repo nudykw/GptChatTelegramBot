@@ -25,8 +25,6 @@ public class ChatServiceFactoryTests
         var appSettings = new AppSettings
         {
             TelegramBotConfiguration = new() { BotToken = "test" },
-            GptChatConfiguration = new() { APIKey = "test" },
-            GeminiChatConfiguration = new() { APIKey = "test" },
             ChatProviders = new List<ChatProviderConfig>
             {
                 new ChatProviderConfig

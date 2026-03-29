@@ -1,0 +1,109 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  DataBaseLayer -> /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/DataBaseLayer/bin/Debug/net9.0/DataBaseLayer.dll
+  ServiceLayer -> /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/ServiceLayer/bin/Debug/net9.0/ServiceLayer.dll
+  ServiceLayer.IntegrationTests -> /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.IntegrationTests/bin/Debug/net9.0/ServiceLayer.IntegrationTests.dll
+Test run for /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.IntegrationTests/bin/Debug/net9.0/ServiceLayer.IntegrationTests.dll (.NETCoreApp,Version=v9.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.07]     ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.SendMessages2ChatAsync_ShouldReturnChatResponse_AndSaveBilling [FAIL]
+[xUnit.net 00:00:01.27]     ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.GetAvailibleModels_ShouldReturnModelsList [FAIL]
+  Failed ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.SendMessages2ChatAsync_ShouldReturnChatResponse_AndSaveBilling [453 ms]
+  Error Message:
+   System.Net.Http.HttpRequestException : DeserializeAsync Failed! HTTP status code: Unauthorized | Response body: {
+  "error": {
+    "message": "Incorrect API key provided: sk-test-key. You can find your API key at https://platform.openai.com/account/api-keys.",
+    "type": "invalid_request_error",
+    "code": "invalid_api_key",
+    "param": null
+  },
+  "status": 401
+}
+  Stack Trace:
+     at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, HttpContent requestContent, MemoryStream responseStream, List`1 events, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, HttpContent requestContent, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Extensions.ResponseExtensions.DeserializeAsync[T](HttpResponseMessage response, Boolean debug, HttpContent payload, OpenAIClient client, CancellationToken cancellationToken)
+   at OpenAI.Chat.ChatEndpoint.GetCompletionAsync(ChatRequest chatRequest, CancellationToken cancellationToken)
+   at ServiceLayer.Services.GptChat.ChatGptService.SendMessages2ChatAsync(Int64 telegramChatId, Int64 telegramUserId, List`1 messages) in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/ServiceLayer/Services/GptChat/ChatGptService.cs:line 148
+   at ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.SendMessages2ChatAsync_ShouldReturnChatResponse_AndSaveBilling() in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.IntegrationTests/Services/GptChat/ChatGptServiceTests.cs:line 69
+--- End of stack trace from previous location ---
+  Failed ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.GetAvailibleModels_ShouldReturnModelsList [201 ms]
+  Error Message:
+   System.Net.Http.HttpRequestException : DeserializeAsync Failed! HTTP status code: Unauthorized | Response body: {
+  "error": {
+    "message": "Incorrect API key provided: sk-test-key. You can find your API key at https://platform.openai.com/account/api-keys.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "invalid_api_key"
+  }
+}
+  Stack Trace:
+     at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, HttpContent requestContent, MemoryStream responseStream, List`1 events, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Extensions.ResponseExtensions.DeserializeAsync[T](HttpResponseMessage response, Boolean debug, OpenAIClient client, CancellationToken cancellationToken)
+   at OpenAI.Models.ModelsEndpoint.GetModelsAsync(CancellationToken cancellationToken)
+   at ServiceLayer.Services.GptChat.ChatGptService.GetAvailibleModels(Nullable`1 userId) in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/ServiceLayer/Services/GptChat/ChatGptService.cs:line 90
+   at ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.GetAvailibleModels_ShouldReturnModelsList() in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.IntegrationTests/Services/GptChat/ChatGptServiceTests.cs:line 33
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:01.50]     ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.GenerateImage_ShouldReturnImageUrl_AndSaveBilling [FAIL]
+[xUnit.net 00:00:01.84]     ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.Ask_ShouldReturnResponse_AndSaveBilling [FAIL]
+[xUnit.net 00:00:02.11]     ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.AudioTranscription_ShouldReturnTranscription_AndSaveBilling [FAIL]
+  Failed ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.GenerateImage_ShouldReturnImageUrl_AndSaveBilling [226 ms]
+  Error Message:
+   System.Net.Http.HttpRequestException : DeserializeResponseAsync Failed! HTTP status code: Unauthorized | Response body: {
+  "error": {
+    "message": "Incorrect API key provided: sk-test-key. You can find your API key at https://platform.openai.com/account/api-keys.",
+    "type": "invalid_request_error",
+    "code": "invalid_api_key",
+    "param": null
+  },
+  "status": 401
+}
+  Stack Trace:
+     at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, HttpContent requestContent, MemoryStream responseStream, List`1 events, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, HttpContent requestContent, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Images.ImagesEndpoint.DeserializeResponseAsync(HttpResponseMessage response, HttpContent requestContent, CancellationToken cancellationToken)
+   at OpenAI.Images.ImagesEndpoint.GenerateImageAsync(ImageGenerationRequest request, CancellationToken cancellationToken)
+   at ServiceLayer.Services.GptChat.ChatGptService.GenerateImage(Int64 chatId, Int64 telegramUserId, String prompt) in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/ServiceLayer/Services/GptChat/ChatGptService.cs:line 195
+   at ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.GenerateImage_ShouldReturnImageUrl_AndSaveBilling() in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.IntegrationTests/Services/GptChat/ChatGptServiceTests.cs:line 91
+--- End of stack trace from previous location ---
+  Failed ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.Ask_ShouldReturnResponse_AndSaveBilling [338 ms]
+  Error Message:
+   System.Net.Http.HttpRequestException : DeserializeAsync Failed! HTTP status code: Unauthorized | Response body: {
+  "error": {
+    "message": "Incorrect API key provided: sk-test-key. You can find your API key at https://platform.openai.com/account/api-keys.",
+    "type": "invalid_request_error",
+    "code": "invalid_api_key",
+    "param": null
+  },
+  "status": 401
+}
+  Stack Trace:
+     at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, HttpContent requestContent, MemoryStream responseStream, List`1 events, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, HttpContent requestContent, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Extensions.ResponseExtensions.DeserializeAsync[T](HttpResponseMessage response, Boolean debug, HttpContent payload, OpenAIClient client, CancellationToken cancellationToken)
+   at OpenAI.Chat.ChatEndpoint.GetCompletionAsync(ChatRequest chatRequest, CancellationToken cancellationToken)
+   at ServiceLayer.Services.GptChat.ChatGptService.SendMessages2ChatAsync(Int64 telegramChatId, Int64 telegramUserId, List`1 messages) in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/ServiceLayer/Services/GptChat/ChatGptService.cs:line 148
+   at ServiceLayer.Services.GptChat.ChatGptService.Ask(Int64 chatId, Int64 userId, String message) in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/ServiceLayer/Services/GptChat/ChatGptService.cs:line 128
+   at ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.Ask_ShouldReturnResponse_AndSaveBilling() in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.IntegrationTests/Services/GptChat/ChatGptServiceTests.cs:line 47
+--- End of stack trace from previous location ---
+  Failed ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.AudioTranscription_ShouldReturnTranscription_AndSaveBilling [268 ms]
+  Error Message:
+   System.Net.Http.HttpRequestException : Internal_CreateTranscriptionAsync Failed! HTTP status code: Unauthorized | Response body: {
+  "error": {
+    "message": "Incorrect API key provided: sk-test-key. You can find your API key at https://platform.openai.com/account/api-keys.",
+    "type": "invalid_request_error",
+    "code": "invalid_api_key",
+    "param": null
+  },
+  "status": 401
+}
+  Stack Trace:
+     at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, HttpContent requestContent, MemoryStream responseStream, List`1 events, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Extensions.ResponseExtensions.ReadAsStringAsync(HttpResponseMessage response, Boolean debugResponse, HttpContent requestContent, CancellationToken cancellationToken, String methodName)
+   at OpenAI.Audio.AudioEndpoint.Internal_CreateTranscriptionAsync(AudioTranscriptionRequest request, CancellationToken cancellationToken)
+   at OpenAI.Audio.AudioEndpoint.CreateTranscriptionTextAsync(AudioTranscriptionRequest request, CancellationToken cancellationToken)
+   at ServiceLayer.Services.GptChat.ChatGptService.AudioTranscription(Int64 chatId, Int64 telegramUserId, Stream audio, String audioName, String model, String prompt, AudioResponseFormat responseFormat, Nullable`1 temperature, String language) in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/ServiceLayer/Services/GptChat/ChatGptService.cs:line 214
+   at ServiceLayer.IntegrationTests.Services.GptChat.ChatGptServiceTests.AudioTranscription_ShouldReturnTranscription_AndSaveBilling() in /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.IntegrationTests/Services/GptChat/ChatGptServiceTests.cs:line 112
+--- End of stack trace from previous location ---
+
+Failed!  - Failed:     5, Passed:     2, Skipped:     0, Total:     7, Duration: 1 s - ServiceLayer.IntegrationTests.dll (net9.0)

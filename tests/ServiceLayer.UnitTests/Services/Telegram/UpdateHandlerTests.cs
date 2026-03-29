@@ -45,9 +45,7 @@ namespace ServiceLayer.UnitTests.Services.Telegram
             
             // Mock AppSettings for MessageProcessor/UpdateHandler
             var appSettings = new AppSettings { 
-                TelegramBotConfiguration = new ServiceLayer.Services.Telegram.Configuretions.TelegramBotConfiguration(),
-                GptChatConfiguration = new ServiceLayer.Services.GptChat.Configurations.GptChatConfiguration(),
-                GeminiChatConfiguration = new ServiceLayer.Services.GeminiChat.DotNet.Configurations.GeminiChatConfiguration()
+                TelegramBotConfiguration = new ServiceLayer.Services.Telegram.Configuretions.TelegramBotConfiguration()
             };
             var optionsMock = new Mock<IOptions<AppSettings>>();
             optionsMock.Setup(x => x.Value).Returns(appSettings);

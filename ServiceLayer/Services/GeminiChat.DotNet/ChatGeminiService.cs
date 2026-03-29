@@ -3,7 +3,7 @@ using Google.GenAI.Types;
 using Microsoft.Extensions.Logging;
 using OpenAI.Audio;
 using OpenAI.Chat;
-using ServiceLayer.Services.GeminiChat.DotNet.Configurations;
+
 using ServiceLayer.Services.GptChat;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;

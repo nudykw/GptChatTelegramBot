@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using ServiceLayer.Utils;
 
 namespace ServiceLayer.Constans;
@@ -5,6 +6,7 @@ namespace ServiceLayer.Constans;
 /// <summary>
 /// Стандартные названия моделей ИИ.
 /// </summary>
+[TypeConverter(typeof(StaticStringEnumTypeConverter<AiModel>))]
 public sealed class AiModel : StaticStringEnumBase<AiModel>, IStaticStringEnum<AiModel>
 {
     private AiModel(string value) : base(value) { }

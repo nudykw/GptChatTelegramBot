@@ -57,8 +57,8 @@ public class TestAppFixture : IDisposable
             {
                 Name = "OpenAI-Default",
                 ProviderType = AiProvider.OpenAI,
-                ApiKey = appSettings.GptChatConfiguration.APIKey,
-                ModelName = appSettings.GptChatConfiguration.ModelName
+                ApiKey = "sk-test-key",
+                ModelName = AiModel.Gpt4oMini
             };
         services.AddSingleton(openAiConfig);
 

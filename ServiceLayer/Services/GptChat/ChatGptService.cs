@@ -8,13 +8,13 @@ using OpenAI.Audio;
 using OpenAI.Chat;
 using OpenAI.Images;
 using OpenAI.Models;
-using ServiceLayer.Services.GptChat.Configurations;
+
 using ServiceLayer.Services.GptChat.Models;
 using System.Text;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Net.Http;
-using ServiceLayer.Services.GptChat.Models;
+
 
 namespace ServiceLayer.Services.GptChat;
 
