@@ -14,5 +14,6 @@ When any service (especially in `ServiceLayer`) is created or modified, you MUST
     - Propose new unit tests for the changes.
     - If the user agrees, implement the tests.
 4.  **Verify**: Ensure documentation is consistent with the code and tests pass.
+5.  **NO STRING DUPLICATION**: Any string constant (model names, provider names, test prompts, etc.) must be defined only once. Use classes inheriting from `StaticStringEnumBase` (e.g., `AiModel`, `AiProvider`) or local constants for tests.
 
 Remember: This is a MANDATORY rule for this project.

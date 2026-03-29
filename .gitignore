@@ -9,3 +9,9 @@ TelegramBotApp/Properties/PublishProfiles/FolderProfile.pubxml
 TelegramBotApp/Properties/PublishProfiles/FolderProfile.pubxml.user
 TelegramBotApp/Publish.cmd
 TelegramBotApp/Publish.sh
+build_output.txt
+integration_results.txt
+integration_tests_output.txt
+tmp/
+*.db-journal
+*.db-wal

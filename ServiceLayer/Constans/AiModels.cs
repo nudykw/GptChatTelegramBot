@@ -34,6 +34,11 @@ public sealed class AiModel : StaticStringEnumBase<AiModel>, IStaticStringEnum<A
     public static readonly AiModel Gemini3Flash = new("gemini-3-flash-preview");
     public static readonly AiModel Gemini3Pro = new("gemini-3-pro-preview");
     public static readonly AiModel Gemini31Pro = new("gemini-3.1-pro-preview");
+    public static readonly AiModel Imagen3 = new("imagen-3.0-generate-002");
+
+    // OpenAI Models
+    public static readonly AiModel DallE2 = new("dall-e-2");
+    public static readonly AiModel DallE3 = new("dall-e-3");
 
     // DeepSeek Models
     public static readonly AiModel DeepSeekChat = new("deepseek-chat");

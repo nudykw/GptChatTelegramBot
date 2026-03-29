@@ -12,6 +12,7 @@ public class ChatProviderConfig
     public required string ApiKey { get; set; }
     public string? BaseUrl { get; set; }
     public string? ModelName { get; set; }
+    public string? DrawingModelName { get; set; }
 
     public static bool IsPlaceholder(string? value)
     {

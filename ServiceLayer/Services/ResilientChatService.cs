@@ -99,13 +99,41 @@ public class ResilientChatService : IChatService
     public Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
         => ExecuteWithFallback(s => s.SendMessages2ChatAsync(telegramChatId, telegramUserId, messages), nameof(SendMessages2ChatAsync), telegramUserId);
 
-    public Task<IReadOnlyList<string>> GenerateImage(long chatId, long telegramUserId, string prompt)
-        => ExecuteWithFallback(s => s.GenerateImage(chatId, telegramUserId, prompt), nameof(GenerateImage), telegramUserId);
+    public async Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt)
+    {
+        try
+        {
+            return await ExecuteWithFallback(s => s.GenerateImage(chatId, telegramUserId, prompt), nameof(GenerateImage), telegramUserId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Default image generation failed. Attempting fallback to OpenAI.");
+            
+            var providers = _chatServiceFactory.GetAvailableProviders();
+            var openAiProvider = providers.FirstOrDefault(p => p.ProviderType == AiProvider.OpenAI);
+            
+            if (openAiProvider != null)
+            {
+                try
+                {
+                    _logger.LogInformation("Falling back to OpenAI drawing model for provider: {Provider}", openAiProvider.Name);
+                    var service = _chatServiceFactory.CreateService(openAiProvider.Name);
+                    return await service.GenerateImage(chatId, telegramUserId, prompt);
+                }
+                catch (Exception fallbackEx)
+                {
+                    _logger.LogError(fallbackEx, "OpenAI fallback for image generation also failed.");
+                }
+            }
+            
+            throw;
+        }
+    }
 
     public Task<string> AudioTranscription(long chatId, long telegramUserId, Stream audio, string audioName, string model = null, string prompt = null, AudioResponseFormat responseFormat = AudioResponseFormat.Json, int? temperature = null, string language = null)
         => ExecuteWithFallback(s => s.AudioTranscription(chatId, telegramUserId, audio, audioName, model, prompt, responseFormat, temperature, language), nameof(AudioTranscription), telegramUserId);
 
-    public Task<IReadOnlyList<string>> CreateImageEditAsync(long chatId, long telegramUserId, string filePath, string? messageText)
+    public Task<ChatServiceResponse> CreateImageEditAsync(long chatId, long telegramUserId, string filePath, string? messageText)
         => ExecuteWithFallback(s => s.CreateImageEditAsync(chatId, telegramUserId, filePath, messageText), nameof(CreateImageEditAsync), telegramUserId);
 
     public async Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null)

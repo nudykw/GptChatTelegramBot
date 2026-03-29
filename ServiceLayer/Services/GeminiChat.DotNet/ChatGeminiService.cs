@@ -183,7 +183,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             await _gptBilingItemRepository.SaveChanges();
         }
 
-        public Task<IReadOnlyList<string>> GenerateImage(long chatId, long telegramUserId, string prompt)
+        public Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt)
         {
             throw new NotSupportedException("Gemini provider does not support image generation yet.");
         }
@@ -195,7 +195,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             throw new NotSupportedException("Gemini provider does not support audio transcription yet.");
         }
 
-        public Task<IReadOnlyList<string>> CreateImageEditAsync(long chatId, long telegramUserId, string filePath, string? messageText)
+        public Task<ChatServiceResponse> CreateImageEditAsync(long chatId, long telegramUserId, string filePath, string? messageText)
         {
             throw new NotSupportedException("Gemini provider does not support image editing yet.");
         }

@@ -62,8 +62,14 @@ static void InitConfigs(HostBuilderContext context, IServiceCollection services)
 {
     // Register Bot configuration
     var appSection = context.Configuration.GetSection(AppSettings.Configuration);
+    if (!appSection.Exists())
+    {
+        throw new Exception($"Configuration section '{AppSettings.Configuration}' is missing from the setup. Please ensure appsettings.json is available in the run directory and contains this section.");
+    }
+    
     services.Configure<AppSettings>(appSection);
-    var appSettings = appSection.Get<AppSettings>();
-    if (appSettings == null) throw new Exception("AppSettings is null");
+    var appSettings = appSection.Get<AppSettings>() 
+        ?? throw new Exception($"Failed to bind configuration section '{AppSettings.Configuration}' to {nameof(AppSettings)}. Check for type mismatches.");
+    
     services.AddSingleton(appSettings);
 }

@@ -104,10 +104,23 @@ public class MessageProcessor : BaseService
             var sb = new StringBuilder();
             try
             {
-                IReadOnlyList<string> imageResults = await _chatService.GenerateImage(chatId, fromUserId, msg);
-                foreach (var image in imageResults.Where(p => !string.IsNullOrWhiteSpace(p)))
+                var gptImageResponce = await _chatService.GenerateImage(chatId, fromUserId, msg);
+                foreach (var image in gptImageResponce.Choices.Where(p => !string.IsNullOrWhiteSpace(p)))
                 {
                     sb.AppendLine(image);
+                }
+
+                var summary = $"{gptImageResponce.ProviderName} | {gptImageResponce.ModelName} | " +
+                              $"In:{gptImageResponce.PromptTokens} Out:{gptImageResponce.CompletionTokens} | " +
+                              $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}";
+
+                if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
+                {
+                    sb.AppendLine($"<tg-spoiler><i>{summary}</i></tg-spoiler>");
+                }
+                else
+                {
+                    sb.AppendLine($"||_{summary}_||");
                 }
             }
             catch (Exception ex)
@@ -126,15 +139,17 @@ public class MessageProcessor : BaseService
             }
             responceText = sb.ToString();
             _logger.LogInformation("Message from gpt: {0}", responceText);
-            sb = new StringBuilder();
+            var summary = $"{gptChatResponce.ProviderName} | {gptChatResponce.ModelName} | " +
+                          $"In:{gptChatResponce.PromptTokens} Out:{gptChatResponce.CompletionTokens}" +
+                          (gptChatResponce.ReasoningTokens > 0 ? $" (R:{gptChatResponce.ReasoningTokens})" : "") +
+                          $" | T:{gptChatResponce.TotalTokens} | {gptChatResponce.TokensPerSecond:F1}t/s | {gptChatResponce.LatencySeconds:F1}s | ${gptChatResponce.Cost:F4}";
+
             if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
             {
                 responceText = responceText.ConvertMarkdownToHtml();
                 responceText = responceText.ConvertHtmlToTelegramHtml();
                 sb.AppendLine(responceText);
-                sb.AppendLine($"<i><u>Provider:</u> {gptChatResponce.ProviderName}</i>");
-                sb.AppendLine($"<i><u>Model:</u> {gptChatResponce.ModelName}</i>");
-                sb.AppendLine($"<i><u>Usage:</u> {gptChatResponce.TotalTokens}</i>");
+                sb.AppendLine($"<tg-spoiler><i>{summary}</i></tg-spoiler>");
             }
             else
             {
@@ -142,9 +157,7 @@ public class MessageProcessor : BaseService
                 responceHtml = responceHtml.ConvertHtmlToTelegramHtml();
                 responceText = responceHtml.ConvertHtmlToMarkdown();
                 sb.AppendLine(responceText);
-                sb.AppendLine($"Provider: {gptChatResponce.ProviderName}");
-                sb.AppendLine($"Model: {gptChatResponce.ModelName}");
-                sb.AppendLine($"Usage: {gptChatResponce.TotalTokens}");
+                sb.AppendLine($"||_{summary}_||"); // Markdown spoiler and italic
             }
             toSendText = sb.ToString();
             usedProviderName = gptChatResponce.ProviderName;
@@ -183,12 +196,26 @@ public class MessageProcessor : BaseService
     internal async Task<global::Telegram.Bot.Types.Message> ProcessImage(long chatId, int messageId, int? replyToMessagemessageId,
         long userId, string? messageText, string filePath, CancellationToken cancellationToken)
     {
-        var results = await _chatService.CreateImageEditAsync(chatId, userId, filePath, messageText);
+        var gptImageResponce = await _chatService.CreateImageEditAsync(chatId, userId, filePath, messageText);
         var sb = new StringBuilder();
-        foreach (var image in results.Where(p => !string.IsNullOrWhiteSpace(p)))
+        foreach (var image in gptImageResponce.Choices.Where(p => !string.IsNullOrWhiteSpace(p)))
         {
             sb.AppendLine(image);
         }
+
+        var summary = $"{gptImageResponce.ProviderName} | {gptImageResponce.ModelName} | " +
+                      $"In:{gptImageResponce.PromptTokens} Out:{gptImageResponce.CompletionTokens} | " +
+                      $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}";
+
+        if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
+        {
+            sb.AppendLine($"<tg-spoiler><i>{summary}</i></tg-spoiler>");
+        }
+        else
+        {
+            sb.AppendLine($"||_{summary}_||");
+        }
+
         var toSendText = sb.ToString();
         var telegramResponce = await _telegramBotClient.SendMessage(
                 chatId: chatId,

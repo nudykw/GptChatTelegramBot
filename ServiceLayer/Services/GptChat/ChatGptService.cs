@@ -15,7 +15,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Net.Http;
 using ServiceLayer.Utils;
-
+using System.Diagnostics;
 
 namespace ServiceLayer.Services.GptChat;
 
@@ -163,6 +163,7 @@ internal class ChatGptService : BaseService, IChatService
 
         ChatRequest chatRequest = new ChatRequest(messages, model: modelName);
         ChatResponse result;
+        Stopwatch sw = Stopwatch.StartNew();
         try
         {
             result = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
@@ -171,17 +172,30 @@ internal class ChatGptService : BaseService, IChatService
         {
             throw AiErrorHelper.HandleAndGetException(_logger, ex, _chatProviderConfiguration.Name, nameof(SendMessages2ChatAsync));
         }
-        await SaveBilling(modelName, _chatProviderConfiguration.Name, telegramChatId, telegramUserId, result.Usage);
+        sw.Stop();
+
+        decimal? cost = await SaveBilling(modelName, _chatProviderConfiguration.Name, telegramChatId, telegramUserId, result.Usage);
+
+        var latency = sw.Elapsed.TotalSeconds;
+        var tps = result.Usage?.TotalTokens / latency;
+
         return new ChatServiceResponse
         {
             Choices = result.Choices.Select(p => p.Message.ToString()).ToList(),
             TotalTokens = result.Usage?.TotalTokens,
+            PromptTokens = result.Usage?.PromptTokens,
+            CompletionTokens = result.Usage?.CompletionTokens,
+            // ReasoningTokens might be null or not exist on older SDK versions
+            // ReasoningTokens = result.Usage?.ReasoningTokens, 
+            Cost = cost,
+            LatencySeconds = latency,
+            TokensPerSecond = tps,
             ProviderName = _chatProviderConfiguration.Name,
             ModelName = modelName
         };
     }
 
-    private async Task SaveBilling(string modelName, string providerName, long telegramChatId, long telegramUserId, GptUsage usage)
+    private async Task<decimal?> SaveBilling(string modelName, string providerName, long telegramChatId, long telegramUserId, GptUsage usage)
     {
         if ((DateTime.UtcNow - _lastPriceUpdate).TotalHours > 24)
         {
@@ -211,13 +225,19 @@ internal class ChatGptService : BaseService, IChatService
         };
         _gptBilingItemRepository.Add(dbGptBilingItem);
         await _gptBilingItemRepository.SaveChanges();
+        return cost;
     }
 
-    public async Task<IReadOnlyList<string>> GenerateImage(long chatId, long telegramUserId, string prompt)
+    public async Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt)
     {
-        var modelName = Model.DallE_3;
+        var modelName = _chatProviderConfiguration.DrawingModelName 
+            ?? _chatProviderConfiguration.ProviderType.DefaultDrawingModel 
+            ?? _chatProviderConfiguration.ModelName 
+            ?? (string)AiModel.DallE3;
+
         ImageGenerationRequest request = new ImageGenerationRequest(prompt, modelName, 1, null, ImageResponseFormat.Url);
         IReadOnlyList<ImageResult> imageResults;
+        Stopwatch sw = Stopwatch.StartNew();
         try
         {
             imageResults = await _api.ImagesEndPoint.GenerateImageAsync(request);
@@ -226,10 +246,25 @@ internal class ChatGptService : BaseService, IChatService
         {
             throw AiErrorHelper.HandleAndGetException(_logger, ex, _chatProviderConfiguration.Name, nameof(GenerateImage));
         }
+        sw.Stop();
         _logger.LogInformation("Use model: {0} for generate image", request.Model);
         var results = imageResults.Select(p => p.Url).ToList();
-        await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, new GptUsage(0, 1, 1));
-        return results;
+        
+        var usage = new GptUsage(0, 1, 1);
+        decimal? cost = await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, usage);
+
+        return new ChatServiceResponse
+        {
+            Choices = results,
+            TotalTokens = usage.TotalTokens,
+            PromptTokens = usage.PromptTokens,
+            CompletionTokens = usage.CompletionTokens,
+            Cost = cost,
+            LatencySeconds = sw.Elapsed.TotalSeconds,
+            TokensPerSecond = 1.0 / sw.Elapsed.TotalSeconds, // 1 image per response
+            ProviderName = _chatProviderConfiguration.Name,
+            ModelName = modelName
+        };
     }
     public async Task<string> AudioTranscription(long chatId, long telegramUserId,
         Stream audio, string audioName, string model = null,
@@ -257,18 +292,45 @@ internal class ChatGptService : BaseService, IChatService
         return result;
     }
 
-    public async Task<IReadOnlyList<string>> CreateImageEditAsync(long chatId, long telegramUserId,
+    public async Task<ChatServiceResponse> CreateImageEditAsync(long chatId, long telegramUserId,
         string filePath, string? messageText)
     {
-        var imageEditRequest = new ImageEditRequest(
-            imagePath: filePath,
-            maskPath: filePath,
-            prompt: messageText ?? "",
-            numberOfResults: 1,
-            size: OpenAI.Images.ImageSize.Medium);
-        var imagesResults = await _api.ImagesEndPoint.CreateImageEditAsync(imageEditRequest);
+        var modelName = _chatProviderConfiguration.DrawingModelName 
+            ?? _chatProviderConfiguration.ProviderType.DefaultDrawingModel 
+            ?? _chatProviderConfiguration.ModelName 
+            ?? (string)AiModel.DallE2; // Default for edits
+
+        var imageEditRequest = new ImageEditRequest(prompt: messageText, imagePath: filePath,
+            model: modelName, responseFormat: ImageResponseFormat.Url);
+        
+        IReadOnlyList<ImageResult> imagesResults;
+        Stopwatch sw = Stopwatch.StartNew();
+        try
+        {
+            imagesResults = await _api.ImagesEndPoint.CreateImageEditAsync(imageEditRequest);
+        }
+        catch (Exception ex)
+        {
+            throw AiErrorHelper.HandleAndGetException(_logger, ex, _chatProviderConfiguration.Name, nameof(CreateImageEditAsync));
+        }
+        sw.Stop();
         var results = imagesResults.Select(p => p.Url).ToList();
-        return results;
+        
+        var usage = new GptUsage(0, 1, 1);
+        decimal? cost = await SaveBilling(modelName, _chatProviderConfiguration.Name, chatId, telegramUserId, usage);
+
+        return new ChatServiceResponse
+        {
+            Choices = results,
+            TotalTokens = usage.TotalTokens,
+            PromptTokens = usage.PromptTokens,
+            CompletionTokens = usage.CompletionTokens,
+            Cost = cost,
+            LatencySeconds = sw.Elapsed.TotalSeconds,
+            TokensPerSecond = 1.0 / sw.Elapsed.TotalSeconds,
+            ProviderName = _chatProviderConfiguration.Name,
+            ModelName = modelName
+        };
     }
 
     public async Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null)

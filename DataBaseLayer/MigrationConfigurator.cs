@@ -16,10 +16,7 @@ public static class MigrationConfigurator
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<SqlLiteContext>();
 
-        if (dbContext.Database.GetPendingMigrations().Any())
-        {
-            dbContext.Database.Migrate();
-        }
+        dbContext.Database.Migrate();
 
         dbContext.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
     }

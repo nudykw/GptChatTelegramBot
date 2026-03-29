@@ -12,7 +12,7 @@ namespace DataBaseLayer.Contexts
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlite(@"Data Source=StoreContext.db;Cache=Shared;Mode=ReadWriteCreate;Busy Timeout=30000;");
+                optionsBuilder.UseSqlite(@"Data Source=StoreContext.db;Cache=Shared;Mode=ReadWriteCreate;Default Timeout=30;");
             }
         }
 

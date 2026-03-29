@@ -5,7 +5,7 @@ namespace ServiceLayer.Services;
 public class AppSettings
 {
     public static readonly string Configuration = "AppSettings";
-    public required TelegramBotConfiguration TelegramBotConfiguration { get; set; }
+    public TelegramBotConfiguration TelegramBotConfiguration { get; set; } = null!;
 
     public List<ChatProviderConfig> ChatProviders { get; set; } = new();
 }

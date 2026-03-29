@@ -88,12 +88,12 @@ public class ChatGptServiceTests : IClassFixture<TestAppFixture>
         var prompt = "A small blue robot dancing in the rain, digital art style.";
 
         // Act
-        var imageUrls = await _chatGptService.GenerateImage(_testChatId, _testUserId, prompt);
+        var result = await _chatGptService.GenerateImage(_testChatId, _testUserId, prompt);
 
         // Assert
-        Assert.NotNull(imageUrls);
-        Assert.NotEmpty(imageUrls);
-        Assert.StartsWith("http", imageUrls[0]);
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Choices);
+        Assert.StartsWith("http", result.Choices[0]);
 
         // Verify Billing
         var billingItems = _billingRepository.GetAll().ToList();
