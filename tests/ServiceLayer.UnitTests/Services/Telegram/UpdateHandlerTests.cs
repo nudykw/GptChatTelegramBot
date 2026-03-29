@@ -44,7 +44,8 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 null, // history
                 null, // chatService
                 _botClientMock.Object,
-                null); // telegramUserInfoRepository
+                null, // telegramUserInfoRepository
+                _localizerMock.Object); 
 
             _audioTranscriptorMock = new Mock<AudioTranscriptorService>(
                 _serviceProviderMock.Object,

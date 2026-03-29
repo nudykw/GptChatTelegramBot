@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using OpenAI.Chat;
 using ServiceLayer.Constans;
 using Microsoft.Extensions.Logging;
+using ServiceLayer.Services.Localization;
 
 namespace ServiceLayer.UnitTests.Services
 {
@@ -14,6 +15,7 @@ namespace ServiceLayer.UnitTests.Services
     {
         private readonly Mock<IChatServiceFactory> _factoryMock = new();
         private readonly Mock<ILogger<ResilientChatService>> _loggerMock = new();
+        private readonly Mock<IDynamicLocalizer> _localizerMock = new();
         private readonly Mock<IRepository<TelegramUserInfo>> _userRepoMock = new();
         private readonly Mock<IChatService> _underlyingServiceMock = new();
 
@@ -28,7 +30,7 @@ namespace ServiceLayer.UnitTests.Services
 
         private ResilientChatService CreateService()
         {
-            return new ResilientChatService(_factoryMock.Object, _loggerMock.Object, _userRepoMock.Object);
+            return new ResilientChatService(_factoryMock.Object, _loggerMock.Object, _userRepoMock.Object, _localizerMock.Object);
         }
 
         [Fact]

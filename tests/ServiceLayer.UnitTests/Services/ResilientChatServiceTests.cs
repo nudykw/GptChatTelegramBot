@@ -2,6 +2,7 @@ using Moq;
 using Microsoft.Extensions.Logging;
 using ServiceLayer.Services;
 using ServiceLayer.Constans;
+using ServiceLayer.Services.Localization;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using OpenAI.Models;
@@ -14,6 +15,7 @@ public class ResilientChatServiceTests
 {
     private readonly Mock<IChatServiceFactory> _mockFactory;
     private readonly Mock<ILogger<ResilientChatService>> _mockLogger;
+    private readonly Mock<IDynamicLocalizer> _mockLocalizer;
     private readonly Mock<IRepository<TelegramUserInfo>> _mockUserRepository;
     private readonly ResilientChatService _service;
 
@@ -21,8 +23,9 @@ public class ResilientChatServiceTests
     {
         _mockFactory = new Mock<IChatServiceFactory>();
         _mockLogger = new Mock<ILogger<ResilientChatService>>();
+        _mockLocalizer = new Mock<IDynamicLocalizer>();
         _mockUserRepository = new Mock<IRepository<TelegramUserInfo>>();
-        _service = new ResilientChatService(_mockFactory.Object, _mockLogger.Object, _mockUserRepository.Object);
+        _service = new ResilientChatService(_mockFactory.Object, _mockLogger.Object, _mockUserRepository.Object, _mockLocalizer.Object);
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using ServiceLayer.Resources;
 using ServiceLayer.Services;
 using ServiceLayer.Utils;
@@ -15,7 +16,7 @@ namespace ServiceLayer.Services.Localization
         private readonly IStringLocalizer<BotMessages> _localizer;
         private readonly IRepository<CachedTranslation> _cacheRepository;
         private readonly IRepository<GptBilingItem> _billingRepository;
-        private readonly IChatService _chatService;
+        private readonly IServiceProvider _serviceProvider;
         private readonly IUserContext _userContext;
         private readonly ILogger<DynamicLocalizer> _logger;
 
@@ -26,14 +27,14 @@ namespace ServiceLayer.Services.Localization
             IStringLocalizerFactory localizerFactory,
             IRepository<CachedTranslation> cacheRepository,
             IRepository<GptBilingItem> billingRepository,
-            IChatService chatService,
+            IServiceProvider serviceProvider,
             IUserContext userContext,
             ILogger<DynamicLocalizer> logger)
         {
             _localizer = localizer;
             _cacheRepository = cacheRepository;
             _billingRepository = billingRepository;
-            _chatService = chatService;
+            _serviceProvider = serviceProvider;
             _userContext = userContext;
             _logger = logger;
         }
@@ -141,8 +142,11 @@ namespace ServiceLayer.Services.Localization
                          "Output ONLY the translated text.\n\n" +
                          $"Text: {text}";
             
+            // Resolve IChatService lazily to break circular dependency
+            var chatService = _serviceProvider.GetRequiredService<IChatService>();
+            
             // Use the current chat and user ID from the scoped context for billing
-            var translation = await _chatService.Ask(_userContext.ChatId, _userContext.UserId, prompt);
+            var translation = await chatService.Ask(_userContext.ChatId, _userContext.UserId, prompt);
             
             return translation.Trim();
         }

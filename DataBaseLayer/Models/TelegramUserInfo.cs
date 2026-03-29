@@ -25,7 +25,7 @@ namespace DataBaseLayer.Models
         [MaxLength(10)]
         public string? LanguageCode { get; set; }
         /// <summary>
-        /// Персонально выбранная модель GPT для пользователя.
+        /// Personally selected GPT model for the user.
         /// </summary>
         [MaxLength(128)]
         public string? SelectedModel { get; set; }

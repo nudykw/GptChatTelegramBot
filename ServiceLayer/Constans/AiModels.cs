@@ -4,7 +4,7 @@ using ServiceLayer.Utils;
 namespace ServiceLayer.Constans;
 
 /// <summary>
-/// Стандартные названия моделей ИИ.
+/// Standard AI model names.
 /// </summary>
 [TypeConverter(typeof(StaticStringEnumTypeConverter<AiModel>))]
 public sealed class AiModel : StaticStringEnumBase<AiModel>, IStaticStringEnum<AiModel>

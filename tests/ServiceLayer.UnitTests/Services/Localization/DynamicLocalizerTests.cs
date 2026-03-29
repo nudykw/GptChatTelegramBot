@@ -19,6 +19,7 @@ namespace ServiceLayer.UnitTests.Services.Localization
         private readonly Mock<IRepository<CachedTranslation>> _cacheRepoMock = new();
         private readonly Mock<IRepository<GptBilingItem>> _billingRepoMock = new();
         private readonly Mock<IChatService> _chatServiceMock = new();
+        private readonly Mock<IServiceProvider> _serviceProviderMock = new();
         private readonly Mock<IUserContext> _userContextMock = new();
         private readonly Mock<ILogger<DynamicLocalizer>> _loggerMock = new();
 
@@ -26,12 +27,15 @@ namespace ServiceLayer.UnitTests.Services.Localization
 
         public DynamicLocalizerTests()
         {
+            _serviceProviderMock.Setup(x => x.GetService(typeof(IChatService)))
+                .Returns(_chatServiceMock.Object);
+
             _sut = new DynamicLocalizer(
                 _localizerMock.Object,
                 _factoryMock.Object,
                 _cacheRepoMock.Object,
                 _billingRepoMock.Object,
-                _chatServiceMock.Object,
+                _serviceProviderMock.Object,
                 _userContextMock.Object,
                 _loggerMock.Object);
         }

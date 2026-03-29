@@ -6,6 +6,7 @@ using OpenAI.Images;
 using ServiceLayer.Constans;
 using ServiceLayer.Services.GptChat;
 using ServiceLayer.Utils;
+using ServiceLayer.Services.Localization;
 
 using ServiceLayer.Services.Telegram.Configuretions;
 using System.Globalization;
@@ -23,6 +24,7 @@ public class MessageProcessor : BaseService
     private readonly IRepository<TelegramUserInfo> _telegramUserInfoRepository;
     private readonly IChatService _chatService;
     private readonly ITelegramBotClient _telegramBotClient;
+    private readonly IDynamicLocalizer _localizer;
     private readonly string[] drawWords = new[]
     {
         "draw", "рисуй", "покажи", "малю"
@@ -31,13 +33,15 @@ public class MessageProcessor : BaseService
 
     public MessageProcessor(IServiceProvider serviceProvider, ILogger<MessageProcessor> logger,
         IRepository<HistoryMessage> historyMessageRepository, IChatService chatService,
-        ITelegramBotClient telegramBotClient, IRepository<TelegramUserInfo> telegramUserInfoRepository)
+        ITelegramBotClient telegramBotClient, IRepository<TelegramUserInfo> telegramUserInfoRepository,
+        IDynamicLocalizer localizer)
         : base(serviceProvider, logger)
     {
         _historyMessageRepository = historyMessageRepository;
         _chatService = chatService;
         _telegramBotClient = telegramBotClient;
         _telegramUserInfoRepository = telegramUserInfoRepository;
+        _localizer = localizer;
         AppSettings? appConfig = _serviceProvider.GetConfiguration<AppSettings>();
         _telegramBotConfiguration = appConfig.TelegramBotConfiguration;
     }
@@ -311,20 +315,46 @@ public class MessageProcessor : BaseService
         {
             return false;
         }
-        const string confirmFrase = "скорее да";
-        var isNeewDrawResponce = await _chatService.Ask(charId, userId,
-            $"Эта фраза '{text}' содержит просьбу нарисовать что-то? Ответь: '{confirmFrase}, чем нет' или 'скорее нет, чем да'");
-        _logger.LogInformation(confirmFrase);
-        return isNeewDrawResponce.Contains(confirmFrase, StringComparison.OrdinalIgnoreCase);
+        // We use the localizer to get the English version of the prompt 
+        // to ensure AI stability, regardless of the user's current culture.
+        var oldCulture = CultureInfo.CurrentUICulture;
+        string confirmPhrase;
+        string prompt;
+        try
+        {
+            CultureInfo.CurrentUICulture = new CultureInfo(LanguageCode.English);
+            confirmPhrase = _localizer["ConfirmPhrase_Yes"];
+            prompt = _localizer["Prompt_IsNeedDraw", text, confirmPhrase];
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = oldCulture;
+        }
+
+        var isNeewDrawResponce = await _chatService.Ask(charId, userId, prompt);
+        _logger.LogInformation("Intent detection response: {Response}", isNeewDrawResponce);
+        return isNeewDrawResponce.Contains(confirmPhrase, StringComparison.OrdinalIgnoreCase);
 
     }
     private async Task<bool> IsVoiceMessageToBot(long charId, long userId, string text)
     {
-        const string confirmFrase = "скорее да";
-        string isNeewDrawResponce = await _chatService.Ask(charId, userId,
-            $"Эта фраза '{text}' обращена к тебе? Ответь: '{confirmFrase}, чем нет' или 'скорее нет, чем да'");
-        _logger.LogInformation($"GPT Bot responce: {isNeewDrawResponce}");
-        return isNeewDrawResponce.Contains(confirmFrase, StringComparison.OrdinalIgnoreCase);
+        var oldCulture = CultureInfo.CurrentUICulture;
+        string confirmPhrase;
+        string prompt;
+        try
+        {
+            CultureInfo.CurrentUICulture = new CultureInfo(LanguageCode.English);
+            confirmPhrase = _localizer["ConfirmPhrase_Yes"];
+            prompt = _localizer["Prompt_IsBotMentioned", text, confirmPhrase];
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = oldCulture;
+        }
+
+        string isNeewDrawResponce = await _chatService.Ask(charId, userId, prompt);
+        _logger.LogInformation($"GPT Bot response: {isNeewDrawResponce}");
+        return isNeewDrawResponce.Contains(confirmPhrase, StringComparison.OrdinalIgnoreCase);
 
     }
 }

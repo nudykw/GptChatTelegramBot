@@ -3,7 +3,7 @@ using ServiceLayer.Utils;
 namespace ServiceLayer.Constans;
 
 /// <summary>
-/// Статические команды бота.
+/// Static bot commands.
 /// </summary>
 public sealed class BotCommand : StaticStringEnumBase<BotCommand>, IStaticStringEnum<BotCommand>
 {
@@ -14,12 +14,12 @@ public sealed class BotCommand : StaticStringEnumBase<BotCommand>, IStaticString
     }
 
     /// <summary>
-    /// Описание команды для меню Telegram.
+    /// Command description for the Telegram menu.
     /// </summary>
     public string Description { get; }
 
     /// <summary>
-    /// Требуемая область видимости/права для доступа к команде.
+    /// Required scope/permissions for accessing the command.
     /// </summary>
     public BotCommandScope RequiredScope { get; }
 
@@ -32,12 +32,12 @@ public sealed class BotCommand : StaticStringEnumBase<BotCommand>, IStaticString
     public static readonly BotCommand Restart = new("/restart", "Restart the bot", BotCommandScope.Owner | BotCommandScope.AnyAdmin);
 
     /// <summary>
-    /// Команды обычно не регистрозависимы.
+    /// Commands are typically case-insensitive.
     /// </summary>
     public static bool DefaultIgnoreCase => true;
 
     /// <summary>
-    /// Неявное преобразование из строки (для удобства парсинга сообщений).
+    /// Implicit conversion from string (for ease of message parsing).
     /// </summary>
     public static implicit operator BotCommand?(string? value) => FromString(value);
 }

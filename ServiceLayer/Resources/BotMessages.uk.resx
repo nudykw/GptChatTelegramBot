@@ -155,7 +155,48 @@
   </data>
   <data name="GroupContextInfo" xml:space="preserve">
     <value>
-
-💡 *Порада для груп*: Щоб бот зберігав нить спілкування (контекст), необхідно **відповідати** (цитувати) повідомлення бота. Інакше кожне повідомлення буде вважатися початком нової розмови.</value>
+💡 **Групові розмови**: Щоб зберегти контекст розмови (ланцюжок) у групах, ви повинні **відповідати** (reply) на повідомлення бота. В іншому випадку бот буде сприймати кожне повідомлення як початок нової розмови.</value>
+  </data>
+  <data name="EmptyModelName" xml:space="preserve">
+    <value>Пуста назва моделі</value>
+  </data>
+  <data name="Error_Details" xml:space="preserve">
+    <value>Подробиці:</value>
+  </data>
+  <data name="Choose" xml:space="preserve">
+    <value>Виберіть</value>
+  </data>
+  <data name="RemovingKeyboard" xml:space="preserve">
+    <value>Видалення клавіатури</value>
+  </data>
+  <data name="NicePicture" xml:space="preserve">
+    <value>Гарна картинка</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Місцезнаходження</value>
+  </data>
+  <data name="Contact" xml:space="preserve">
+    <value>Контакт</value>
+  </data>
+  <data name="WhoWhereAreYou" xml:space="preserve">
+    <value>Хто ви або де ви?</value>
+  </data>
+  <data name="InlineMode" xml:space="preserve">
+    <value>Інлайн режим</value>
+  </data>
+  <data name="DonateTo" xml:space="preserve">
+    <value>Донат на:</value>
+  </data>
+  <data name="Billing" xml:space="preserve">
+    <value>Білінг: </value>
+  </data>
+  <data name="YouChoseResult" xml:space="preserve">
+    <value>Ви вибрали результат з Id: {0}</value>
+  </data>
+  <data name="TelegramApiError" xml:space="preserve">
+    <value>Помилка Telegram API:</value>
+  </data>
+  <data name="NoProvidersConfigured" xml:space="preserve">
+    <value>Чат-провайдери не налаштовані.</value>
   </data>
 </root>

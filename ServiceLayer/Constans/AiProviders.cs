@@ -4,7 +4,7 @@ using ServiceLayer.Utils;
 namespace ServiceLayer.Constans;
 
 /// <summary>
-/// Провайдеры ИИ.
+/// AI providers.
 /// </summary>
 [TypeConverter(typeof(StaticStringEnumTypeConverter<AiProvider>))]
 public sealed class AiProvider : StaticStringEnumBase<AiProvider>, IStaticStringEnum<AiProvider>
@@ -18,7 +18,7 @@ public sealed class AiProvider : StaticStringEnumBase<AiProvider>, IStaticString
     public string DisplayName { get; }
 
     /// <summary>
-    /// Модель для рисования по умолчанию для этого провайдера.
+    /// Default drawing model for this provider.
     /// </summary>
     public string? DefaultDrawingModel { get; }
 
@@ -28,12 +28,12 @@ public sealed class AiProvider : StaticStringEnumBase<AiProvider>, IStaticString
     public static readonly AiProvider Grok = new("grok", "xAI Grok");
 
     /// <summary>
-    /// Провайдеры обычно регистронезависимы в конфигах.
+    /// Providers are typically case-insensitive in configs.
     /// </summary>
     public static bool DefaultIgnoreCase => true;
 
     /// <summary>
-    /// Неявное преобразование из строки (для парсинга из конфига или БД).
+    /// Implicit conversion from string (for parsing from config or DB).
     /// </summary>
     public static implicit operator AiProvider?(string? value) => FromString(value);
 }

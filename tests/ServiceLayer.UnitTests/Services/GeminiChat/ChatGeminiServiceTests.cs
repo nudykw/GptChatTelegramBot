@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
 using System.Linq;
+using ServiceLayer.Services.Localization;
 
 namespace ServiceLayer.UnitTests.Services.GeminiChat
 {
@@ -17,6 +18,7 @@ namespace ServiceLayer.UnitTests.Services.GeminiChat
         private readonly Mock<IGeminiClient> _mockClient;
         private readonly Mock<ILogger<ChatGeminiService>> _mockLogger;
         private readonly Mock<IServiceProvider> _mockServiceProvider;
+        private readonly Mock<IDynamicLocalizer> _mockLocalizer;
         private readonly ChatProviderConfig _config;
 
         public ChatGeminiServiceTests()
@@ -24,6 +26,7 @@ namespace ServiceLayer.UnitTests.Services.GeminiChat
             _mockClient = new Mock<IGeminiClient>();
             _mockLogger = new Mock<ILogger<ChatGeminiService>>();
             _mockServiceProvider = new Mock<IServiceProvider>();
+            _mockLocalizer = new Mock<IDynamicLocalizer>();
             _config = new ChatProviderConfig
             {
                 Name = "Gemini",
@@ -46,7 +49,7 @@ namespace ServiceLayer.UnitTests.Services.GeminiChat
 
             _mockClient.Setup(c => c.ListModelsAsync()).Returns(ToAsyncEnumerable(models));
 
-            var service = new ChatGeminiService(_mockServiceProvider.Object, _mockLogger.Object, _config, _mockClient.Object);
+            var service = new ChatGeminiService(_mockServiceProvider.Object, _mockLogger.Object, _config, _mockClient.Object, _mockLocalizer.Object);
 
             // Act
             var result = await service.GetAvailibleModels(null, false);
@@ -68,7 +71,7 @@ namespace ServiceLayer.UnitTests.Services.GeminiChat
 
             _mockClient.Setup(c => c.ListModelsAsync()).Returns(ToAsyncEnumerable(models));
 
-            var service = new ChatGeminiService(_mockServiceProvider.Object, _mockLogger.Object, _config, _mockClient.Object);
+            var service = new ChatGeminiService(_mockServiceProvider.Object, _mockLogger.Object, _config, _mockClient.Object, _mockLocalizer.Object);
 
             // Act
             await service.GetAvailibleModels(null, false);
@@ -92,7 +95,7 @@ namespace ServiceLayer.UnitTests.Services.GeminiChat
             _mockClient.Setup(c => c.GenerateContentAsync("models/gemini-1.5-pro", "Hi"))
                 .ThrowsAsync(new Exception("Validation failed"));
 
-            var service = new ChatGeminiService(_mockServiceProvider.Object, _mockLogger.Object, _config, _mockClient.Object);
+            var service = new ChatGeminiService(_mockServiceProvider.Object, _mockLogger.Object, _config, _mockClient.Object, _mockLocalizer.Object);
 
             // Act
             var result = await service.GetAvailibleModels(null, true);

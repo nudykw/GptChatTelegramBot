@@ -54,7 +54,7 @@ static void ConfigureServices(HostBuilderContext context, IServiceCollection ser
     services.AddScoped<ReceiverService>();
     services.AddHostedService<PollingService>();
 
-    services.AddSingleton<IChatServiceFactory, ChatServiceFactory>();
+    services.AddScoped<IChatServiceFactory, ChatServiceFactory>();
     services.AddScoped<IChatService, ResilientChatService>();
 
     services.AddScoped<MessageProcessor>();

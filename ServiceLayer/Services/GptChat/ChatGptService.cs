@@ -1,6 +1,7 @@
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using ServiceLayer.Constans;
+using ServiceLayer.Services.Localization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenAI;
@@ -63,10 +64,12 @@ internal class ChatGptService : BaseService, IChatService
     private readonly ChatProviderConfig _chatProviderConfiguration;
     private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IDynamicLocalizer _localizer;
     private GptModelCache? gptModelCache = null;
 
     public ChatGptService(IServiceProvider serviceProvider, ILogger<ChatGptService> logger,
-        ChatProviderConfig chatProviderConfig, IHttpClientFactory httpClientFactory, OpenAIClient? openAiClient = null)
+        ChatProviderConfig chatProviderConfig, IHttpClientFactory httpClientFactory, 
+        IDynamicLocalizer localizer, OpenAIClient? openAiClient = null)
         : base(serviceProvider, logger)
     {
         _chatProviderConfiguration = chatProviderConfig;
@@ -91,6 +94,7 @@ internal class ChatGptService : BaseService, IChatService
         }
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
         _httpClientFactory = httpClientFactory;
+        _localizer = localizer;
         
         // Initial async update
         _ = RefreshModelPricesAsync();
@@ -339,7 +343,7 @@ internal class ChatGptService : BaseService, IChatService
 
     public async Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null)
     {
-        if (string.IsNullOrEmpty(modelName)) return (false, "Пустое название модели");
+        if (string.IsNullOrEmpty(modelName)) return (false, _localizer["EmptyModelName"]);
         try
         {
             ChatRequest chatRequest = new ChatRequest(new[] { new Message(Role.User, "Hi") }, model:

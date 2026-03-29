@@ -9,6 +9,7 @@ using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using ServiceLayer.Constans;
+using ServiceLayer.Services.Localization;
 using OpenAIModel = OpenAI.Models.Model;
 using GoogleModel = Google.GenAI.Types.Model;
 using GoogleContent = Google.GenAI.Types.Content;
@@ -17,12 +18,14 @@ using OpenAI;
 using System.Linq;
 using ServiceLayer.Utils;
 
+
 namespace ServiceLayer.Services.GeminiChat.DotNet
 {
     internal class ChatGeminiService : BaseService, IChatService
     {
         private ChatProviderConfig _apiConfiguration;
         private IGeminiClient _client;
+        private readonly IDynamicLocalizer _localizer;
         private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
 
         private class GeminiModelCache
@@ -33,18 +36,19 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         private GeminiModelCache? _geminiModelCache = null;
 
         public ChatGeminiService(IServiceProvider serviceProvider, ILogger<ChatGeminiService> logger,
-            ChatProviderConfig chatProviderConfig)
-            : this(serviceProvider, logger, chatProviderConfig, null)
+            ChatProviderConfig chatProviderConfig, IDynamicLocalizer localizer)
+            : this(serviceProvider, logger, chatProviderConfig, null, localizer)
         {
         }
 
         internal ChatGeminiService(IServiceProvider serviceProvider, ILogger<ChatGeminiService> logger,
-            ChatProviderConfig chatProviderConfig, IGeminiClient? client)
+            ChatProviderConfig chatProviderConfig, IGeminiClient? client, IDynamicLocalizer localizer)
             : base(serviceProvider, logger)
         {
             _apiConfiguration = chatProviderConfig;
             _client = client ?? new GeminiClientWrapper(_apiConfiguration.ApiKey);
             _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
+            _localizer = localizer;
         }
 
         private string GetModelName() => string.IsNullOrEmpty(_apiConfiguration.ModelName) 
@@ -202,7 +206,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
 
         public async Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null)
         {
-            if (string.IsNullOrEmpty(modelName)) return (false, "Пустое название модели");
+            if (string.IsNullOrEmpty(modelName)) return (false, _localizer["EmptyModelName"]);
             _apiConfiguration.ModelName = modelName;
             return (true, string.Empty);
         }

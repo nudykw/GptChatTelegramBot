@@ -5,22 +5,22 @@ namespace ServiceLayer.Services.Telegram.Configuretions;
 public class TelegramBotConfiguration
 {
     /// <summary>
-    /// Имя секции конфигурации.
+    /// Configuration section name.
     /// </summary>
     public static readonly string Configuration = "TelegramBotConfiguration";
 
     /// <summary>
-    /// API токен Telegram-бота.
+    /// Telegram bot API token.
     /// </summary>
     public string BotToken { get; set; } = "";
 
     /// <summary>
-    /// Режим парсинга сообщений по умолчанию (Markdown, Html и т.д.).
+    /// Default message parsing mode (Markdown, HTML, etc.).
     /// </summary>
     public ParseMode DefaultParseMode { get; set; } = ParseMode.Markdown;
 
     /// <summary>
-    /// ID владельца бота для доступа к административным командам.
+    /// Bot owner ID for access to administrative commands.
     /// </summary>
     public long? OwnerId { get; set; }
 }

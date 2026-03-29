@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using ServiceLayer.Constans;
+using ServiceLayer.Services.Localization;
 
 namespace ServiceLayer.Services;
 
@@ -17,13 +18,16 @@ public class ResilientChatService : IChatService
 {
     private readonly IChatServiceFactory _chatServiceFactory;
     private readonly ILogger<ResilientChatService> _logger;
+    private readonly IDynamicLocalizer _localizer;
     private readonly IRepository<TelegramUserInfo> _telegramUserInfoRepository;
 
-    public ResilientChatService(IChatServiceFactory chatServiceFactory, ILogger<ResilientChatService> logger, IRepository<TelegramUserInfo> telegramUserInfoRepository)
+    public ResilientChatService(IChatServiceFactory chatServiceFactory, ILogger<ResilientChatService> logger, 
+        IRepository<TelegramUserInfo> telegramUserInfoRepository, IDynamicLocalizer localizer)
     {
         _chatServiceFactory = chatServiceFactory;
         _logger = logger;
         _telegramUserInfoRepository = telegramUserInfoRepository;
+        _localizer = localizer;
     }
 
     private async Task<T> ExecuteWithFallback<T>(Func<IChatService, Task<T>> action, string methodName, long? userId = null)
@@ -65,7 +69,7 @@ public class ResilientChatService : IChatService
 
         if (!providers.Any())
         {
-            throw new Exception("No chat providers configured.");
+            throw new Exception(_localizer["NoProvidersConfigured"]);
         }
 
         foreach (var provider in providers)
@@ -89,7 +93,7 @@ public class ResilientChatService : IChatService
         }
 
         var combinedMessage = string.Join(" | ", exceptions.Select(e => e.Message).Distinct());
-        throw new AggregateException($"Все доступные провайдеры вернули ошибку для {methodName}: {combinedMessage}", exceptions);
+        throw new AggregateException($"All available providers returned an error for {methodName}: {combinedMessage}", exceptions);
     }
 
     public Task<string> Ask(long chatId, long userId, string message)

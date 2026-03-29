@@ -3,53 +3,53 @@ using System;
 namespace ServiceLayer.Constans;
 
 /// <summary>
-/// Области видимости и прав для команд бота (названия соответствуют BotCommandScope в Telegram API).
+/// Bot command scopes and permissions (names match BotCommandScope in the Telegram API).
 /// </summary>
 [Flags]
 public enum BotCommandScope
 {
     /// <summary>
-    /// По умолчанию (все пользователи).
+    /// Default (all users).
     /// </summary>
     Default = 1,
 
     /// <summary>
-    /// Все личные чаты.
+    /// All private chats.
     /// </summary>
     AllPrivateChats = 2,
 
     /// <summary>
-    /// Все групповые чаты.
+    /// All group chats.
     /// </summary>
     AllGroupChats = 4,
 
     /// <summary>
-    /// Все администраторы групп и супергрупп.
+    /// All group and supergroup administrators.
     /// </summary>
     AllChatAdmins = 8,
 
     /// <summary>
-    /// Конкретный чат.
+    /// Specific chat.
     /// </summary>
     Chat = 16,
 
     /// <summary>
-    /// Администраторы конкретного чата.
+    /// Administrators of a specific chat.
     /// </summary>
     ChatAdmins = 32,
 
     /// <summary>
-    /// Конкретный участник конкретного чата.
+    /// Specific member of a specific chat.
     /// </summary>
     ChatMember = 64,
 
     /// <summary>
-    /// Владелец бота (внутреннее расширение).
+    /// Bot owner (internal extension).
     /// </summary>
     Owner = 128,
 
     /// <summary>
-    /// Любой администратор (группы или владелец).
+    /// Any administrator (group admin or owner).
     /// </summary>
     AnyAdmin = AllChatAdmins | Owner
 }

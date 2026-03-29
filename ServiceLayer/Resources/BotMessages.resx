@@ -155,7 +155,57 @@
   </data>
   <data name="GroupContextInfo" xml:space="preserve">
     <value>
-
-💡 *Tip for groups*: To maintain the conversation context, please **reply** (quote) to the bot's messages. Otherwise, the bot will treat each message as the start of a new conversation.</value>
+💡 **Group Conversations**: To maintain the conversation context (thread) in groups, you must **reply** to the bot's messages. Otherwise, the bot will treat each message as the start of a new conversation.</value>
+  </data>
+  <data name="EmptyModelName" xml:space="preserve">
+    <value>Empty model name</value>
+  </data>
+  <data name="Error_Details" xml:space="preserve">
+    <value>Details:</value>
+  </data>
+  <data name="Choose" xml:space="preserve">
+    <value>Choose</value>
+  </data>
+  <data name="RemovingKeyboard" xml:space="preserve">
+    <value>Removing keyboard</value>
+  </data>
+  <data name="NicePicture" xml:space="preserve">
+    <value>Nice Picture</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="Contact" xml:space="preserve">
+    <value>Contact</value>
+  </data>
+  <data name="WhoWhereAreYou" xml:space="preserve">
+    <value>Who or Where are you?</value>
+  </data>
+  <data name="InlineMode" xml:space="preserve">
+    <value>Inline Mode</value>
+  </data>
+  <data name="DonateTo" xml:space="preserve">
+    <value>Donate to:</value>
+  </data>
+  <data name="Billing" xml:space="preserve">
+    <value>Billing: </value>
+  </data>
+  <data name="YouChoseResult" xml:space="preserve">
+    <value>You chose result with Id: {0}</value>
+  </data>
+  <data name="TelegramApiError" xml:space="preserve">
+    <value>Telegram API Error:</value>
+  </data>
+  <data name="NoProvidersConfigured" xml:space="preserve">
+    <value>No chat providers configured.</value>
+  </data>
+  <data name="Prompt_IsNeedDraw" xml:space="preserve">
+    <value>Does this phrase '{0}' contain a request to draw something? Answer: '{1}, rather than no' or 'rather no, than yes'</value>
+  </data>
+  <data name="Prompt_IsBotMentioned" xml:space="preserve">
+    <value>Is this phrase '{0}' addressed to you? Answer: '{1}, rather than no' or 'rather no, than yes'</value>
+  </data>
+  <data name="ConfirmPhrase_Yes" xml:space="preserve">
+    <value>rather yes</value>
   </data>
 </root>

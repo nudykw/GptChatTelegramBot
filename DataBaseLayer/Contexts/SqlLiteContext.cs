@@ -21,7 +21,7 @@ namespace DataBaseLayer.Contexts
             modelBuilder.Entity<HistoryMessage>()
             .HasKey(e => new { e.ChatId, e.MessageId });
 
-            // Остальная конфигурация сущностей
+            // Additional entity configuration
             // ...
 
             base.OnModelCreating(modelBuilder);

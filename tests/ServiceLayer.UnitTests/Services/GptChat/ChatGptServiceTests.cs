@@ -16,6 +16,7 @@ using System.Net;
 using System.Text;
 using System.Reflection;
 
+using ServiceLayer.Services.Localization;
 using Xunit;
 
 namespace ServiceLayer.UnitTests.Services.GptChat;
@@ -26,6 +27,7 @@ public class ChatGptServiceTests
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<ILogger<ChatGptService>> _mockLogger;
     private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
+    private readonly Mock<IDynamicLocalizer> _mockLocalizer;
     private readonly Mock<IRepository<GptBilingItem>> _mockBillingRepository;
     private readonly Mock<HttpMessageHandler> _mockHandler;
     private readonly AppSettings _appSettings;
@@ -35,6 +37,7 @@ public class ChatGptServiceTests
         _mockServiceProvider = new Mock<IServiceProvider>();
         _mockLogger = new Mock<ILogger<ChatGptService>>();
         _mockHttpClientFactory = new Mock<IHttpClientFactory>();
+        _mockLocalizer = new Mock<IDynamicLocalizer>();
         _mockBillingRepository = new Mock<IRepository<GptBilingItem>>();
         _mockHandler = new Mock<HttpMessageHandler>();
 
@@ -66,6 +69,7 @@ public class ChatGptServiceTests
             _mockLogger.Object,
             config,
             _mockHttpClientFactory.Object,
+            _mockLocalizer.Object,
             api);
     }
 

@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using ServiceLayer.Services.Telegram.Configuretions;
+using ServiceLayer.Services.Localization;
 
 namespace ServiceLayer.UnitTests;
 
@@ -25,6 +26,7 @@ public class ChatGptPriceUpdateTests
         var mockServiceProvider = new Mock<IServiceProvider>();
         var mockLogger = new Mock<ILogger<ChatGptService>>();
         var mockHttpClientFactory = new Mock<IHttpClientFactory>();
+        var mockLocalizer = new Mock<IDynamicLocalizer>();
         var mockHandler = new Mock<HttpMessageHandler>();
 
         var json = "{\"gpt-4o-mini\": {\"input_cost_per_token\": 0.00000015, \"output_cost_per_token\": 0.0000006, \"litellm_provider\": \"openai\"}}";
@@ -62,7 +64,7 @@ public class ChatGptPriceUpdateTests
             ModelName = "gpt-4o-mini"
         };
 
-        var service = new ChatGptService(mockServiceProvider.Object, mockLogger.Object, config, mockHttpClientFactory.Object);
+        var service = new ChatGptService(mockServiceProvider.Object, mockLogger.Object, config, mockHttpClientFactory.Object, mockLocalizer.Object);
 
         // Act
         // We call it once manually (though the constructor already calls it)

@@ -160,7 +160,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 if (chatId.HasValue)
                 {
                     var errorHeader = _localizer["GenericError"];
-                    var fullErrorMsg = $"{errorHeader}\n\nDetails: {ex.Message}";
+                    var fullErrorMsg = $"{errorHeader}\n\n{_localizer["Error_Details"]} {ex.Message}";
                     await _botClient.SendMessage(chatId.Value, fullErrorMsg, cancellationToken: cancellationToken);
                 }
             }
@@ -477,7 +477,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        static async Task<Message> SendReplyKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<Message> SendReplyKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
             ReplyKeyboardMarkup replyKeyboardMarkup = new(
                 new[]
@@ -491,21 +491,21 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: "Choose",
+                text: _localizer["Choose"],
                 replyMarkup: replyKeyboardMarkup,
                 cancellationToken: cancellationToken);
         }
 
-        static async Task<Message> RemoveKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<Message> RemoveKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: "Removing keyboard",
+                text: _localizer["RemovingKeyboard"],
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken);
         }
 
-        static async Task<Message> SendFile(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<Message> SendFile(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
             await botClient.SendChatAction(
                 message.Chat.Id,
@@ -519,22 +519,22 @@ public class UpdateHandler : BaseService, IUpdateHandler
             return await botClient.SendPhoto(
                 chatId: message.Chat.Id,
                 photo: new InputFileStream(fileStream, fileName),
-                caption: "Nice Picture",
+                caption: _localizer["NicePicture"],
                 cancellationToken: cancellationToken);
         }
 
-        static async Task<Message> RequestContactAndLocation(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<Message> RequestContactAndLocation(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
             ReplyKeyboardMarkup RequestReplyKeyboard = new(
                 new[]
                 {
-                    KeyboardButton.WithRequestLocation("Location"),
-                    KeyboardButton.WithRequestContact("Contact"),
+                    KeyboardButton.WithRequestLocation(_localizer["Location"]),
+                    KeyboardButton.WithRequestContact(_localizer["Contact"]),
                 });
 
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: "Who or Where are you?",
+                text: _localizer["WhoWhereAreYou"],
                 replyMarkup: RequestReplyKeyboard,
                 cancellationToken: cancellationToken);
         }
@@ -581,6 +581,9 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
                 sb.AppendLine(line);
             }
+
+            sb.AppendLine();
+            sb.AppendLine(_localizer["GroupContextInfo"]);
 
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
@@ -693,7 +696,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         async Task<Message> StartInlineQuery(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
             InlineKeyboardMarkup inlineKeyboard = new(
-                InlineKeyboardButton.WithSwitchInlineQueryCurrentChat("Inline Mode"));
+                InlineKeyboardButton.WithSwitchInlineQueryCurrentChat(_localizer["InlineMode"]));
 
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
@@ -984,10 +987,10 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 sb.AppendLine($"{user.Key.FirstName} {user.Key.LastName}: ${cost}");
             }
             sb.AppendLine();
-            sb.AppendLine("Donate to: 4731 1856 1625 8247");
+            sb.AppendLine(_localizer["DonateTo"] + " 4731 1856 1625 8247");
             await _botClient.AnswerCallbackQuery(
             callbackQueryId: callbackQuery.Id,
-            text: "Billing: ",
+            text: _localizer["Billing"],
                 cancellationToken: cancellationToken);
 
             await _botClient.SendMessage(
@@ -1025,7 +1028,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
         await _botClient.SendMessage(
             chatId: chosenInlineResult.From.Id,
-            text: $"You chose result with Id: {chosenInlineResult.ResultId}",
+            text: _localizer["YouChoseResult", chosenInlineResult.ResultId],
             cancellationToken: cancellationToken);
     }
 
@@ -1045,7 +1048,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
     {
         var ErrorMessage = exception switch
         {
-            ApiRequestException apiRequestException => $"Telegram API Error:\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}",
+            ApiRequestException apiRequestException => $"{_localizer["TelegramApiError"]}\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}",
             _ => exception.ToString()
         };
 

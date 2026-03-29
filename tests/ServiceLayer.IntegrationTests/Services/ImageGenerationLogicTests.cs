@@ -7,6 +7,7 @@ using ServiceLayer.Constans;
 using ServiceLayer.IntegrationTests.Fixtures;
 using ServiceLayer.Services;
 using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.Localization;
 using Xunit;
 using System;
 using System.Collections.Generic;
@@ -99,7 +100,8 @@ public class ImageGenerationLogicTests : IClassFixture<TestAppFixture>
         mockFactory.Setup(f => f.CreateService(geminiConfig.Name)).Returns(mockGeminiService.Object);
         mockFactory.Setup(f => f.CreateService(openAiConfig.Name)).Returns(mockOpenAiService.Object);
 
-        var resilientService = new ResilientChatService(mockFactory.Object, _resilientLogger, _userRepo);
+        var mockLocalizer = new Mock<IDynamicLocalizer>();
+        var resilientService = new ResilientChatService(mockFactory.Object, _resilientLogger, _userRepo, mockLocalizer.Object);
 
         var result = await resilientService.GenerateImage(1, 1, TestPrompt);
 

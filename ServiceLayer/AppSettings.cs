@@ -1,21 +1,22 @@
 using ServiceLayer.Services.Telegram.Configuretions;
+using ServiceLayer.Services.Telegram.Configuretions;
 
 namespace ServiceLayer.Services;
 
 public class AppSettings
 {
     /// <summary>
-    /// Имя основной секции в appsettings.json.
+    /// Main section name in appsettings.json.
     /// </summary>
     public static readonly string Configuration = "AppSettings";
 
     /// <summary>
-    /// Конфигурация Telegram-бота.
+    /// Telegram bot configuration.
     /// </summary>
     public TelegramBotConfiguration TelegramBotConfiguration { get; set; } = null!;
 
     /// <summary>
-    /// Список конфигураций для AI провайдеров (OpenAI, Gemini и др.).
+    /// List of configurations for AI providers (OpenAI, Gemini, etc.).
     /// </summary>
     public List<ChatProviderConfig> ChatProviders { get; set; } = new();
 }
