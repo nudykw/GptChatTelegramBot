@@ -4,6 +4,8 @@ using Moq;
 using ServiceLayer.Services;
 using ServiceLayer.Services.MessageProcessor;
 using Telegram.Bot;
+using DataBaseLayer.Models;
+using DataBaseLayer.Repositories;
 using Xunit;
 
 using MessageProcessorClass = ServiceLayer.Services.MessageProcessor.MessageProcessor;
@@ -16,6 +18,8 @@ namespace ServiceLayer.UnitTests.Services.MessageProcessor
         private readonly Mock<ILogger<MessageProcessorClass>> _loggerMock = new();
         private readonly Mock<IChatService> _chatServiceMock = new();
         private readonly Mock<ITelegramBotClient> _botClientMock = new();
+        private readonly Mock<IRepository<TelegramUserInfo>> _userInfoRepositoryMock = new();
+        private readonly Mock<IRepository<HistoryMessage>> _historyRepositoryMock = new();
 
         private readonly MessageProcessorClass _sut;
 
@@ -33,9 +37,10 @@ namespace ServiceLayer.UnitTests.Services.MessageProcessor
             _sut = new MessageProcessorClass(
                 _serviceProviderMock.Object,
                 _loggerMock.Object,
-                null, // historyRepository
+                _historyRepositoryMock.Object,
                 _chatServiceMock.Object,
-                _botClientMock.Object);
+                _botClientMock.Object,
+                _userInfoRepositoryMock.Object);
         }
 
         [Theory]

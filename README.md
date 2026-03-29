@@ -52,6 +52,23 @@ Before compiling the project, add your keys to the `TelegramBotApp/appsettings.s
 }
 ```
 
+## 🤖 Bot Commands
+
+The following commands are available in the bot. Most commands provide interactive menus, but some accept parameters directly.
+
+| Command | Syntax | Parameter | Required | Description | Example |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `/billing` | `/billing` | None | - | Shows an interactive menu to select a month for usage statistics. | `/billing` |
+| `/model` | `/model` | None | - | Shows an interactive menu to select a specific AI model for future responses. | `/model` |
+| `/provider` | `/provider` | None | - | Shows a menu to choose between **Auto Rotation** (failover) or a **Specific Provider**. | `/provider` |
+| `/draw` | `/draw <prompt>` | `<prompt>` | **&lt;Yes&gt;** | Generates an image based on the text description. | `/draw a cybernetic cat` |
+| `/lang` | `/lang [language]` | `[language]` | [No] | Changes the interface language. If no parameter is given, shows a selection menu. | `/lang German` or `/lang` |
+| `/help` | `/help` | None | - | Shows a detailed list of available commands and their usage. | `/help` |
+| `/restart` | `/restart` | None | - | Terminates the bot process (useful for triggering a Docker/Systemd restart). | `/restart` |
+
+> [!TIP]
+> If a command requires a parameter and you don't provide it (e.g., `/draw`), the bot will either show an error or a help message depending on the command logic.
+
 ## 🔑 Registration & API Keys
 
 ### 1. Telegram Bot

@@ -81,9 +81,15 @@ public class MessageProcessor : BaseService
             _historyMessageRepository.Add(historyMessage);
         }
         await _historyMessageRepository.SaveChanges();
+        // Identify preferred language for prompt attachment
+        var user = await _telegramUserInfoRepository.Get(p => p.Id == fromUserId);
+        var langCode = user?.LanguageCode ?? LanguageCode.English;
+        var culture = new CultureInfo(langCode);
+        var languageName = culture.EnglishName.Split(' ')[0]; // Use English name for AI prompt stability
+
         var query = new List<Message>()
         {
-            new Message((OpenAI.Role)historyMessage.RoleId, message, fromUserId.ToString())
+            new Message((OpenAI.Role)historyMessage.RoleId, $"{message} (Respond in {languageName})", fromUserId.ToString())
         };
         while (historyMessage != null && historyMessage.ParentMessageId != null)
         {
@@ -95,14 +101,6 @@ public class MessageProcessor : BaseService
                     historyMessage.FromUserName));
             }
         }
-
-        // Add system prompt for preferred language
-        var user = await _telegramUserInfoRepository.Get(p => p.Id == fromUserId);
-        var langCode = user?.LanguageCode ?? LanguageCode.English;
-        var culture = new CultureInfo(langCode);
-        var languageName = culture.EnglishName.Split(' ')[0]; // Use English name for AI prompt stability
-        
-        query.Insert(0, new Message(OpenAI.Role.System, $"Please respond to the user in the language: {languageName}."));
 
         string toSendText = string.Empty;
         string responceText = string.Empty;

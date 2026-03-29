@@ -89,7 +89,15 @@
     <value>Ви сказали: {0}</value>
   </data>
   <data name="HelpText" xml:space="preserve">
-    <value>Доступні команди:\n/billing — статистика використання\n/model — вибір моделі GPT\n/provider — вибір провайдера ШІ\n/draw — згенерувати зображення\n/lang — змінити мову\n/restart — перезавантажити бота</value>
+    <value>🤖 Команди бота
+
+- /billing — Статистика використання.
+- /model — Вибір моделі ШІ.
+- /provider — Стратегія провайдера.
+- /draw &lt;опис&gt; — Генерація зображення &lt;Обов'язково&gt;.
+- /lang [мову] — Зміна мови [Опціонально].
+- /help — Допомога по командах.
+- /restart — Перезапуск бота.</value>
   </data>
   <data name="AutoRotation" xml:space="preserve">
     <value>🔄 Автоматична ротація</value>

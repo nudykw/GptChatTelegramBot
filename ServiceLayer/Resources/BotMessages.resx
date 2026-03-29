@@ -89,7 +89,15 @@
     <value>You said: {0}</value>
   </data>
   <data name="HelpText" xml:space="preserve">
-    <value>Available commands:\n/billing - Show usage statistics\n/model - Select GPT model\n/provider - Select AI provider\n/draw - Generate image\n/lang - Change language\n/restart - Restart bot</value>
+    <value>🤖 Bot Commands
+
+- /billing — Show usage statistics.
+- /model — Select AI model.
+- /provider — AI provider strategy.
+- /draw &lt;prompt&gt; — Generate image &lt;Required&gt;.
+- /lang [language] — Change language [Optional].
+- /help — Show this help message.
+- /restart — Restart bot.</value>
   </data>
   <data name="AutoRotation" xml:space="preserve">
     <value>🔄 Auto Rotation</value>

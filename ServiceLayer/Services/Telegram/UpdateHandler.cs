@@ -200,6 +200,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             var v when v == BotCommand.Provider => SendProviderInlineKeyboard(_botClient, message, cancellationToken),
             var v when v == BotCommand.Lang => ProcessLanguageCommand(_botClient, message, actionText, cancellationToken),
             var v when v == BotCommand.Draw => _messageProcessor.ProcessDrawCommand(message.Chat.Id, message.MessageId, message.From.Id, messageText.Replace(actionText, string.Empty).Trim(), cancellationToken),
+            var v when v == BotCommand.Help => Usage(_botClient, message, cancellationToken),
             var v when v == BotCommand.Restart => FailingHandler(_botClient, message, cancellationToken),
             _ => actionText switch
             {
