@@ -30,7 +30,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
 {
 
     private readonly ITelegramBotClient _botClient;
-    private readonly User _botInfo;
+    private static User? _botInfo;
+    private static readonly SemaphoreSlim _botInfoSemaphore = new(1, 1);
     private readonly MessageProcessor.MessageProcessor _messageProcessor;
     private readonly AudioTranscriptorService _audioTranscriptorService;
     private readonly IRepository<TelegramChatInfo>? _telegramChatInfoRepository;
@@ -61,7 +62,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         : base(serviceProvider, logger)
     {
         _botClient = botClient;
-        _botInfo = botClient.GetMe().Result;
+        // _botInfo is now initialized asynchronously in ProcessUpdateInternalAsync
         _messageProcessor = messageProcessor;
         _audioTranscriptorService = audioTranscriptorService;
         _scopeFactory = scopeFactory;
@@ -98,6 +99,19 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
     private async Task ProcessUpdateInternalAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
     {
+        if (_botInfo == null)
+        {
+            await _botInfoSemaphore.WaitAsync(cancellationToken);
+            try
+            {
+                _botInfo ??= await _botClient.GetMe(cancellationToken);
+            }
+            finally
+            {
+                _botInfoSemaphore.Release();
+            }
+        }
+
         var user = update switch
         {
             { Message.From: { } f } => f,
@@ -447,6 +461,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     ChatStrategy.Auto => _localizer["AutoRotation"],
                     ChatStrategy.OpenAI => AiProvider.OpenAI.DisplayName,
                     ChatStrategy.Gemini => AiProvider.Gemini.DisplayName,
+                    ChatStrategy.DeepSeek => AiProvider.DeepSeek.DisplayName,
+                    ChatStrategy.Grok => AiProvider.Grok.DisplayName,
                     _ => strategy.ToString()
                 };
                 choises.Add(new List<InlineKeyboardButton> { InlineKeyboardButton.WithCallbackData(text, $"{BotCommand.Provider}:{(int)strategy}") });
@@ -831,6 +847,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     ChatStrategy.Auto => _localizer["AutoRotation"],
                     ChatStrategy.OpenAI => AiProvider.OpenAI.DisplayName,
                     ChatStrategy.Gemini => AiProvider.Gemini.DisplayName,
+                    ChatStrategy.DeepSeek => AiProvider.DeepSeek.DisplayName,
+                    ChatStrategy.Grok => AiProvider.Grok.DisplayName,
                     _ => strategy.ToString()
                 };
 

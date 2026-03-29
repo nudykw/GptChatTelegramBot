@@ -4,6 +4,8 @@ namespace DataBaseLayer.Models
     {
         Auto = 0,
         OpenAI = 1,
-        Gemini = 2
+        Gemini = 2,
+        DeepSeek = 3,
+        Grok = 4
     }
 }

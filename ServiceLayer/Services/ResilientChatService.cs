@@ -39,6 +39,8 @@ public class ResilientChatService : IChatService
                 {
                     ChatStrategy.OpenAI => AiProvider.OpenAI,
                     ChatStrategy.Gemini => AiProvider.Gemini,
+                    ChatStrategy.DeepSeek => AiProvider.DeepSeek,
+                    ChatStrategy.Grok => AiProvider.Grok,
                     _ => null
                 };
 
