@@ -154,28 +154,74 @@ public class MessageProcessor : BaseService
             usedProviderName = gptChatResponce.ProviderName;
             usedModelName = gptChatResponce.ModelName;
         }
-        var telegramResponce = await _telegramBotClient.SendMessage(
-                chatId: chatId,
-                text: toSendText,
-                parseMode: _telegramBotConfiguration.DefaultParseMode,
-                replyParameters: new ReplyParameters() { MessageId = (int)messageId },
-                replyMarkup: new ReplyKeyboardRemove(),
-                cancellationToken: cancellationToken);
-        historyMessage = new HistoryMessage
+        var chunks = SplitText(toSendText, 4000).ToList();
+        global::Telegram.Bot.Types.Message telegramResponce = null;
+        
+        foreach (var chunk in chunks)
         {
-            ChatId = telegramResponce.Chat.Id,
-            CreationDate = DateTime.UtcNow,
-            MessageId = telegramResponce.MessageId,
-            ModifiedDate = DateTime.UtcNow,
-            ParentMessageId = telegramResponce.ReplyToMessage.MessageId,
-            RoleId = (int)OpenAI.Role.Assistant,
-            Text = responceText,
-            ProviderName = usedProviderName,
-            ModelName = usedModelName
-        };
-        _historyMessageRepository.Add(historyMessage);
-        await _historyMessageRepository.SaveChanges();
+            try
+            {
+                telegramResponce = await _telegramBotClient.SendMessage(
+                        chatId: chatId,
+                        text: chunk,
+                        parseMode: _telegramBotConfiguration.DefaultParseMode,
+                        replyParameters: new ReplyParameters() { MessageId = (int)messageId },
+                        replyMarkup: new ReplyKeyboardRemove(),
+                        cancellationToken: cancellationToken);
+            }
+            catch (global::Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 400 && ex.Message.Contains("can't parse entities"))
+            {
+                _logger.LogWarning(ex, "Failed to parse entities in chunk, sending without formatting");
+                telegramResponce = await _telegramBotClient.SendMessage(
+                        chatId: chatId,
+                        text: chunk,
+                        parseMode: global::Telegram.Bot.Types.Enums.ParseMode.None,
+                        replyParameters: new ReplyParameters() { MessageId = (int)messageId },
+                        replyMarkup: new ReplyKeyboardRemove(),
+                        cancellationToken: cancellationToken);
+            }
+        }
+
+        if (telegramResponce != null)
+        {
+            historyMessage = new HistoryMessage
+            {
+                ChatId = telegramResponce.Chat.Id,
+                CreationDate = DateTime.UtcNow,
+                MessageId = telegramResponce.MessageId,
+                ModifiedDate = DateTime.UtcNow,
+                ParentMessageId = telegramResponce.ReplyToMessage?.MessageId,
+                RoleId = (int)OpenAI.Role.Assistant,
+                Text = responceText,
+                ProviderName = usedProviderName,
+                ModelName = usedModelName
+            };
+            _historyMessageRepository.Add(historyMessage);
+            await _historyMessageRepository.SaveChanges();
+        }
         return responceText;
+    }
+
+    private IEnumerable<string> SplitText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text)) yield break;
+        
+        for (int i = 0; i < text.Length; )
+        {
+            int length = Math.Min(maxLength, text.Length - i);
+            
+            if (i + length < text.Length)
+            {
+                int lastNewline = text.LastIndexOf('\n', i + length - 1, length);
+                if (lastNewline > i)
+                {
+                    length = lastNewline - i + 1;
+                }
+            }
+            
+            yield return text.Substring(i, length);
+            i += length;
+        }
     }
 
     public async Task<global::Telegram.Bot.Types.Message> ProcessDrawCommand(long chatId, long messageId, long fromUserId, string prompt, CancellationToken cancellationToken)
