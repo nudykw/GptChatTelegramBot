@@ -15,6 +15,7 @@ using GoogleContent = Google.GenAI.Types.Content;
 using GooglePart = Google.GenAI.Types.Part;
 using OpenAI;
 using System.Linq;
+using ServiceLayer.Utils;
 
 namespace ServiceLayer.Services.GeminiChat.DotNet
 {
@@ -53,7 +54,15 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         public async Task<string> Ask(long chatId, long userId, string message)
         {
             var modelName = GetModelName();
-            var response = await _client.GenerateContentAsync(modelName, message);
+            GenerateContentResponse response;
+            try
+            {
+                response = await _client.GenerateContentAsync(modelName, message);
+            }
+            catch (Exception ex)
+            {
+                throw AiErrorHelper.HandleAndGetException(_logger, ex, _apiConfiguration.Name, nameof(Ask));
+            }
             
             if (response.UsageMetadata != null)
                 await SaveBilling(modelName, _apiConfiguration.Name, chatId, userId, response.UsageMetadata);
@@ -132,8 +141,15 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
                 Parts = new List<GooglePart> { new GooglePart { Text = m.Content } }
             }).ToList();
 
-            // Last message is the user prompt in GenerateContentAsync, or we can use the contents list directly
-            var response = await _client.GenerateContentAsync(modelName, contents);
+            GenerateContentResponse response;
+            try
+            {
+                response = await _client.GenerateContentAsync(modelName, contents);
+            }
+            catch (Exception ex)
+            {
+                throw AiErrorHelper.HandleAndGetException(_logger, ex, _apiConfiguration.Name, nameof(SendMessages2ChatAsync));
+            }
             
             if (response.UsageMetadata != null)
                 await SaveBilling(modelName, _apiConfiguration.Name, telegramChatId, telegramUserId, response.UsageMetadata);

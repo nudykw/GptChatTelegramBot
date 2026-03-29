@@ -14,6 +14,7 @@ using System.Text;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Net.Http;
+using ServiceLayer.Utils;
 
 
 namespace ServiceLayer.Services.GptChat;
@@ -161,7 +162,15 @@ internal class ChatGptService : BaseService, IChatService
             : _chatProviderConfiguration.ModelName;
 
         ChatRequest chatRequest = new ChatRequest(messages, model: modelName);
-        ChatResponse result = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
+        ChatResponse result;
+        try
+        {
+            result = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
+        }
+        catch (Exception ex)
+        {
+            throw AiErrorHelper.HandleAndGetException(_logger, ex, _chatProviderConfiguration.Name, nameof(SendMessages2ChatAsync));
+        }
         await SaveBilling(modelName, _chatProviderConfiguration.Name, telegramChatId, telegramUserId, result.Usage);
         return new ChatServiceResponse
         {
@@ -208,7 +217,15 @@ internal class ChatGptService : BaseService, IChatService
     {
         var modelName = Model.DallE_3;
         ImageGenerationRequest request = new ImageGenerationRequest(prompt, modelName, 1, null, ImageResponseFormat.Url);
-        IReadOnlyList<ImageResult> imageResults = await _api.ImagesEndPoint.GenerateImageAsync(request);
+        IReadOnlyList<ImageResult> imageResults;
+        try
+        {
+            imageResults = await _api.ImagesEndPoint.GenerateImageAsync(request);
+        }
+        catch (Exception ex)
+        {
+            throw AiErrorHelper.HandleAndGetException(_logger, ex, _chatProviderConfiguration.Name, nameof(GenerateImage));
+        }
         _logger.LogInformation("Use model: {0} for generate image", request.Model);
         var results = imageResults.Select(p => p.Url).ToList();
         await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, new GptUsage(0, 1, 1));
@@ -227,7 +244,15 @@ internal class ChatGptService : BaseService, IChatService
             responseFormat: responseFormat,
             temperature: (float?)temperature,
             language: language);
-        string result = await _api.AudioEndpoint.CreateTranscriptionTextAsync(request);
+        string result;
+        try
+        {
+            result = await _api.AudioEndpoint.CreateTranscriptionTextAsync(request);
+        }
+        catch (Exception ex)
+        {
+            throw AiErrorHelper.HandleAndGetException(_logger, ex, _chatProviderConfiguration.Name, nameof(AudioTranscription));
+        }
         await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, new GptUsage(0, 1, 1));
         return result;
     }
@@ -258,7 +283,9 @@ internal class ChatGptService : BaseService, IChatService
         }
         catch (Exception ex)
         {
-            return (false, ex.Message);
+            AiErrorHelper.LogDetailedError(_logger, ex, _chatProviderConfiguration.Name, nameof(SetGPTModel));
+            var details = AiErrorHelper.GetErrorDetails(ex, _chatProviderConfiguration.Name);
+            return (false, details.UserMessage);
         }
         _chatProviderConfiguration.ModelName = modelName;
         return (true, string.Empty);

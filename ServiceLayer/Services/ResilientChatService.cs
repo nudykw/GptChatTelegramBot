@@ -86,7 +86,8 @@ public class ResilientChatService : IChatService
             }
         }
 
-        throw new AggregateException($"All providers failed for {methodName}", exceptions);
+        var combinedMessage = string.Join(" | ", exceptions.Select(e => e.Message).Distinct());
+        throw new AggregateException($"Все доступные провайдеры вернули ошибку для {methodName}: {combinedMessage}", exceptions);
     }
 
     public Task<string> Ask(long chatId, long userId, string message)
