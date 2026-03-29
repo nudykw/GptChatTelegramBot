@@ -1,4 +1,4 @@
-﻿using DataBaseLayer.Contexts;
+using DataBaseLayer.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,5 +20,7 @@ public static class MigrationConfigurator
         {
             dbContext.Database.Migrate();
         }
+
+        dbContext.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
     }
 }

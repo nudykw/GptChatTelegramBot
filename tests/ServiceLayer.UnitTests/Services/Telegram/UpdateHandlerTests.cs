@@ -1,0 +1,148 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using ServiceLayer.Services;
+using ServiceLayer.Services.AudioTranscriptor;
+using ServiceLayer.Services.MessageProcessor;
+using ServiceLayer.Services.Telegram;
+using Telegram.Bot;
+using Telegram.Bot.Types;
+using Xunit;
+
+namespace ServiceLayer.UnitTests.Services.Telegram
+{
+    public class UpdateHandlerTests
+    {
+        private readonly Mock<ITelegramBotClient> _botClientMock = new();
+        private readonly Mock<IServiceScopeFactory> _scopeFactoryMock = new();
+        private readonly Mock<IServiceScope> _scopeMock = new();
+        private readonly Mock<IServiceProvider> _serviceProviderMock = new();
+        private readonly Mock<ILogger<UpdateHandler>> _loggerMock = new();
+        
+        // Use MockBehavior.Loose for dependencies we don't strictly care about in this functional test
+        private readonly Mock<MessageProcessor> _messageProcessorMock;
+        private readonly Mock<AudioTranscriptorService> _audioTranscriptorMock;
+
+        public UpdateHandlerTests()
+        {
+            // Initializing complex mocks
+            _messageProcessorMock = new Mock<MessageProcessor>(
+                _serviceProviderMock.Object, 
+                new Mock<ILogger<MessageProcessor>>().Object,
+                null, // history
+                null, // chatService
+                _botClientMock.Object);
+
+            _audioTranscriptorMock = new Mock<AudioTranscriptorService>(
+                _serviceProviderMock.Object,
+                new Mock<ILogger<AudioTranscriptorService>>().Object,
+                null); // factory
+
+            // Setup infrastructure
+            _scopeFactoryMock.Setup(x => x.CreateScope()).Returns(_scopeMock.Object);
+            _scopeMock.Setup(x => x.ServiceProvider).Returns(_serviceProviderMock.Object);
+            
+            // Mock AppSettings for MessageProcessor/UpdateHandler
+            var appSettings = new AppSettings { 
+                TelegramBotConfiguration = new ServiceLayer.Services.Telegram.Configuretions.TelegramBotConfiguration(),
+                GptChatConfiguration = new ServiceLayer.Services.GptChat.Configurations.GptChatConfiguration(),
+                GeminiChatConfiguration = new ServiceLayer.Services.GeminiChat.DotNet.Configurations.GeminiChatConfiguration()
+            };
+            var optionsMock = new Mock<IOptions<AppSettings>>();
+            optionsMock.Setup(x => x.Value).Returns(appSettings);
+            _serviceProviderMock.Setup(x => x.GetService(typeof(IOptions<AppSettings>)))
+                .Returns(optionsMock.Object);
+
+            // In Telegram.Bot 22+, GetMe is an extension method that calls SendRequest.
+            // We must mock SendRequest instead.
+            _botClientMock.Setup(x => x.SendRequest(
+                It.IsAny<global::Telegram.Bot.Requests.GetMeRequest>(), 
+                It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new User { Id = 123, Username = "TestBot", FirstName = "Test" });
+        }
+
+        [Fact]
+        public async Task HandleUpdateAsync_ShouldBeginProcessingInNewScopeImmediately()
+        {
+            // Arrange
+            var update = new Update { Id = 1, Message = new Message { Text = "Hello", Chat = new Chat { Id = 1 } } };
+            
+            // This is the instance resolved from the new scope
+            var internalHandlerMock = new Mock<UpdateHandler>(
+                _serviceProviderMock.Object,
+                _loggerMock.Object,
+                _botClientMock.Object,
+                _messageProcessorMock.Object,
+                _audioTranscriptorMock.Object,
+                _scopeFactoryMock.Object);
+
+            _serviceProviderMock.Setup(x => x.GetService(typeof(UpdateHandler)))
+                .Returns(internalHandlerMock.Object);
+
+            var dispatcher = new UpdateHandler(
+                _serviceProviderMock.Object,
+                _loggerMock.Object,
+                _botClientMock.Object,
+                _messageProcessorMock.Object,
+                _audioTranscriptorMock.Object,
+                _scopeFactoryMock.Object);
+
+            // Act
+            var task = dispatcher.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
+
+            // Assert
+            // 1. The task returned to the polling loop should be completed immediately
+            Assert.True(task.IsCompleted);
+
+            // 2. We wait a bit to allow the background task (Task.Run) to execute
+            await Task.Delay(200);
+
+            // 3. Verify that a new scope was created
+            _scopeFactoryMock.Verify(x => x.CreateScope(), Times.Once);
+
+            // 4. Verify that the internal processor was resolved from the scope and called
+            // Note: Since we renamed it to ProcessUpdateInternalAsync but it's private,
+            // we can't verify it directly unless we mock the IUpdateHandler interface behavior 
+            // OR check side effects like typing indicators.
+            
+            // Let's verify that the scope-resolved handler was asked for (by checking GetService)
+            _serviceProviderMock.Verify(x => x.GetService(typeof(UpdateHandler)), Times.Once);
+        }
+        
+        [Fact]
+        public async Task HandleUpdateAsync_ShouldHandleMultipleUpdatesInParallel()
+        {
+            // Arrange
+            int scopeCount = 0;
+            _scopeFactoryMock.Setup(x => x.CreateScope()).Returns(() => {
+                Interlocked.Increment(ref scopeCount);
+                return _scopeMock.Object;
+            });
+
+            var dispatcher = new UpdateHandler(
+                _serviceProviderMock.Object,
+                _loggerMock.Object,
+                _botClientMock.Object,
+                _messageProcessorMock.Object,
+                _audioTranscriptorMock.Object,
+                _scopeFactoryMock.Object);
+
+            var update1 = new Update { Id = 1, Message = new Message { Id = 1, Chat = new Chat { Id = 1 } } };
+            var update2 = new Update { Id = 2, Message = new Message { Id = 2, Chat = new Chat { Id = 1 } } };
+
+            // Act
+            var t1 = dispatcher.HandleUpdateAsync(_botClientMock.Object, update1, CancellationToken.None);
+            var t2 = dispatcher.HandleUpdateAsync(_botClientMock.Object, update2, CancellationToken.None);
+
+            // Assert
+            Assert.True(t1.IsCompleted);
+            Assert.True(t2.IsCompleted);
+
+            await Task.Delay(300);
+
+            // Both should have triggered a scope creation
+            Assert.Equal(2, scopeCount);
+        }
+    }
+}

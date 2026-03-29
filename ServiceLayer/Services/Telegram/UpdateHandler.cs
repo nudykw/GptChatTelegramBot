@@ -30,6 +30,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
     private readonly IRepository<TelegramChatInfo>? _telegramChatInfoRepository;
     private readonly IRepository<TelegramUserInfo>? _telegramUserInfoRepository;
     private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
+    private readonly IServiceScopeFactory _scopeFactory;
     private static Dictionary<string, string> gptModelsCosts = new Dictionary<string, string>()
     {
         {AiModel.Gpt4Turbo,  "$0.01/$0.03"},
@@ -41,19 +42,43 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
     public UpdateHandler(IServiceProvider serviceProvider, ILogger<UpdateHandler> logger,
         ITelegramBotClient botClient, MessageProcessor.MessageProcessor messageProcessor,
-        AudioTranscriptorService audioTranscriptorService)
+        AudioTranscriptorService audioTranscriptorService,
+        IServiceScopeFactory scopeFactory)
         : base(serviceProvider, logger)
     {
         _botClient = botClient;
         _botInfo = botClient.GetMe().Result;
         _messageProcessor = messageProcessor;
         _audioTranscriptorService = audioTranscriptorService;
+        _scopeFactory = scopeFactory;
         _telegramChatInfoRepository = _serviceProvider.GetService<IRepository<TelegramChatInfo>>();
         _telegramUserInfoRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
     }
 
-    public async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
+    public Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+    {
+        // We do NOT await this Task.Run, allowing the Telegram polling loop
+        // to receive the next update immediately.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                // Create a new scope for EACH update to ensure separate DbContext instances
+                using var scope = _scopeFactory.CreateScope();
+                var processor = scope.ServiceProvider.GetRequiredService<UpdateHandler>();
+                await processor.ProcessUpdateInternalAsync(botClient, update, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Detailed error processing update {UpdateId}: {Message}", update.Id, ex.Message);
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ProcessUpdateInternalAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
     {
         var handler = update switch
         {
@@ -713,48 +738,41 @@ public class UpdateHandler : BaseService, IUpdateHandler
     private async Task<T> ActionWithShowTypeng<T>(ChatId chatId, CancellationToken cancellationToken, Task<T> action)
 
     {
-        var result = action;
-        var typingAction = new Func<Task>(() =>
-        {
-            Task result = _botClient.SendChatAction(
-                chatId: chatId,
-                action: ChatAction.Typing,
-                cancellationToken: cancellationToken);
-            return result;
-        });
-
         try
         {
-            Task[] tasks = new[] { typingAction(), result };
-            while (true)
+            // Send initial typing action
+            await _botClient.SendChatAction(chatId: chatId, action: ChatAction.Typing, cancellationToken: cancellationToken);
+
+            // While the main action is running, periodically refresh the typing indicator
+            _ = Task.Run(async () =>
             {
-                int completedTask = Task.WaitAny(tasks, cancellationToken);
-                if (completedTask == 1 || result.Status == TaskStatus.RanToCompletion)
+                try
                 {
-                    break;
+                    while (!action.IsCompleted && !cancellationToken.IsCancellationRequested)
+                    {
+                        await Task.Delay(4000, cancellationToken);
+                        if (!action.IsCompleted)
+                        {
+                            await _botClient.SendChatAction(chatId: chatId, action: ChatAction.Typing, cancellationToken: cancellationToken);
+                        }
+                    }
                 }
-                Thread.Sleep(1000);
-                if (!action.IsCompleted)
-                {
-                    tasks[0] = typingAction();
-                }
-            }
-            return result.Result;
+                catch { /* Ignore typing errors */ }
+            }, cancellationToken);
+
+            return await action;
         }
-        catch (AggregateException ex)
-        //catch (Exception ex)
+        catch (Exception ex)
         {
-            var e = ex.Flatten() as Exception;
-            while (e.InnerException != null)
-            {
-                e = ex.InnerException;
-                _logger.LogError(e.Message);
-            }
+            _logger.LogError(ex, "Error during ActionWithShowTypeng for chat {ChatId}", chatId);
+            
+            string errorMessage = ex is AggregateException agg ? agg.Flatten().Message : ex.Message;
             await _botClient.SendMessage(
                 chatId: chatId,
-                text: ex.Flatten().Message,
+                text: "Произошла ошибка при обработке запроса: " + errorMessage,
                 cancellationToken: cancellationToken);
-            return await result;
+                
+            throw; 
         }
     }
 }
