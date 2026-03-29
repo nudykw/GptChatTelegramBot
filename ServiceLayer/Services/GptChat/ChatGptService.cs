@@ -155,11 +155,15 @@ internal class ChatGptService : BaseService, IChatService
         }
         return sb.ToString();
     }
-    public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
+    public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages, string? model = null)
     {
-        var modelName = string.IsNullOrEmpty(_chatProviderConfiguration.ModelName) 
-            ? (string)AiModel.Gpt4oMini 
-            : _chatProviderConfiguration.ModelName;
+        var modelName = model;
+        if (string.IsNullOrEmpty(modelName))
+        {
+            modelName = string.IsNullOrEmpty(_chatProviderConfiguration.ModelName) 
+                ? (string)AiModel.Gpt4oMini 
+                : _chatProviderConfiguration.ModelName;
+        }
 
         ChatRequest chatRequest = new ChatRequest(messages, model: modelName);
         ChatResponse result;
@@ -351,6 +355,11 @@ internal class ChatGptService : BaseService, IChatService
         }
         _chatProviderConfiguration.ModelName = modelName;
         return (true, string.Empty);
+    }
+
+    public Task<string?> GetSelectedModel(long userId)
+    {
+        return Task.FromResult<string?>(_chatProviderConfiguration.ModelName);
     }
 
     internal async Task RefreshModelPricesAsync()

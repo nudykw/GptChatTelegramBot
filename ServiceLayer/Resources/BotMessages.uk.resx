@@ -65,7 +65,7 @@
     <value>Оберіть дату, за яку потрібно відобразити білінг:</value>
   </data>
   <data name="SelectProvider" xml:space="preserve">
-    <value>Оберіть стратегію роботи з провайдерами:</value>
+    <value>Оберіть провайдера ШІ:</value>
   </data>
   <data name="SelectProviderHelp" xml:space="preserve">
     <value>🔄 *Автоматична ротація* — бот самостійно обирає доступний сервіс.\n🎯 *Конкретний провайдер* — бот використовуватиме лише обраний сервіс (без перемикань у разі помилок).</value>
@@ -80,7 +80,7 @@
     <value>Обрано модель: {0}</value>
   </data>
   <data name="ProviderSelected" xml:space="preserve">
-    <value>Встановлено стратегію: {0}</value>
+    <value>Встановлено провайдера: {0}</value>
   </data>
   <data name="ErrorOccurred" xml:space="preserve">
     <value>Виникла помилка під час обробки запиту: {0}</value>
@@ -91,13 +91,13 @@
   <data name="HelpText" xml:space="preserve">
     <value>🤖 Команди бота
 
-- /billing — Статистика використання.
-- /model — Вибір моделі ШІ.
-- /provider — Стратегія провайдера.
-- /draw &lt;опис&gt; — Генерація зображення &lt;Обов'язково&gt;.
-- /lang [мову] — Зміна мови [Опціонально].
-- /help — Допомога по командах.
-- /restart — Перезапуск бота.</value>
+- /billing — Статистика використання. **(Адміни та Власник)**
+- /model — Вибір моделі ШІ для відповідей.
+- /provider — Вибір провайдера ШІ (Авторотація/OpenAI/Gemini).
+- /draw &lt;опис&gt; — Генерація зображення на основі текстового опису. Також можна просто надіслати текст з проханням щось намалювати, і зображення буде згенеровано. **&lt;Обов'язково&gt;**
+- /lang [language] — Зміна мови інтерфейсу. **[Опціонально]**
+- /help — Показати список доступних команд.
+- /restart — Перезапуск сервісу бота. **(Адміни та Власник)**</value>
   </data>
   <data name="AutoRotation" xml:space="preserve">
     <value>🔄 Автоматична ротація</value>
@@ -122,5 +122,40 @@
   </data>
   <data name="EnterLanguagePrompt" xml:space="preserve">
     <value>Введіть назву мови (наприклад, іспанська):</value>
+  </data>
+  <data name="HelpHeader" xml:space="preserve">
+    <value>🤖 Доступні команди бота:</value>
+  </data>
+  <data name="PermissionDenied" xml:space="preserve">
+    <value>❌ У вас немає прав для використання цієї команди.</value>
+  </data>
+  <data name="CurrentValue" xml:space="preserve">
+    <value> **Зараз: {0}**</value>
+  </data>
+  <data name="Desc_billing" xml:space="preserve">
+    <value>Показати статистику використання. (Тільки для адмінів та власника)</value>
+  </data>
+  <data name="Desc_model" xml:space="preserve">
+    <value>Вибрати модель ШІ для відповідей.</value>
+  </data>
+  <data name="Desc_provider" xml:space="preserve">
+    <value>Вибрати провайдера ШІ (Auto/OpenAI/Gemini).</value>
+  </data>
+  <data name="Desc_draw" xml:space="preserve">
+    <value>Згенерувати зображення за описом. Також можна просто надіслати текст з проханням щось намалювати, і зображення буде згенеровано.</value>
+  </data>
+  <data name="Desc_lang" xml:space="preserve">
+    <value>Змінити мову.</value>
+  </data>
+  <data name="Desc_help" xml:space="preserve">
+    <value>Показати список доступних команд.</value>
+  </data>
+  <data name="Desc_restart" xml:space="preserve">
+    <value>Перезавантажити бота. (Тільки для адмінів та власника)</value>
+  </data>
+  <data name="GroupContextInfo" xml:space="preserve">
+    <value>
+
+💡 *Порада для груп*: Щоб бот зберігав нить спілкування (контекст), необхідно **відповідати** (цитувати) повідомлення бота. Інакше кожне повідомлення буде вважатися початком нової розмови.</value>
   </data>
 </root>

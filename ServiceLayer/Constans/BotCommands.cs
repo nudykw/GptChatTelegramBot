@@ -7,9 +7,10 @@ namespace ServiceLayer.Constans;
 /// </summary>
 public sealed class BotCommand : StaticStringEnumBase<BotCommand>, IStaticStringEnum<BotCommand>
 {
-    private BotCommand(string value, string description) : base(value)
+    private BotCommand(string value, string description, BotCommandScope requiredScope = BotCommandScope.Default | BotCommandScope.AllPrivateChats | BotCommandScope.AllGroupChats) : base(value)
     {
         Description = description;
+        RequiredScope = requiredScope;
     }
 
     /// <summary>
@@ -17,13 +18,18 @@ public sealed class BotCommand : StaticStringEnumBase<BotCommand>, IStaticString
     /// </summary>
     public string Description { get; }
 
-    public static readonly BotCommand Billing = new("/billing", "Показать статистику использования");
-    public static readonly BotCommand Model = new("/model", "Выбрать модель GPT");
-    public static readonly BotCommand Provider = new("/provider", "Выбрать провайдера ИИ");
-    public static readonly BotCommand Draw = new("/draw", "Сгенерировать изображение по описанию");
-    public static readonly BotCommand Lang = new("/lang", "Change language / Изменить язык (e.g. /lang German)");
-    public static readonly BotCommand Help = new("/help", "Показать справку по командам");
-    public static readonly BotCommand Restart = new("/restart", "Перезагрузить бота");
+    /// <summary>
+    /// Требуемая область видимости/права для доступа к команде.
+    /// </summary>
+    public BotCommandScope RequiredScope { get; }
+
+    public static readonly BotCommand Billing = new("/billing", "Show usage statistics", BotCommandScope.AnyAdmin | BotCommandScope.Owner);
+    public static readonly BotCommand Model = new("/model", "Select GPT model");
+    public static readonly BotCommand Provider = new("/provider", "Select AI provider");
+    public static readonly BotCommand Draw = new("/draw", "Generate image by description. You can also just send a text prompt asking to draw something, and the image will be generated.");
+    public static readonly BotCommand Lang = new("/lang", "Change language (e.g. /lang German)");
+    public static readonly BotCommand Help = new("/help", "Show help info");
+    public static readonly BotCommand Restart = new("/restart", "Restart the bot", BotCommandScope.Owner | BotCommandScope.AnyAdmin);
 
     /// <summary>
     /// Команды обычно не регистрозависимы.

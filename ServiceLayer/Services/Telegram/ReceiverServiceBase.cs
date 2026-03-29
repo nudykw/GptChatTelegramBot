@@ -4,6 +4,10 @@ using global::Telegram.Bot;
 using global::Telegram.Bot.Types;
 using global::Telegram.Bot.Types.Enums;
 using global::Telegram.Bot.Polling;
+using Microsoft.Extensions.Localization;
+using ServiceLayer.Resources;
+using Microsoft.Extensions.DependencyInjection;
+using System.Globalization;
 
 namespace ServiceLayer.Services.Telegram
 {
@@ -16,6 +20,7 @@ namespace ServiceLayer.Services.Telegram
     {
         private readonly global::Telegram.Bot.ITelegramBotClient _botClient;
         private readonly IUpdateHandler _updateHandler;
+        private readonly IStringLocalizerFactory _localizerFactory;
 
         internal ReceiverServiceBase(IServiceProvider serviceProvider,
             ILogger<ReceiverServiceBase<TUpdateHandler>> logger,
@@ -25,6 +30,7 @@ namespace ServiceLayer.Services.Telegram
         {
             _botClient = botClient;
             _updateHandler = updateHandler;
+            _localizerFactory = serviceProvider.GetRequiredService<IStringLocalizerFactory>();
             logger.LogInformation($"EnvironmentVersion: {Environment.Version}");
         }
 
@@ -46,19 +52,68 @@ namespace ServiceLayer.Services.Telegram
             _logger.LogInformation("Start receiving updates for {BotName}", me.Username ?? "My Awesome Bot");
 
             // Register bot commands
-            var commands = ServiceLayer.Constans.BotCommand.GetAll().Select(x => new global::Telegram.Bot.Types.BotCommand
-            {
-                Command = x.Value.TrimStart('/'),
-                Description = x.Description
-            });
-            await _botClient.SetMyCommands(commands, cancellationToken: stoppingToken);
-            _logger.LogInformation("Bot commands registered successfully.");
+            await RegisterBotCommandsAsync(stoppingToken);
 
             // Start receiving updates
             await _botClient.ReceiveAsync(
                 updateHandler: _updateHandler,
                 receiverOptions: receiverOptions,
                 cancellationToken: stoppingToken);
+        }
+
+        private async Task RegisterBotCommandsAsync(CancellationToken ct)
+        {
+            // 1. Register default commands (English from localizer)
+            // This serves as the fallback for all languages not explicitly registered
+            await SetLocalizedCommandsAsync(null, ct);
+
+            // 2. Register English explicitly
+            await SetLocalizedCommandsAsync("en", ct);
+
+            // 3. Register Ukrainian commands
+            await SetLocalizedCommandsAsync("uk", ct);
+
+            _logger.LogInformation("Bot commands registered successfully: English (default/en) and Ukrainian (uk).");
+        }
+
+        private async Task SetLocalizedCommandsAsync(string languageCode, CancellationToken ct)
+        {
+            var localizer = _localizerFactory.Create(typeof(BotMessages));
+            using (new CultureSwitcher(languageCode))
+            {
+                var commands = ServiceLayer.Constans.BotCommand.GetAll().Select(x => {
+                    var descriptionKey = "Desc_" + x.Value.TrimStart('/');
+                    var localizedDescription = localizer[descriptionKey];
+                    return new global::Telegram.Bot.Types.BotCommand
+                    {
+                        Command = x.Value.TrimStart('/'),
+                        Description = localizedDescription.ResourceNotFound ? x.Description : localizedDescription.Value
+                    };
+                }).ToList();
+
+                await _botClient.SetMyCommands(commands, languageCode: languageCode, cancellationToken: ct);
+            }
+        }
+
+        private class CultureSwitcher : IDisposable
+        {
+            private readonly CultureInfo _originalCulture;
+            private readonly CultureInfo _originalUiCulture;
+
+            public CultureSwitcher(string? languageCode)
+            {
+                _originalCulture = CultureInfo.CurrentCulture;
+                _originalUiCulture = CultureInfo.CurrentUICulture;
+                var culture = new CultureInfo(languageCode ?? "");
+                CultureInfo.CurrentCulture = culture;
+                CultureInfo.CurrentUICulture = culture;
+            }
+
+            public void Dispose()
+            {
+                CultureInfo.CurrentCulture = _originalCulture;
+                CultureInfo.CurrentUICulture = _originalUiCulture;
+            }
         }
     }
 }

@@ -14,13 +14,18 @@ The bot lets you chat with an AI via a Telegram bot, ask questions, and generate
 
 Before compiling the project, add your keys to the `TelegramBotApp/appsettings.sample.json` file and rename it to `appsettings.json`.
 
+> [!IMPORTANT]
+> You **must** fill the `OwnerId` field with your Telegram User ID. To find your ID, use the [@userinfobot](https://t.me/userinfobot) bot in Telegram. Simply send a message to it and copy the numeric **ID**.
+
+
 ### 📝 Configuration Example
 
 ```json
 {
   "AppSettings": {
     "TelegramBotConfiguration": {
-      "BotToken": "YOUR_TELEGRAM_BOT_TOKEN"
+      "BotToken": "YOUR_TELEGRAM_BOT_TOKEN",
+      "OwnerId": "YOUR_OWNER_ID"
     },
     "ChatProviders": [
       {
@@ -54,17 +59,16 @@ Before compiling the project, add your keys to the `TelegramBotApp/appsettings.s
 
 ## 🤖 Bot Commands
 
-The following commands are available in the bot. Most commands provide interactive menus, but some accept parameters directly.
+- `/billing` — Show usage statistics. **(Admins & Owner only)**
+- `/model` — Select AI model for responses.
+- `/provider` — Select AI provider strategy (Auto/OpenAI/Gemini).
+- `/draw <prompt>` — Generate an image from a text description. You can also just send a text prompt to generate an image. **<Required>**
+- `/lang [language]` — Change the bot's interface language. **[Optional]**
+- `/help` — Show the list of available commands.
+- `/restart` — Restart the bot service. **(Admins & Owner only)**
 
-| Command | Syntax | Parameter | Required | Description | Example |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `/billing` | `/billing` | None | - | Shows an interactive menu to select a month for usage statistics. | `/billing` |
-| `/model` | `/model` | None | - | Shows an interactive menu to select a specific AI model for future responses. | `/model` |
-| `/provider` | `/provider` | None | - | Shows a menu to choose between **Auto Rotation** (failover) or a **Specific Provider**. | `/provider` |
-| `/draw` | `/draw <prompt>` | `<prompt>` | **&lt;Yes&gt;** | Generates an image based on the text description. | `/draw a cybernetic cat` |
-| `/lang` | `/lang [language]` | `[language]` | [No] | Changes the interface language. If no parameter is given, shows a selection menu. | `/lang German` or `/lang` |
-| `/help` | `/help` | None | - | Shows a detailed list of available commands and their usage. | `/help` |
-| `/restart` | `/restart` | None | - | Terminates the bot process (useful for triggering a Docker/Systemd restart). | `/restart` |
+> [!TIP]
+> **Group Conversations**: To maintain the conversation context (thread) in groups, you must **reply** to the bot's messages. Otherwise, the bot will treat each message as the start of a new conversation.
 
 > [!TIP]
 > If a command requires a parameter and you don't provide it (e.g., `/draw`), the bot will either show an error or a help message depending on the command logic.
@@ -75,7 +79,13 @@ The following commands are available in the bot. Most commands provide interacti
 - Open [Telegram](https://t.me/BotFather) and find `@BotFather`.
 - Send `/newbot` and follow the instructions to get your **Bot Token**.
 
-### 2. OpenAI API Key
+### 2. Owner ID
+To restrict administrative commands (like `/billing` and `/restart`) and identify yourself as the owner, you must fill the `OwnerId` field:
+- Open [Telegram](https://t.me/userinfobot) and find `@userinfobot`.
+- Send any message to it or just start it to get your **ID**.
+- Copy the numeric ID and put it into the `TelegramBotConfiguration.OwnerId` field in `appsettings.json` (replacing `YOUR_OWNER_ID`).
+
+### 3. OpenAI API Key
 - Go to [OpenAI Platform](https://platform.openai.com/api-keys).
 - Create a new secret key.
 

@@ -22,6 +22,7 @@ This repository follows a structured documentation approach. Always refer to the
 6. **Use Type-Safe Enums for Entity Values**: For entities having multiple predefined values, use either standard C# `enum` or the `IStaticStringEnum` pattern (via `StaticStringEnumBase`) to ensure type safety and discoverability.
 7. **Set Explicit Minimal String Lengths for Database Entities**: All string fields in database models (e.g., in `DataBaseLayer/Models/`) MUST have an explicit, minimal yet sufficient size defined using `[MaxLength(N)]` or `[StringLength(N)]`. If the required size is ambiguous or expected values are unknown, you MUST ask the user for clarification.
 8. **Bot Command Synchronization**: If any bot commands are added, modified, or removed in `BotCommands.cs`, or if their descriptions are updated in `README.md`/`README.uk.md`, you MUST immediately synchronize these changes across all README files and the `HelpText` resource in all localization files (`BotMessages.resx`, `BotMessages.uk.resx`, etc.). Ensure that the bot's in-app help matches the documentation, including parameters and their requirements (e.g., `<Required>`, `[Optional]`).
+9. **Dynamic Help & Resource Documentation**: All command descriptions in localization resources MUST be documented in `<data name="HelpText" xml:space="preserve">` to ensure consistency with `README.md` and `README.uk.md`.
 
 ### How to use these files:
 1. **Analyze project structure** before making changes to solution layout or dependencies.

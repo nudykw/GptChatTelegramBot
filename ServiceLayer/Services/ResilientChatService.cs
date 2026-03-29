@@ -96,8 +96,16 @@ public class ResilientChatService : IChatService
     public Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null, bool validateModels = true)
         => ExecuteWithFallback(s => s.GetAvailibleModels(userId, validateModels), nameof(GetAvailibleModels), userId);
 
-    public Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
-        => ExecuteWithFallback(s => s.SendMessages2ChatAsync(telegramChatId, telegramUserId, messages), nameof(SendMessages2ChatAsync), telegramUserId);
+    public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages, string? model = null)
+    {
+        var selectedModel = model;
+        if (string.IsNullOrEmpty(selectedModel))
+        {
+            var user = await _telegramUserInfoRepository.Get(p => p.Id == telegramUserId);
+            selectedModel = user?.SelectedModel;
+        }
+        return await ExecuteWithFallback(s => s.SendMessages2ChatAsync(telegramChatId, telegramUserId, messages, selectedModel), nameof(SendMessages2ChatAsync), telegramUserId);
+    }
 
     public async Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt)
     {
@@ -138,7 +146,30 @@ public class ResilientChatService : IChatService
 
     public async Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null)
     {
-        // Try to set model for the first provider that accepts it (or the preferred one)
-        return await ExecuteWithFallback(s => s.SetGPTModel(modelName, userId), nameof(SetGPTModel), userId);
+        var (isSuccess, error) = await ExecuteWithFallback(s => s.SetGPTModel(modelName, userId), nameof(SetGPTModel), userId);
+        
+        if (isSuccess && userId.HasValue)
+        {
+            var user = await _telegramUserInfoRepository.Get(p => p.Id == userId.Value);
+            if (user != null)
+            {
+                user.SelectedModel = modelName;
+                _telegramUserInfoRepository.Update(user);
+                await _telegramUserInfoRepository.SaveChanges();
+            }
+        }
+        
+        return (isSuccess, error);
+    }
+
+    public async Task<string?> GetSelectedModel(long userId)
+    {
+        var user = await _telegramUserInfoRepository.Get(p => p.Id == userId);
+        if (user != null && !string.IsNullOrEmpty(user.SelectedModel))
+        {
+            return user.SelectedModel;
+        }
+
+        return await ExecuteWithFallback(s => s.GetSelectedModel(userId), nameof(GetSelectedModel), userId);
     }
 }

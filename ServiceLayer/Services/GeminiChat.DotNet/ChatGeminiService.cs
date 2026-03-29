@@ -131,9 +131,9 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             return result;
         }
 
-        public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
+        public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages, string? model = null)
         {
-            var modelName = GetModelName();
+            var modelName = model ?? GetModelName();
             
             var contents = messages.Select(m => new GoogleContent
             {
@@ -205,6 +205,11 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             if (string.IsNullOrEmpty(modelName)) return (false, "Пустое название модели");
             _apiConfiguration.ModelName = modelName;
             return (true, string.Empty);
+        }
+
+        public Task<string?> GetSelectedModel(long userId)
+        {
+            return Task.FromResult<string?>(_apiConfiguration.ModelName);
         }
     }
 }

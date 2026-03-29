@@ -24,5 +24,10 @@ namespace DataBaseLayer.Models
         public ChatStrategy PreferredProvider { get; set; }
         [MaxLength(10)]
         public string? LanguageCode { get; set; }
+        /// <summary>
+        /// Персонально выбранная модель GPT для пользователя.
+        /// </summary>
+        [MaxLength(128)]
+        public string? SelectedModel { get; set; }
     }
 }

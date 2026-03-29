@@ -32,6 +32,8 @@ namespace ServiceLayer.UnitTests.Services.Telegram
         // Use MockBehavior.Loose for dependencies we don't strictly care about in this functional test
         private readonly Mock<MessageProcessorClass> _messageProcessorMock;
         private readonly Mock<AudioTranscriptorService> _audioTranscriptorMock;
+        private readonly Mock<IChatService> _chatServiceMock = new();
+        private readonly AppSettings _appSettings;
 
         public UpdateHandlerTests()
         {
@@ -41,7 +43,8 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 new Mock<ILogger<MessageProcessorClass>>().Object,
                 null, // history
                 null, // chatService
-                _botClientMock.Object);
+                _botClientMock.Object,
+                null); // telegramUserInfoRepository
 
             _audioTranscriptorMock = new Mock<AudioTranscriptorService>(
                 _serviceProviderMock.Object,
@@ -53,13 +56,15 @@ namespace ServiceLayer.UnitTests.Services.Telegram
             _scopeMock.Setup(x => x.ServiceProvider).Returns(_serviceProviderMock.Object);
             
             // Mock AppSettings for MessageProcessor/UpdateHandler
-            var appSettings = new AppSettings { 
+            _appSettings = new AppSettings { 
                 TelegramBotConfiguration = new ServiceLayer.Services.Telegram.Configuretions.TelegramBotConfiguration()
             };
             var optionsMock = new Mock<IOptions<AppSettings>>();
-            optionsMock.Setup(x => x.Value).Returns(appSettings);
+            optionsMock.Setup(x => x.Value).Returns(_appSettings);
             _serviceProviderMock.Setup(x => x.GetService(typeof(IOptions<AppSettings>)))
                 .Returns(optionsMock.Object);
+            _serviceProviderMock.Setup(x => x.GetService(typeof(IChatService)))
+                .Returns(_chatServiceMock.Object);
 
             // In Telegram.Bot 22+, GetMe is an extension method that calls SendRequest.
             // We must mock SendRequest instead.
@@ -84,7 +89,9 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 _audioTranscriptorMock.Object,
                 _scopeFactoryMock.Object,
                 _localizerMock.Object,
-                _userContextMock.Object);
+                _userContextMock.Object,
+                _appSettings,
+                _chatServiceMock.Object);
 
             _serviceProviderMock.Setup(x => x.GetService(typeof(UpdateHandler)))
                 .Returns(internalHandlerMock.Object);
@@ -97,7 +104,9 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 _audioTranscriptorMock.Object,
                 _scopeFactoryMock.Object,
                 _localizerMock.Object,
-                _userContextMock.Object);
+                _userContextMock.Object,
+                _appSettings,
+                _chatServiceMock.Object);
 
             // Act
             var task = dispatcher.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
@@ -131,6 +140,9 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 return _scopeMock.Object;
             });
 
+            // Re-fetch appSettings if needed or use from outer scope
+            // (Using the field instead of local re-definition)
+
             var dispatcher = new UpdateHandler(
                 _serviceProviderMock.Object,
                 _loggerMock.Object,
@@ -139,7 +151,9 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 _audioTranscriptorMock.Object,
                 _scopeFactoryMock.Object,
                 _localizerMock.Object,
-                _userContextMock.Object);
+                _userContextMock.Object,
+                _appSettings,
+                _chatServiceMock.Object);
 
             var update1 = new Update { Id = 1, Message = new Message { Id = 1, Chat = new Chat { Id = 1 } } };
             var update2 = new Update { Id = 2, Message = new Message { Id = 2, Chat = new Chat { Id = 1 } } };

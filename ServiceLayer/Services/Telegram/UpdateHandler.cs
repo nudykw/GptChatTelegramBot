@@ -39,6 +39,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IDynamicLocalizer _localizer;
     private readonly IUserContext _userContext;
+    private readonly AppSettings _appSettings;
+    private readonly IChatService _chatService;
     private static Dictionary<string, string> gptModelsCosts = new Dictionary<string, string>()
     {
         {AiModel.Gpt4Turbo,  "$0.01/$0.03"},
@@ -53,7 +55,9 @@ public class UpdateHandler : BaseService, IUpdateHandler
         AudioTranscriptorService audioTranscriptorService,
         IServiceScopeFactory scopeFactory,
         IDynamicLocalizer localizer,
-        IUserContext userContext)
+        IUserContext userContext,
+        AppSettings appSettings,
+        IChatService chatService)
         : base(serviceProvider, logger)
     {
         _botClient = botClient;
@@ -63,6 +67,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
         _scopeFactory = scopeFactory;
         _localizer = localizer;
         _userContext = userContext;
+        _appSettings = appSettings;
+        _chatService = chatService;
         _telegramChatInfoRepository = _serviceProvider.GetService<IRepository<TelegramChatInfo>>();
         _telegramUserInfoRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
@@ -192,6 +198,21 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
         var actionText = messageText.Split(' ')[0].Replace($"@{_botInfo.Username}", string.Empty);
         var command = BotCommand.FromString(actionText);
+
+        if (command != null)
+        {
+            var userScopes = await GetUserScopesAsync(user, chat);
+            if ((command.RequiredScope & userScopes) == 0)
+            {
+                _logger.LogWarning("User {UserId} tried to execute restricted command {Command} in chat {ChatId}", user.Id, actionText, chat.Id);
+                // Return null or send a message if in private chat
+                if (chat.Type == ChatType.Private)
+                {
+                    await _botClient.SendMessage(chat.Id, _localizer["PermissionDenied"], cancellationToken: cancellationToken);
+                }
+                return;
+            }
+        }
 
         var action = command?.Value switch
         {
@@ -504,9 +525,51 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
         async Task<Message> Usage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
+            var userScopes = await GetUserScopesAsync(message.From, message.Chat);
+            var availableCommands = BotCommand.GetAll()
+                .Where(cmd => (cmd.RequiredScope & userScopes) != 0)
+                .ToList();
+
+            var sb = new StringBuilder();
+            sb.AppendLine(_localizer["HelpHeader"]);
+            sb.AppendLine();
+
+            var dbUser = await _telegramUserInfoRepository.Get(p => p.Id == message.From.Id);
+
+            foreach (var cmd in availableCommands)
+            {
+                var descriptionKey = "Desc_" + cmd.Value.TrimStart('/');
+                var line = $"{cmd.Value} - {_localizer[descriptionKey]}";
+                
+                string? currentValue = null;
+                if (cmd.Value == BotCommand.Model.Value)
+                {
+                    currentValue = await _chatService.GetSelectedModel(message.From.Id);
+                }
+                else if (cmd.Value == BotCommand.Provider.Value)
+                {
+                    var provider = dbUser?.PreferredProvider ?? ChatStrategy.Auto;
+                    currentValue = provider == ChatStrategy.Auto 
+                        ? _localizer["AutoRotation"] 
+                        : provider.ToString();
+                }
+                else if (cmd.Value == BotCommand.Lang.Value)
+                {
+                    currentValue = dbUser?.LanguageCode ?? message.From.LanguageCode;
+                }
+
+                if (!string.IsNullOrEmpty(currentValue))
+                {
+                    line += _localizer["CurrentValue", currentValue];
+                }
+
+                sb.AppendLine(line);
+            }
+
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: _localizer["HelpText"],
+                text: sb.ToString(),
+                parseMode: ParseMode.Markdown,
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken);
         }
@@ -1014,5 +1077,43 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 
             throw; 
         }
+    }
+
+    private async Task<ServiceLayer.Constans.BotCommandScope> GetUserScopesAsync(User? user, Chat chat)
+    {
+        var scope = ServiceLayer.Constans.BotCommandScope.Default;
+
+        if (user == null) return scope;
+
+        // Check private/group
+        if (chat.Type == ChatType.Private)
+            scope |= ServiceLayer.Constans.BotCommandScope.AllPrivateChats;
+        else
+            scope |= ServiceLayer.Constans.BotCommandScope.AllGroupChats;
+
+        // Check owner
+        if (_appSettings.TelegramBotConfiguration.OwnerId.HasValue && user.Id == _appSettings.TelegramBotConfiguration.OwnerId.Value)
+        {
+            scope |= ServiceLayer.Constans.BotCommandScope.Owner;
+        }
+
+        // Check group admins
+        if (chat.Type != ChatType.Private)
+        {
+            try
+            {
+                var member = await _botClient.GetChatMember(chat.Id, user.Id);
+                if (member.Status == ChatMemberStatus.Administrator || member.Status == ChatMemberStatus.Creator)
+                {
+                    scope |= ServiceLayer.Constans.BotCommandScope.AllChatAdmins;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get chat member status for user {UserId} in chat {ChatId}", user.Id, chat.Id);
+            }
+        }
+
+        return scope;
     }
 }
