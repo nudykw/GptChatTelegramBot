@@ -7,7 +7,7 @@ namespace ServiceLayer.Services
     public interface IChatService
     {
         Task<string> Ask(long chatId, long userId, string message);
-        Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null);
+        Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null, bool validateModels = true);
         Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages);
         Task<IReadOnlyList<string>> GenerateImage(long chatId, long telegramUserId, string prompt);
         Task<string> AudioTranscription(long chatId, long telegramUserId, Stream audio, string audioName, 

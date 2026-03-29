@@ -92,8 +92,8 @@ public class ResilientChatService : IChatService
     public Task<string> Ask(long chatId, long userId, string message)
         => ExecuteWithFallback(s => s.Ask(chatId, userId, message), nameof(Ask), userId);
 
-    public Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null)
-        => ExecuteWithFallback(s => s.GetAvailibleModels(userId), nameof(GetAvailibleModels), userId);
+    public Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null, bool validateModels = true)
+        => ExecuteWithFallback(s => s.GetAvailibleModels(userId, validateModels), nameof(GetAvailibleModels), userId);
 
     public Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
         => ExecuteWithFallback(s => s.SendMessages2ChatAsync(telegramChatId, telegramUserId, messages), nameof(SendMessages2ChatAsync), telegramUserId);

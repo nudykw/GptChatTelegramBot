@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ServiceLayer.Services;
 using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.GeminiChat.DotNet;
 using ServiceLayer.Services.MessageProcessor;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
@@ -64,6 +65,8 @@ public class TestAppFixture : IDisposable
 
         // Add actual service we are testing
         services.AddSingleton<ChatGptService>();
+        services.AddSingleton<ChatGeminiService>();
+        services.AddSingleton<IChatServiceFactory, ChatServiceFactory>();
 
         ServiceProvider = services.BuildServiceProvider();
 

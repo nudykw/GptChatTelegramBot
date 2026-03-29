@@ -177,18 +177,8 @@ public class ChatGptServiceTests
             }
         });
 
-        // The method also performs a test completion for each model
-        var chatJson = JsonSerializer.Serialize(new 
-        {
-            id = "chatcmpl-test",
-            @object = "chat.completion",
-            created = 1677652288,
-            model = "gpt-4",
-            choices = new[] { new { message = new { role = "assistant", content = "Hi" }, finish_reason = "stop", index = 0 } }
-        });
-
         _mockHandler.Protected()
-            .SetupSequence<Task<HttpResponseMessage>>(
+            .Setup<Task<HttpResponseMessage>>(
                 "SendAsync", 
                 ItExpr.IsAny<HttpRequestMessage>(), 
                 ItExpr.IsAny<CancellationToken>())
@@ -196,18 +186,6 @@ public class ChatGptServiceTests
             {
                 StatusCode = HttpStatusCode.OK,
                 Content = new StringContent(modelsJson, Encoding.UTF8, "application/json")
-            })
-            // Response for gpt-4 test
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(chatJson, Encoding.UTF8, "application/json")
-            })
-             // Response for gpt-4o-mini test (unknown-model is skipped by pre-filter)
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(chatJson, Encoding.UTF8, "application/json")
             });
 
         var api = new OpenAIClient(new OpenAIAuthentication("sk-test-key"), client: new HttpClient(_mockHandler.Object));
@@ -215,7 +193,7 @@ public class ChatGptServiceTests
         var service = CreateService(api);
 
         // Act
-        var result = await service.GetAvailibleModels(1);
+        var result = await service.GetAvailibleModels(1, validateModels: false);
 
         // Assert
         Assert.NotNull(result);

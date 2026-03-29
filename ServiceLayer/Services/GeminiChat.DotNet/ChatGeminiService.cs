@@ -9,28 +9,40 @@ using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using ServiceLayer.Constans;
-using Model = OpenAI.Models.Model;
+using OpenAIModel = OpenAI.Models.Model;
+using GoogleModel = Google.GenAI.Types.Model;
 using GoogleContent = Google.GenAI.Types.Content;
 using GooglePart = Google.GenAI.Types.Part;
 using OpenAI;
+using System.Linq;
 
 namespace ServiceLayer.Services.GeminiChat.DotNet
 {
     internal class ChatGeminiService : BaseService, IChatService
     {
         private ChatProviderConfig _apiConfiguration;
-        private Client _client;
+        private IGeminiClient _client;
         private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
+
+        private class GeminiModelCache
+        {
+            internal DateTime? LastUpdates { get; set; }
+            internal IReadOnlyList<OpenAIModel> Models { get; set; }
+        }
+        private GeminiModelCache? _geminiModelCache = null;
 
         public ChatGeminiService(IServiceProvider serviceProvider, ILogger<ChatGeminiService> logger,
             ChatProviderConfig chatProviderConfig)
+            : this(serviceProvider, logger, chatProviderConfig, null)
+        {
+        }
+
+        internal ChatGeminiService(IServiceProvider serviceProvider, ILogger<ChatGeminiService> logger,
+            ChatProviderConfig chatProviderConfig, IGeminiClient? client)
             : base(serviceProvider, logger)
         {
             _apiConfiguration = chatProviderConfig;
-            
-            // Note: Official SDK handles endpoints. If BaseUrl is needed, 
-            // it would typically be configured via ClientOptions if supported.
-            _client = new Client(apiKey: _apiConfiguration.ApiKey);
+            _client = client ?? new GeminiClientWrapper(_apiConfiguration.ApiKey);
             _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
         }
 
@@ -41,7 +53,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         public async Task<string> Ask(long chatId, long userId, string message)
         {
             var modelName = GetModelName();
-            var response = await _client.Models.GenerateContentAsync(modelName, message);
+            var response = await _client.GenerateContentAsync(modelName, message);
             
             if (response.UsageMetadata != null)
                 await SaveBilling(modelName, _apiConfiguration.Name, chatId, userId, response.UsageMetadata);
@@ -49,14 +61,65 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             return response.Text ?? string.Empty;
         }
 
-        public Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null)
+        public async Task<IReadOnlyList<OpenAIModel>> GetAvailibleModels(long? userId = null, bool validateModels = true)
         {
-            IReadOnlyList<Model> result = new List<Model>() 
-            { 
-                new Model(AiModel.GeminiPro),
-                new Model(AiModel.GeminiFlash)
-            };
-            return Task.FromResult(result);
+            if (_geminiModelCache != null && _geminiModelCache.LastUpdates.HasValue && (DateTime.UtcNow - _geminiModelCache.LastUpdates.Value).TotalHours < 6)
+            {
+                return _geminiModelCache.Models;
+            }
+
+            var result = new List<OpenAIModel>();
+            try
+            {
+                var models = _client.ListModelsAsync();
+                await foreach (GoogleModel modelInfo in models)
+                {
+                    // Filter for models that support generating content
+                    if (modelInfo.SupportedActions != null && 
+                        modelInfo.SupportedActions.Any(a => string.Equals(a, "generateContent", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var modelName = modelInfo.Name.StartsWith("models/") 
+                            ? modelInfo.Name.Substring("models/".Length) 
+                            : modelInfo.Name;
+
+                        if (!modelName.StartsWith("gemini-", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        if (validateModels)
+                        {
+                            try
+                            {
+                                await _client.GenerateContentAsync(modelInfo.Name, "Hi");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Gemini model {ModelName} failed validation and will be skipped.", modelInfo.Name);
+                                continue;
+                            }
+                        }
+                        result.Add(new OpenAIModel(modelName));
+                    }
+                }
+
+                _geminiModelCache = new GeminiModelCache
+                {
+                    LastUpdates = DateTime.UtcNow,
+                    Models = result
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching Gemini models dynamically. Falling back to hardcoded list.");
+                return new List<OpenAIModel> 
+                { 
+                    new OpenAIModel((string)AiModel.GeminiPro),
+                    new OpenAIModel((string)AiModel.GeminiFlash)
+                };
+            }
+
+            return result;
         }
 
         public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages)
@@ -70,7 +133,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             }).ToList();
 
             // Last message is the user prompt in GenerateContentAsync, or we can use the contents list directly
-            var response = await _client.Models.GenerateContentAsync(modelName, contents);
+            var response = await _client.GenerateContentAsync(modelName, contents);
             
             if (response.UsageMetadata != null)
                 await SaveBilling(modelName, _apiConfiguration.Name, telegramChatId, telegramUserId, response.UsageMetadata);

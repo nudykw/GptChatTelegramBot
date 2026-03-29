@@ -40,6 +40,8 @@ internal class ChatGptService : BaseService, IChatService
         {"gpt-3.5-turbo-instruct",  new GptModelCost(defTokens, 0.0015M, 0.002M)},
         {AiModel.Gpt4oMini,  new GptModelCost(defTokens, 0.00015M, 0.0006M)},
         {AiModel.Gpt4o,  new GptModelCost(defTokens, 0.005M, 0.015M)},
+        {AiModel.DeepSeekChat, new GptModelCost(defTokens, 0.00007M, 0.0011M)},
+        {AiModel.GrokBeta, new GptModelCost(defTokens, 0.005M, 0.015M)},
 
         {"Code interpreter",  new GptModelCost(1, 0.03M, 0.0M)},
         {"Retrieval",  new GptModelCost(1, 0.2M, 0.0M)},
@@ -60,7 +62,7 @@ internal class ChatGptService : BaseService, IChatService
     private readonly ChatProviderConfig _chatProviderConfiguration;
     private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
     private readonly IHttpClientFactory _httpClientFactory;
-    private static GptModelCache gptModelCache = null;
+    private GptModelCache? gptModelCache = null;
 
     public ChatGptService(IServiceProvider serviceProvider, ILogger<ChatGptService> logger,
         ChatProviderConfig chatProviderConfig, IHttpClientFactory httpClientFactory, OpenAIClient? openAiClient = null)
@@ -74,9 +76,16 @@ internal class ChatGptService : BaseService, IChatService
         else
         {
             var auth = new OpenAIAuthentication(_chatProviderConfiguration.ApiKey);
-            var settings = string.IsNullOrEmpty(_chatProviderConfiguration.BaseUrl) 
+            var domain = _chatProviderConfiguration.BaseUrl ?? "";
+            if (!string.IsNullOrEmpty(domain))
+            {
+                // Sanitize: strip protocol and path to get only the domain
+                domain = domain.Replace("https://", "").Replace("http://", "").Split('/')[0];
+            }
+            
+            var settings = string.IsNullOrEmpty(domain) 
                 ? new OpenAISettings() 
-                : new OpenAISettings(domain: _chatProviderConfiguration.BaseUrl);
+                : new OpenAISettings(domain: domain);
             _api = new OpenAIClient(auth, settings);
         }
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
@@ -85,7 +94,7 @@ internal class ChatGptService : BaseService, IChatService
         // Initial async update
         _ = RefreshModelPricesAsync();
     }
-    public async Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null)
+    public async Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null, bool validateModels = true)
     {
         IReadOnlyList<Model> modelsResponce = await _api.ModelsEndpoint.GetModelsAsync();
         var result = new List<Model>();
@@ -95,24 +104,31 @@ internal class ChatGptService : BaseService, IChatService
         }
         foreach (Model model in modelsResponce)
         {
-            // Pre-filter: only attempt chat check for known chat models or prefixes
-            if (!model.Id.StartsWith("gpt-") && 
-                !model.Id.StartsWith("o1-") && 
+            // Pre-filter: only attempt chat check for known model prefixes or if we have cost info
+            string modelId = model.Id.ToLowerInvariant();
+            if (!modelId.StartsWith("gpt-") && 
+                !modelId.StartsWith("o1-") && 
+                !modelId.StartsWith("o3-") &&
+                !modelId.StartsWith("deepseek-") &&
+                !modelId.StartsWith("grok-") &&
                 !gptModelsCosts.ContainsKey(model.Id))
             {
                 continue;
             }
 
-            try
+            if (validateModels)
             {
-                ChatRequest chatRequest = new ChatRequest(new[] { new Message(Role.User, "Hi") }
-                , model: model.Id
-                );
-                ChatResponse teatResult = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
-            }
-            catch
-            {
-                continue;
+                try
+                {
+                    ChatRequest chatRequest = new ChatRequest(new[] { new Message(Role.User, "Hi") }
+                    , model: model.Id
+                    );
+                    ChatResponse teatResult = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
+                }
+                catch
+                {
+                    continue;
+                }
             }
             result.Add(model);
         }
@@ -272,7 +288,9 @@ internal class ChatGptService : BaseService, IChatService
                     {
                         var modelId = kvp.Key;
                         var info = kvp.Value;
-                        if (string.Equals(info.Provider, AiProvider.OpenAI.Value, StringComparison.OrdinalIgnoreCase) 
+                        if ((string.Equals(info.Provider, AiProvider.OpenAI.Value, StringComparison.OrdinalIgnoreCase) 
+                             || string.Equals(info.Provider, AiProvider.DeepSeek.Value, StringComparison.OrdinalIgnoreCase)
+                             || string.Equals(info.Provider, AiProvider.Grok.Value, StringComparison.OrdinalIgnoreCase))
                             && info.InputCostPerToken.HasValue 
                             && info.OutputCostPerToken.HasValue)
                         {

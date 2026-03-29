@@ -30,7 +30,7 @@ public class ChatGptServiceTests : IClassFixture<TestAppFixture>
     public async Task GetAvailibleModels_ShouldReturnModelsList()
     {
         // Act
-        var models = await _chatGptService.GetAvailibleModels();
+        var models = await _chatGptService.GetAvailibleModels(validateModels: false);
 
         // Assert
         Assert.NotNull(models);

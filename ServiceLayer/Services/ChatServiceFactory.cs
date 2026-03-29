@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ServiceLayer.Services.GptChat;
 using ServiceLayer.Services.GeminiChat.DotNet;
+using ServiceLayer.Constans;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -65,7 +66,9 @@ public class ChatServiceFactory : IChatServiceFactory
         }
 
         var type = config.ProviderType;
-        if (type == AiProvider.OpenAI) return ActivatorUtilities.CreateInstance<ChatGptService>(_serviceProvider, config);
+        if (type == AiProvider.OpenAI || type == AiProvider.DeepSeek || type == AiProvider.Grok) 
+            return ActivatorUtilities.CreateInstance<ChatGptService>(_serviceProvider, config);
+            
         if (type == AiProvider.Gemini) return ActivatorUtilities.CreateInstance<ChatGeminiService>(_serviceProvider, config);
         
         throw new Exception($"Unsupported provider type: {config.ProviderType}");
