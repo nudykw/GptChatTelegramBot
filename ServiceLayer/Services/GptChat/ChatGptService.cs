@@ -90,7 +90,10 @@ internal class ChatGptService : BaseService, IChatService
             var settings = string.IsNullOrEmpty(domain) 
                 ? new OpenAISettings() 
                 : new OpenAISettings(domain: domain);
-            _api = new OpenAIClient(auth, settings);
+            
+            var httpClient = httpClientFactory.CreateClient("OpenAIClient");
+            httpClient.Timeout = TimeSpan.FromMinutes(_chatProviderConfiguration.TimeoutMinutes);
+            _api = new OpenAIClient(auth, settings, httpClient);
         }
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
         _httpClientFactory = httpClientFactory;

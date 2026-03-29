@@ -50,6 +50,7 @@ namespace ServiceLayer.Services.Localization
             if (NativeLanguages.Contains(languageCode))
             {
                 var localized = _localizer[key];
+                if (arguments == null || arguments.Length == 0) return localized.Value;
                 return string.Format(localized.Value, arguments);
             }
 

@@ -11,11 +11,17 @@ namespace ServiceLayer.Utils
                 "code",
                 "s", "strike", "del",
                 "u",
-                "pre"
+                "pre",
+                "a",
+                "tg-spoiler",
+                "blockquote"
             };
         public static string ConvertHtmlToTelegramHtml(this string html)
         {
             var telegramHtml = KeepOnlySelectedTags(html, telegramTags);
+            // Replace literal angle brackets which might confuse Telegram if unencoded
+            // but we can't just replace all because we have actual html tags.
+            // Telegram usually complains if there are < > that don't form valid allowed tags.
             return telegramHtml;
         }
         private static string KeepOnlySelectedTags(string html, params string[] selectedTags)
@@ -23,25 +29,29 @@ namespace ServiceLayer.Utils
             var htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(html);
 
-            // Получаем все теги
-            HtmlNodeCollection allTags = htmlDocument.DocumentNode.SelectNodes("//*");
-
-            if (allTags != null)
+            var nodesToRemove = new System.Collections.Generic.List<HtmlNode>();
+            foreach (var node in htmlDocument.DocumentNode.Descendants())
             {
-                foreach (HtmlNode? tag in allTags)
+                if (node.NodeType == HtmlNodeType.Element && !selectedTags.Contains(node.Name.ToLowerInvariant()))
                 {
-                    if (!selectedTags.Contains(tag.Name.ToLower()))
-                    {
-                        tag.Name = string.Empty;
-                        //tag.ParentNode.ReplaceChild(tag.FirstChild, tag);
-                        //Remove();
-                    }
+                    nodesToRemove.Add(node);
                 }
             }
 
-            var rawHtml = htmlDocument.DocumentNode.OuterHtml;
-            rawHtml = rawHtml.Replace("<>", string.Empty).Replace("</>", string.Empty);
-            return rawHtml;
+            foreach (var node in nodesToRemove)
+            {
+                var parent = node.ParentNode;
+                if (parent != null)
+                {
+                    foreach (var child in node.ChildNodes.ToArray())
+                    {
+                        parent.InsertBefore(child, node);
+                    }
+                    parent.RemoveChild(node);
+                }
+            }
+
+            return htmlDocument.DocumentNode.InnerHtml;
         }
     }
 }

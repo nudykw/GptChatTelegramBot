@@ -44,6 +44,11 @@ public class ChatProviderConfig
     /// </summary>
     public string? DrawingModelName { get; set; }
 
+    /// <summary>
+    /// Timeout for HTTP requests in minutes. Default is 5.
+    /// </summary>
+    public int TimeoutMinutes { get; set; } = 5;
+
     public static bool IsPlaceholder(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return false;
