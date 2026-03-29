@@ -6,9 +6,16 @@ using ServiceLayer.Services;
 using ServiceLayer.Services.AudioTranscriptor;
 using ServiceLayer.Services.MessageProcessor;
 using ServiceLayer.Services.Telegram;
+using ServiceLayer.Services.Localization;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Xunit;
+using Microsoft.Extensions.Localization;
+using ServiceLayer.Resources;
+using ServiceLayer.Utils;
+using System.Threading;
+using System.Globalization;
+using MessageProcessorClass = ServiceLayer.Services.MessageProcessor.MessageProcessor;
 
 namespace ServiceLayer.UnitTests.Services.Telegram
 {
@@ -19,17 +26,19 @@ namespace ServiceLayer.UnitTests.Services.Telegram
         private readonly Mock<IServiceScope> _scopeMock = new();
         private readonly Mock<IServiceProvider> _serviceProviderMock = new();
         private readonly Mock<ILogger<UpdateHandler>> _loggerMock = new();
+        private readonly Mock<IDynamicLocalizer> _localizerMock = new();
+        private readonly Mock<IUserContext> _userContextMock = new();
         
         // Use MockBehavior.Loose for dependencies we don't strictly care about in this functional test
-        private readonly Mock<MessageProcessor> _messageProcessorMock;
+        private readonly Mock<MessageProcessorClass> _messageProcessorMock;
         private readonly Mock<AudioTranscriptorService> _audioTranscriptorMock;
 
         public UpdateHandlerTests()
         {
             // Initializing complex mocks
-            _messageProcessorMock = new Mock<MessageProcessor>(
+            _messageProcessorMock = new Mock<MessageProcessorClass>(
                 _serviceProviderMock.Object, 
-                new Mock<ILogger<MessageProcessor>>().Object,
+                new Mock<ILogger<MessageProcessorClass>>().Object,
                 null, // history
                 null, // chatService
                 _botClientMock.Object);
@@ -73,7 +82,9 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 _botClientMock.Object,
                 _messageProcessorMock.Object,
                 _audioTranscriptorMock.Object,
-                _scopeFactoryMock.Object);
+                _scopeFactoryMock.Object,
+                _localizerMock.Object,
+                _userContextMock.Object);
 
             _serviceProviderMock.Setup(x => x.GetService(typeof(UpdateHandler)))
                 .Returns(internalHandlerMock.Object);
@@ -84,7 +95,9 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 _botClientMock.Object,
                 _messageProcessorMock.Object,
                 _audioTranscriptorMock.Object,
-                _scopeFactoryMock.Object);
+                _scopeFactoryMock.Object,
+                _localizerMock.Object,
+                _userContextMock.Object);
 
             // Act
             var task = dispatcher.HandleUpdateAsync(_botClientMock.Object, update, CancellationToken.None);
@@ -124,7 +137,9 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 _botClientMock.Object,
                 _messageProcessorMock.Object,
                 _audioTranscriptorMock.Object,
-                _scopeFactoryMock.Object);
+                _scopeFactoryMock.Object,
+                _localizerMock.Object,
+                _userContextMock.Object);
 
             var update1 = new Update { Id = 1, Message = new Message { Id = 1, Chat = new Chat { Id = 1 } } };
             var update2 = new Update { Id = 2, Message = new Message { Id = 2, Chat = new Chat { Id = 1 } } };

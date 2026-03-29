@@ -9,6 +9,8 @@ using ServiceLayer.Services.AudioTranscriptor;
 using ServiceLayer.Services.GptChat;
 using ServiceLayer.Services.MessageProcessor;
 using ServiceLayer.Services.Telegram;
+using ServiceLayer.Services.Localization;
+using ServiceLayer.Utils;
 using Telegram.Bot;
 
 IHost host = Host.CreateDefaultBuilder(args)
@@ -53,10 +55,14 @@ static void ConfigureServices(HostBuilderContext context, IServiceCollection ser
     services.AddHostedService<PollingService>();
 
     services.AddSingleton<IChatServiceFactory, ChatServiceFactory>();
-    services.AddSingleton<IChatService, ResilientChatService>();
+    services.AddScoped<IChatService, ResilientChatService>();
 
     services.AddScoped<MessageProcessor>();
     services.AddScoped<AudioTranscriptorService>();
+
+    services.AddLocalization();
+    services.AddScoped<IUserContext, UserContext>();
+    services.AddScoped<IDynamicLocalizer, DynamicLocalizer>();
 }
 static void InitConfigs(HostBuilderContext context, IServiceCollection services)
 {

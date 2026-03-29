@@ -32,6 +32,7 @@ namespace DataBaseLayer.Contexts
         public DbSet<GptBilingItem> GptBilingItem { get; set; }
         public DbSet<TelegramChatInfo> TelegramChatInfos { get; set; }
         public DbSet<TelegramUserInfo> TelegramUserInfos { get; set; }
+        public DbSet<CachedTranslation> CachedTranslations { get; set; }
         #endregion
     }
 }

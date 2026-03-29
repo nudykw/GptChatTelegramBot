@@ -22,5 +22,7 @@ namespace DataBaseLayer.Models
         public string? Username { get; set; }
         public bool? IsPremium { get; set; }
         public ChatStrategy PreferredProvider { get; set; }
+        [MaxLength(10)]
+        public string? LanguageCode { get; set; }
     }
 }

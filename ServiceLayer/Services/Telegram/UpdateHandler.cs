@@ -8,7 +8,12 @@ using BotCommand = ServiceLayer.Constans.BotCommand;
 using ServiceLayer.Services.AudioTranscriptor;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using Microsoft.Extensions.Localization;
+using ServiceLayer.Resources;
+using ServiceLayer.Constans;
+using ServiceLayer.Services.Localization;
 using System.CodeDom.Compiler;
+using System.Globalization;
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -17,6 +22,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
+using ServiceLayer.Utils;
 using Image = SixLabors.ImageSharp.Image;
 
 namespace ServiceLayer.Services.Telegram;
@@ -31,6 +37,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
     private readonly IRepository<TelegramUserInfo>? _telegramUserInfoRepository;
     private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IDynamicLocalizer _localizer;
+    private readonly IUserContext _userContext;
     private static Dictionary<string, string> gptModelsCosts = new Dictionary<string, string>()
     {
         {AiModel.Gpt4Turbo,  "$0.01/$0.03"},
@@ -43,7 +51,9 @@ public class UpdateHandler : BaseService, IUpdateHandler
     public UpdateHandler(IServiceProvider serviceProvider, ILogger<UpdateHandler> logger,
         ITelegramBotClient botClient, MessageProcessor.MessageProcessor messageProcessor,
         AudioTranscriptorService audioTranscriptorService,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IDynamicLocalizer localizer,
+        IUserContext userContext)
         : base(serviceProvider, logger)
     {
         _botClient = botClient;
@@ -51,6 +61,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
         _messageProcessor = messageProcessor;
         _audioTranscriptorService = audioTranscriptorService;
         _scopeFactory = scopeFactory;
+        _localizer = localizer;
+        _userContext = userContext;
         _telegramChatInfoRepository = _serviceProvider.GetService<IRepository<TelegramChatInfo>>();
         _telegramUserInfoRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
         _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
@@ -80,27 +92,70 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
     private async Task ProcessUpdateInternalAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
     {
-        var handler = update switch
+        var user = update switch
         {
-            // UpdateType.Unknown:
-            // UpdateType.ChannelPost:
-            // UpdateType.EditedChannelPost:
-            // UpdateType.ShippingQuery:
-            // UpdateType.PreCheckoutQuery:
-            // UpdateType.Poll:
-            { Message: { } message } => BotOnMessageReceived(message, cancellationToken),
-            { EditedMessage: { } message } => BotOnMessageReceived(message, cancellationToken),
-            { CallbackQuery: { } callbackQuery } => BotOnCallbackQueryReceived(callbackQuery, cancellationToken),
-            { InlineQuery: { } inlineQuery } => BotOnInlineQueryReceived(inlineQuery, cancellationToken),
-            { ChosenInlineResult: { } chosenInlineResult } => BotOnChosenInlineResultReceived(chosenInlineResult, cancellationToken),
-            _ => UnknownUpdateHandlerAsync(update, cancellationToken)
+            { Message.From: { } f } => f,
+            { EditedMessage.From: { } f } => f,
+            { CallbackQuery.From: { } f } => f,
+            { InlineQuery.From: { } f } => f,
+            { ChosenInlineResult.From: { } f } => f,
+            _ => null
         };
 
-        await handler;
+        if (user != null)
+        {
+            _userContext.UserId = user.Id;
+            var dbUser = await _telegramUserInfoRepository.Get(p => p.Id == user.Id);
+            var langCode = dbUser?.LanguageCode ?? user.LanguageCode ?? "en";
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo(langCode);
+            }
+            catch
+            {
+                CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo(LanguageCode.English);
+            }
+        }
+
+        try
+        {
+            var handler = update switch
+            {
+                { Message: { } message } => BotOnMessageReceived(message, cancellationToken),
+                { EditedMessage: { } message } => BotOnMessageReceived(message, cancellationToken),
+                { CallbackQuery: { } callbackQuery } => BotOnCallbackQueryReceived(callbackQuery, cancellationToken),
+                { InlineQuery: { } inlineQuery } => BotOnInlineQueryReceived(inlineQuery, cancellationToken),
+                { ChosenInlineResult: { } chosenInlineResult } => BotOnChosenInlineResultReceived(chosenInlineResult, cancellationToken),
+                _ => UnknownUpdateHandlerAsync(update, cancellationToken)
+            };
+
+            await handler;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred in HandleUpdateAsync for update {UpdateId}", update.Id);
+            try
+            {
+                long? chatId = update.Message?.Chat.Id ?? update.CallbackQuery?.Message?.Chat.Id;
+                if (chatId.HasValue)
+                {
+                    var errorHeader = _localizer["GenericError"];
+                    var fullErrorMsg = $"{errorHeader}\n\nDetails: {ex.Message}";
+                    await _botClient.SendMessage(chatId.Value, fullErrorMsg, cancellationToken: cancellationToken);
+                }
+            }
+            catch (Exception innerEx)
+            {
+                _logger.LogError(innerEx, "Failed to send error message to user");
+            }
+        }
     }
 
     private async Task BotOnMessageReceived(Message message, CancellationToken cancellationToken)
     {
+        _userContext.UserId = message.From.Id;
+        _userContext.ChatId = message.Chat.Id;
+
         Chat chat = message.Chat;
         User? user = message.From;
         await TrySaveMessageInfoAsync(chat, user);
@@ -113,13 +168,22 @@ public class UpdateHandler : BaseService, IUpdateHandler
             _botClient.SendMessage(
             chatId: message.Chat.Id,
             replyParameters: new ReplyParameters() { MessageId = message.MessageId },
-            text: $"Вы сказали: {voiceMessage}",
+            text: _localizer["YouSaid", voiceMessage],
             cancellationToken: cancellationToken);
         }
         if (message.Text is not { } && message.Caption is not { })
             return;
         var messageText = message.Text ?? message.Caption ?? string.Empty;
         _logger.LogInformation("Text: {MessageType}", messageText);
+
+        // Check if message is a reply to language prompt
+        if (message.ReplyToMessage != null && 
+            (message.ReplyToMessage.Text?.Contains(_localizer["EnterLanguagePrompt"]) == true))
+        {
+            await ProcessLanguageCommand(_botClient, message, string.Empty, cancellationToken);
+            return;
+        }
+
         if (!IsMe(message))
         {
             _logger.LogInformation("This message not for me.");
@@ -134,6 +198,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             var v when v == BotCommand.Billing => SendBillingInlineKeyboard(_botClient, message, cancellationToken),
             var v when v == BotCommand.Model => SendInlineKeyboard(_botClient, message, cancellationToken),
             var v when v == BotCommand.Provider => SendProviderInlineKeyboard(_botClient, message, cancellationToken),
+            var v when v == BotCommand.Lang => ProcessLanguageCommand(_botClient, message, actionText, cancellationToken),
             var v when v == BotCommand.Draw => _messageProcessor.ProcessDrawCommand(message.Chat.Id, message.MessageId, message.From.Id, messageText.Replace(actionText, string.Empty).Trim(), cancellationToken),
             var v when v == BotCommand.Restart => FailingHandler(_botClient, message, cancellationToken),
             _ => actionText switch
@@ -144,6 +209,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 "/request" => RequestContactAndLocation(_botClient, message, cancellationToken),
                 "/inline_mode" => StartInlineQuery(_botClient, message, cancellationToken),
                 "/throw" => FailingHandler(_botClient, message, cancellationToken),
+                "/help" => Usage(_botClient, message, cancellationToken),
                 _ => ProcessMessage(_botClient, message, cancellationToken)
             }
         };
@@ -196,7 +262,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             InlineKeyboardMarkup replyMarkup = new(choises);
             var result = await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: "Выберите модель для ответов:",
+                text: _localizer["SelectModel"],
                 replyMarkup: replyMarkup,
                 cancellationToken: cancellationToken);
             return result;
@@ -239,10 +305,108 @@ public class UpdateHandler : BaseService, IUpdateHandler
             InlineKeyboardMarkup replyMarkup = new(choises);
             Message result = await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: "Выберите дату за которую нужно отобразить билинг:",
+                text: _localizer["SelectBillingDate"],
                 replyMarkup: replyMarkup,
                 cancellationToken: cancellationToken);
             return result;
+        }
+
+        async Task<Message> ProcessLanguageCommand(ITelegramBotClient botClient, Message message, string actionText, CancellationToken cancellationToken)
+        {
+            var messageText = message.Text ?? message.Caption ?? string.Empty;
+            var argument = string.IsNullOrEmpty(actionText) 
+                ? messageText 
+                : messageText.Replace(actionText, string.Empty).Trim();
+
+            if (string.IsNullOrEmpty(argument))
+            {
+                return await SendLanguageInlineKeyboard(botClient, message, cancellationToken);
+            }
+
+            await botClient.SendChatAction(message.Chat.Id, ChatAction.Typing, cancellationToken: cancellationToken);
+            var langCode = await _messageProcessor.IdentifyLanguage(message.Chat.Id, message.From.Id, argument);
+
+            if (langCode == LanguageCode.English || langCode == LanguageCode.Ukrainian)
+            {
+                // Native language, update immediately
+                var dbUser = await _telegramUserInfoRepository.Get(p => p.Id == message.From.Id);
+                if (dbUser != null)
+                {
+                    dbUser.LanguageCode = langCode;
+                    _telegramUserInfoRepository.Update(dbUser);
+                    await _telegramUserInfoRepository.SaveChanges();
+                }
+
+                try
+                {
+                    CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo(langCode);
+                }
+                catch
+                {
+                    CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo(LanguageCode.English);
+                }
+                
+                string nativeName = langCode;
+                
+                var oldCulture = CultureInfo.CurrentUICulture;
+                string englishText;
+                try {
+                    CultureInfo.CurrentUICulture = new CultureInfo(LanguageCode.English);
+                    englishText = _localizer["LanguageChanged", nativeName];
+                } finally {
+                    CultureInfo.CurrentUICulture = oldCulture;
+                }
+                
+                var translatedText = _localizer["LanguageChanged", nativeName];
+                var confirmation = (langCode == LanguageCode.English) ? translatedText : $"{englishText} {translatedText}";
+                
+                return await botClient.SendMessage(message.Chat.Id, confirmation, cancellationToken: cancellationToken);
+            }
+
+            // Non-native language, ask for confirmation
+            var confirmKeyboard = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData(_localizer["Confirm"], $"{BotCommand.Lang}:confirm:{langCode}"),
+                    InlineKeyboardButton.WithCallbackData(_localizer["Cancel"], $"{BotCommand.Lang}:cancel")
+                }
+            });
+
+            var warning = _localizer["DynamicLanguageWarning", argument, langCode];
+            return await botClient.SendMessage(
+                chatId: message.Chat.Id,
+                text: warning,
+                replyMarkup: confirmKeyboard,
+                cancellationToken: cancellationToken);
+        }
+
+        async Task<Message> SendLanguageInlineKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        {
+            await botClient.SendChatAction(
+                chatId: message.Chat.Id,
+                action: ChatAction.Typing,
+                cancellationToken: cancellationToken);
+
+            var choises = new List<List<InlineKeyboardButton>>
+            {
+                new List<InlineKeyboardButton>
+                {
+                    InlineKeyboardButton.WithCallbackData("🇬🇧 English", $"{BotCommand.Lang}:{LanguageCode.English}"),
+                    InlineKeyboardButton.WithCallbackData("🇺🇦 Українська", $"{BotCommand.Lang}:{LanguageCode.Ukrainian}")
+                },
+                new List<InlineKeyboardButton>
+                {
+                     InlineKeyboardButton.WithCallbackData("🌍 " + _localizer["OtherLanguage"], $"{BotCommand.Lang}:prompt")
+                }
+            };
+
+            InlineKeyboardMarkup replyMarkup = new(choises);
+            return await botClient.SendMessage(
+                chatId: message.Chat.Id,
+                text: _localizer["SelectLanguage"],
+                replyMarkup: replyMarkup,
+                cancellationToken: cancellationToken);
         }
 
         async Task<Message> SendProviderInlineKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
@@ -258,7 +422,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             {
                 string text = strategy switch
                 {
-                    ChatStrategy.Auto => "🔄 Автоматическая ротация",
+                    ChatStrategy.Auto => _localizer["AutoRotation"],
                     ChatStrategy.OpenAI => AiProvider.OpenAI.DisplayName,
                     ChatStrategy.Gemini => AiProvider.Gemini.DisplayName,
                     _ => strategy.ToString()
@@ -269,9 +433,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             InlineKeyboardMarkup replyMarkup = new(choises);
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: "Выберите стратегию работы с провайдерами:\n\n" +
-                      "🔄 *Автоматическая ротация* — бот сам выбирает доступный сервис.\n" +
-                      "🎯 *Конкретный провайдер* — бот будет использовать только выбранный сервис (без переключений при ошибках).",
+                text: _localizer["SelectProvider"] + "\n\n" + _localizer["SelectProviderHelp"],
                 replyMarkup: replyMarkup,
                 parseMode: ParseMode.Markdown,
                 cancellationToken: cancellationToken);
@@ -339,19 +501,11 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        static async Task<Message> Usage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<Message> Usage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
-            const string usage = "Usage:\n" +
-                                 "/inline_keyboard - send inline keyboard\n" +
-                                 "/keyboard    - send custom keyboard\n" +
-                                 "/remove      - remove custom keyboard\n" +
-                                 "/photo       - send a photo\n" +
-                                 "/request     - request location or contact\n" +
-                                 "/inline_mode - send keyboard with Inline Query";
-
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: usage,
+                text: _localizer["HelpText"],
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken);
         }
@@ -456,14 +610,14 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
             return null;
         }
-        static async Task<Message> StartInlineQuery(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<Message> StartInlineQuery(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
             InlineKeyboardMarkup inlineKeyboard = new(
                 InlineKeyboardButton.WithSwitchInlineQueryCurrentChat("Inline Mode"));
 
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
-                text: "Press the button to start Inline Query",
+                text: _localizer["StartInlineQuery"],
                 replyMarkup: inlineKeyboard,
                 cancellationToken: cancellationToken);
         }
@@ -507,7 +661,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     IsBot = user.IsBot,
                     IsPremium = user.IsPremium,
                     LastName = user.LastName,
-                    Username = user.Username
+                    Username = user.Username,
+                    LanguageCode = user.LanguageCode
                 };
                 _telegramUserInfoRepository.Add(dbUser);
             }
@@ -518,6 +673,11 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 dbUser.IsPremium = user.IsPremium;
                 dbUser.LastName = user.LastName;
                 dbUser.Username = user.Username;
+                // Only update LanguageCode if it's not set yet to respect manual override
+                if (string.IsNullOrEmpty(dbUser.LanguageCode))
+                {
+                    dbUser.LanguageCode = user.LanguageCode;
+                }
                 _telegramUserInfoRepository.Update(dbUser);
             }
             await _telegramUserInfoRepository.SaveChanges();
@@ -557,38 +717,42 @@ public class UpdateHandler : BaseService, IUpdateHandler
     // Process Inline Keyboard callback data
     private async Task BotOnCallbackQueryReceived(CallbackQuery callbackQuery, CancellationToken cancellationToken)
     {
+        _userContext.UserId = callbackQuery.From.Id;
+        _userContext.ChatId = callbackQuery.Message?.Chat.Id ?? 0;
+
         _logger.LogInformation("Received inline keyboard callback from: {CallbackQueryId}", callbackQuery.Id);
-        var splitData = callbackQuery?.Data?.Split(':');
-        if (splitData == null || splitData.Length < 2)
+        var dataSet = callbackQuery?.Data?.Split(':');
+        if (dataSet == null || dataSet.Length < 2)
         {
             return;
         }
-        string originalMessageType = splitData[0];
-        string data = splitData[1];
+        var originalMessageType = dataSet[0];
+        var data = string.Join(":", dataSet.Skip(1));
         if (originalMessageType == BotCommand.Model)
         {
             var (isSuckes, errorMessage) = await _messageProcessor.SelectGPTModel(data, callbackQuery.From.Id);
             if (!isSuckes)
             {
+                var errorText = _localizer["ModelSelectionError", data, errorMessage ?? string.Empty];
                 await _botClient.AnswerCallbackQuery(
                     callbackQueryId: callbackQuery.Id,
-                    text: $"Не удалось выбрать модель: {data}. {errorMessage}",
+                    text: errorText,
                     cancellationToken: cancellationToken);
 
                 await _botClient.SendMessage(
                     chatId: callbackQuery.Message!.Chat.Id,
-                    text: $"Не удалось выбрать: {data}. {errorMessage}",
+                    text: errorText,
                     cancellationToken: cancellationToken);
                 return;
             }
             await _botClient.AnswerCallbackQuery(
                 callbackQueryId: callbackQuery.Id,
-                text: $"Выбрана модель: {data}",
+                text: _localizer["ModelSelected", data],
                 cancellationToken: cancellationToken);
 
             await _botClient.SendMessage(
                 chatId: callbackQuery.Message!.Chat.Id,
-                text: $"Выбрана модель: {data}",
+                text: _localizer["ModelSelected", data],
                 cancellationToken: cancellationToken);
             return;
         }
@@ -600,15 +764,13 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 
                 string strategyName = strategy switch
                 {
-                    ChatStrategy.Auto => "🔄 Автоматическая ротация",
+                    ChatStrategy.Auto => _localizer["AutoRotation"],
                     ChatStrategy.OpenAI => AiProvider.OpenAI.DisplayName,
                     ChatStrategy.Gemini => AiProvider.Gemini.DisplayName,
                     _ => strategy.ToString()
                 };
 
-                string responseText = strategy == ChatStrategy.Auto 
-                    ? $"Установлена стратегия: {strategyName}." 
-                    : $"Установлена стратегия: 🎯 Только {strategyName}.";
+                string responseText = _localizer["ProviderSelected", strategyName];
 
                 await _botClient.AnswerCallbackQuery(
                     callbackQueryId: callbackQuery.Id,
@@ -619,6 +781,82 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     chatId: callbackQuery.Message!.Chat.Id,
                     text: responseText,
                     cancellationToken: cancellationToken);
+            }
+            return;
+        }
+        if (originalMessageType == BotCommand.Lang)
+        {
+            if (data == "cancel")
+            {
+                await _botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
+                await _botClient.DeleteMessage(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, cancellationToken);
+                return;
+            }
+
+            if (data == "prompt")
+            {
+                await _botClient.AnswerCallbackQuery(callbackQuery.Id, cancellationToken: cancellationToken);
+                await _botClient.SendMessage(
+                    chatId: callbackQuery.Message!.Chat.Id,
+                    text: _localizer["EnterLanguagePrompt"],
+                    replyMarkup: new ForceReplyMarkup { Selective = true },
+                    cancellationToken: cancellationToken);
+                return;
+            }
+
+            string langCode = data;
+            if (data.StartsWith("confirm:"))
+            {
+                langCode = data.Replace("confirm:", string.Empty);
+                // Here we could add a billing record for "Language Setup" if we wanted, 
+                // but for now we'll just set the language and the localizer will bill for subsequent translations.
+            }
+
+            var dbUser = await _telegramUserInfoRepository.Get(p => p.Id == callbackQuery.From.Id);
+            if (dbUser != null)
+            {
+                dbUser.LanguageCode = langCode;
+                _telegramUserInfoRepository.Update(dbUser);
+                await _telegramUserInfoRepository.SaveChanges();
+            }
+
+            // Update current culture for the immediate response
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo(langCode);
+            }
+            catch
+            {
+                CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo(LanguageCode.English);
+            }
+
+            string nativeName = langCode;
+
+            var oldCulture = CultureInfo.CurrentUICulture;
+            string englishText;
+            try {
+                CultureInfo.CurrentUICulture = new CultureInfo(LanguageCode.English);
+                englishText = _localizer["LanguageChanged", nativeName];
+            } finally {
+                CultureInfo.CurrentUICulture = oldCulture;
+            }
+            
+            var translatedText = _localizer["LanguageChanged", nativeName];
+            var confirmation = (langCode == LanguageCode.English) ? translatedText : $"{englishText} {translatedText}";
+
+            await _botClient.AnswerCallbackQuery(
+                callbackQueryId: callbackQuery.Id,
+                text: confirmation,
+                cancellationToken: cancellationToken);
+
+            await _botClient.SendMessage(
+                chatId: callbackQuery.Message!.Chat.Id,
+                text: confirmation,
+                cancellationToken: cancellationToken);
+            
+            if (data.StartsWith("confirm:"))
+            {
+                await _botClient.DeleteMessage(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId, cancellationToken);
             }
             return;
         }
@@ -638,7 +876,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 .Where(p => p.CreationDate >= startData && p.CreationDate < endData)
                 .GroupBy(p => new { p.TelegramUserInfoId, p.TelegramChatInfoId, p.ModelName });
             var sb = new StringBuilder();
-            sb.AppendLine("[UserName]([ChatName]) '[ModelName]': [PromptTokens] / [CompletionTokens] / [TotalTokens] / $[Cost]");
+            sb.AppendLine(_localizer["BillingHeader"]);
             foreach (var b in bilingByUsers)
             {
                 var f = b.First();
@@ -770,7 +1008,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             string errorMessage = ex is AggregateException agg ? agg.Flatten().Message : ex.Message;
             await _botClient.SendMessage(
                 chatId: chatId,
-                text: "Произошла ошибка при обработке запроса: " + errorMessage,
+                text: _localizer["ErrorOccurred", errorMessage],
                 cancellationToken: cancellationToken);
                 
             throw; 

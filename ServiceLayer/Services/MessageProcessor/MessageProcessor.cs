@@ -8,6 +8,7 @@ using ServiceLayer.Services.GptChat;
 using ServiceLayer.Utils;
 
 using ServiceLayer.Services.Telegram.Configuretions;
+using System.Globalization;
 using System.Text;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
@@ -19,6 +20,7 @@ namespace ServiceLayer.Services.MessageProcessor;
 public class MessageProcessor : BaseService
 {
     private readonly IRepository<HistoryMessage> _historyMessageRepository;
+    private readonly IRepository<TelegramUserInfo> _telegramUserInfoRepository;
     private readonly IChatService _chatService;
     private readonly ITelegramBotClient _telegramBotClient;
     private readonly string[] drawWords = new[]
@@ -29,12 +31,13 @@ public class MessageProcessor : BaseService
 
     public MessageProcessor(IServiceProvider serviceProvider, ILogger<MessageProcessor> logger,
         IRepository<HistoryMessage> historyMessageRepository, IChatService chatService,
-        ITelegramBotClient telegramBotClient)
+        ITelegramBotClient telegramBotClient, IRepository<TelegramUserInfo> telegramUserInfoRepository)
         : base(serviceProvider, logger)
     {
         _historyMessageRepository = historyMessageRepository;
         _chatService = chatService;
         _telegramBotClient = telegramBotClient;
+        _telegramUserInfoRepository = telegramUserInfoRepository;
         AppSettings? appConfig = _serviceProvider.GetConfiguration<AppSettings>();
         _telegramBotConfiguration = appConfig.TelegramBotConfiguration;
     }
@@ -92,6 +95,15 @@ public class MessageProcessor : BaseService
                     historyMessage.FromUserName));
             }
         }
+
+        // Add system prompt for preferred language
+        var user = await _telegramUserInfoRepository.Get(p => p.Id == fromUserId);
+        var langCode = user?.LanguageCode ?? LanguageCode.English;
+        var culture = new CultureInfo(langCode);
+        var languageName = culture.EnglishName.Split(' ')[0]; // Use English name for AI prompt stability
+        
+        query.Insert(0, new Message(OpenAI.Role.System, $"Please respond to the user in the language: {languageName}."));
+
         string toSendText = string.Empty;
         string responceText = string.Empty;
         string? usedProviderName = null;
@@ -257,9 +269,41 @@ public class MessageProcessor : BaseService
         if (user != null)
         {
             user.PreferredProvider = strategy;
-            userRepository.Update(user);
+        userRepository.Update(user);
             await userRepository.SaveChanges();
         }
+    }
+
+    public async Task<string?> IdentifyLanguage(long chatId, long userId, string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return null;
+        }
+        
+        var normalizedInput = input.Trim().ToLowerInvariant();
+        if (normalizedInput == LanguageCode.UkraineShorthand || normalizedInput == LanguageCode.Ukrainian) return LanguageCode.Ukrainian;
+        if (normalizedInput == LanguageCode.Russian) return LanguageCode.Russian;
+        if (normalizedInput == LanguageCode.English) return LanguageCode.English;
+
+        var prompt = $"Identify the TARGET language being requested or mentioned in this input: '{input}'. " +
+                     $"Return ONLY the BCP-47 language code (e.g., '{LanguageCode.English}', '{LanguageCode.Ukrainian}', 'de', 'fr', 'es', '{LanguageCode.Russian}'). " +
+                     "Do NOT return the language of the input word itself if it's naming a different language (e.g., if input is 'Spanish' or 'Испанский', return 'es'). " +
+                     "Do NOT translate. Just return the 2-letter or standard code. " +
+                     $"If you are not sure, return '{LanguageCode.English}'.";
+        
+        var result = await _chatService.Ask(chatId, userId, prompt);
+        var langCode = result.Trim().ToLowerInvariant();
+        
+        if (langCode == LanguageCode.UkraineShorthand) langCode = LanguageCode.Ukrainian;
+        
+        // Basic validation
+        if (langCode.Length > 10 || langCode.Any(char.IsWhiteSpace))
+        {
+            return LanguageCode.English;
+        }
+
+        return langCode;
     }
 
     private async Task<bool> IsNeedDrawImage(long charId, long userId, string text)

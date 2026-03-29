@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SelectModel" xml:space="preserve">
+    <value>Оберіть модель для відповідей:</value>
+  </data>
+  <data name="SelectBillingDate" xml:space="preserve">
+    <value>Оберіть дату, за яку потрібно відобразити білінг:</value>
+  </data>
+  <data name="SelectProvider" xml:space="preserve">
+    <value>Оберіть стратегію роботи з провайдерами:</value>
+  </data>
+  <data name="SelectProviderHelp" xml:space="preserve">
+    <value>🔄 *Автоматична ротація* — бот самостійно обирає доступний сервіс.\n🎯 *Конкретний провайдер* — бот використовуватиме лише обраний сервіс (без перемикань у разі помилок).</value>
+  </data>
+  <data name="SelectLanguage" xml:space="preserve">
+    <value>Оберіть мову / Select your language:</value>
+  </data>
+  <data name="LanguageChanged" xml:space="preserve">
+    <value>Мову змінено на {0}.</value>
+  </data>
+  <data name="ModelSelected" xml:space="preserve">
+    <value>Обрано модель: {0}</value>
+  </data>
+  <data name="ProviderSelected" xml:space="preserve">
+    <value>Встановлено стратегію: {0}</value>
+  </data>
+  <data name="ErrorOccurred" xml:space="preserve">
+    <value>Виникла помилка під час обробки запиту: {0}</value>
+  </data>
+  <data name="YouSaid" xml:space="preserve">
+    <value>Ви сказали: {0}</value>
+  </data>
+  <data name="HelpText" xml:space="preserve">
+    <value>Доступні команди:\n/billing — статистика використання\n/model — вибір моделі GPT\n/provider — вибір провайдера ШІ\n/draw — згенерувати зображення\n/lang — змінити мову\n/restart — перезавантажити бота</value>
+  </data>
+  <data name="AutoRotation" xml:space="preserve">
+    <value>🔄 Автоматична ротація</value>
+  </data>
+  <data name="BillingHeader" xml:space="preserve">
+    <value>[Користувач]([Чат]) '[Модель]': Пр. / Вик. / Разом / $Вартість</value>
+  </data>
+  <data name="ModelSelectionError" xml:space="preserve">
+    <value>Не вдалося обрати модель {0}. {1}</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Підтвердити</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Скасувати</value>
+  </data>
+  <data name="DynamicLanguageWarning" xml:space="preserve">
+    <value>Мова '{0}' не підтримується нативно. Ми можемо використовувати ШІ для перекладу інтерфейсу на '{1}'. Це буде витрачати ваші токени для кожного повідомлення. Бажаєте продовжити?</value>
+  </data>
+  <data name="OtherLanguage" xml:space="preserve">
+    <value>Інша мова (переклад)</value>
+  </data>
+  <data name="EnterLanguagePrompt" xml:space="preserve">
+    <value>Введіть назву мови (наприклад, іспанська):</value>
+  </data>
+</root>

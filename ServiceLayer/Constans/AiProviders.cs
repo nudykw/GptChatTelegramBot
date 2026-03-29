@@ -22,9 +22,9 @@ public sealed class AiProvider : StaticStringEnumBase<AiProvider>, IStaticString
     /// </summary>
     public string? DefaultDrawingModel { get; }
 
-    public static readonly AiProvider OpenAI = new("openai", "OpenAI (GPT-4o, GPT-3.5)", AiModel.DallE3);
-    public static readonly AiProvider Gemini = new("gemini", "Google Gemini (1.5 Pro/Flash)", AiModel.Imagen3);
-    public static readonly AiProvider DeepSeek = new("deepseek", "DeepSeek (V3, R1)");
+    public static readonly AiProvider OpenAI = new("openai", "OpenAI", AiModel.DallE3);
+    public static readonly AiProvider Gemini = new("gemini", "Google Gemini", AiModel.Imagen3);
+    public static readonly AiProvider DeepSeek = new("deepseek", "DeepSeek");
     public static readonly AiProvider Grok = new("grok", "xAI Grok");
 
     /// <summary>

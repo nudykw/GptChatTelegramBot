@@ -20,6 +20,7 @@ This repository follows a structured documentation approach. Always refer to the
 4. **Communication Language**: Always communicate with the user in Russian. If no localized version exists, keep guidelines, rules, and documentation in English.
 5. **Use Constants for Recurring Strings**: If a string literal is used more than once in the codebase, it MUST be extracted into a constant (preferably in `ServiceLayer.Constants` or as a `StaticEnumBase` member).
 6. **Use Type-Safe Enums for Entity Values**: For entities having multiple predefined values, use either standard C# `enum` or the `IStaticStringEnum` pattern (via `StaticStringEnumBase`) to ensure type safety and discoverability.
+7. **Set Explicit Minimal String Lengths for Database Entities**: All string fields in database models (e.g., in `DataBaseLayer/Models/`) MUST have an explicit, minimal yet sufficient size defined using `[MaxLength(N)]` or `[StringLength(N)]`. If the required size is ambiguous or expected values are unknown, you MUST ask the user for clarification.
 
 ### How to use these files:
 1. **Analyze project structure** before making changes to solution layout or dependencies.
