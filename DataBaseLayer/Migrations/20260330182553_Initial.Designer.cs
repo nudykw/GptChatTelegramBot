@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataBaseLayer.Migrations
 {
     [DbContext(typeof(SqlLiteContext))]
-    [Migration("20260328203319_UpdatePreferredProviderToEnum")]
-    partial class UpdatePreferredProviderToEnum
+    [Migration("20260330182553_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -20,7 +20,7 @@ namespace DataBaseLayer.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
 
-            modelBuilder.Entity("DataBaseLayer.Models.GptBilingItem", b =>
+            modelBuilder.Entity("DataBaseLayer.Models.AIBilingItem", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -65,7 +65,68 @@ namespace DataBaseLayer.Migrations
 
                     b.HasIndex("TelegramUserInfoId");
 
-                    b.ToTable("GptBilingItem");
+                    b.ToTable("AIBilingItem");
+                });
+
+            modelBuilder.Entity("DataBaseLayer.Models.BalanceHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("ModifiedById")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BalanceHistories");
+                });
+
+            modelBuilder.Entity("DataBaseLayer.Models.CachedTranslation", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OriginalText")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ResourceKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TranslatedText")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CachedTranslations");
                 });
 
             modelBuilder.Entity("DataBaseLayer.Models.HistoryMessage", b =>
@@ -142,6 +203,12 @@ namespace DataBaseLayer.Migrations
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
 
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("BalanceModifiedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -153,12 +220,23 @@ namespace DataBaseLayer.Migrations
                     b.Property<bool?>("IsPremium")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastAiInteraction")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("LastName")
                         .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("PreferredProvider")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("SelectedModel")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Username")
                         .HasMaxLength(128)
@@ -169,7 +247,7 @@ namespace DataBaseLayer.Migrations
                     b.ToTable("TelegramUserInfos");
                 });
 
-            modelBuilder.Entity("DataBaseLayer.Models.GptBilingItem", b =>
+            modelBuilder.Entity("DataBaseLayer.Models.AIBilingItem", b =>
                 {
                     b.HasOne("DataBaseLayer.Models.TelegramChatInfo", "TelegramChatInfo")
                         .WithMany()
