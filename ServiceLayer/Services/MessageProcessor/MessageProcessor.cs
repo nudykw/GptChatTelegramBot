@@ -15,7 +15,6 @@ using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using Message = OpenAI.Chat.Message;
 
 namespace ServiceLayer.Services.MessageProcessor;
 public class MessageProcessor : BaseService
@@ -91,9 +90,9 @@ public class MessageProcessor : BaseService
         var culture = new CultureInfo(langCode);
         var languageName = culture.EnglishName.Split(' ')[0]; // Use English name for AI prompt stability
 
-        var query = new List<Message>()
+        var query = new List<AiMessage>()
         {
-            new Message((OpenAI.Role)historyMessage.RoleId, $"{message} (Respond in {languageName})", fromUserId.ToString())
+            new AiMessage((OpenAI.Role)historyMessage.RoleId, $"{message} (Respond in {languageName})", fromUserId.ToString())
         };
         while (historyMessage != null && historyMessage.ParentMessageId != null)
         {
@@ -101,7 +100,7 @@ public class MessageProcessor : BaseService
             && p.MessageId == historyMessage.ParentMessageId);
             if (historyMessage != null)
             {
-                query.Insert(0, new Message((OpenAI.Role)historyMessage.RoleId, historyMessage.Text,
+                query.Insert(0, new AiMessage((OpenAI.Role)historyMessage.RoleId, historyMessage.Text,
                     historyMessage.FromUserName));
             }
         }
@@ -155,7 +154,7 @@ public class MessageProcessor : BaseService
             usedModelName = gptChatResponce.ModelName;
         }
         var chunks = SplitText(toSendText, 4000).ToList();
-        global::Telegram.Bot.Types.Message telegramResponce = null;
+        TgMessage telegramResponce = null;
         
         foreach (var chunk in chunks)
         {
@@ -224,7 +223,7 @@ public class MessageProcessor : BaseService
         }
     }
 
-    public async Task<global::Telegram.Bot.Types.Message> ProcessDrawCommand(long chatId, long messageId, long fromUserId, string prompt, CancellationToken cancellationToken)
+    public async Task<TgMessage> ProcessDrawCommand(long chatId, long messageId, long fromUserId, string prompt, CancellationToken cancellationToken)
     {
         var toSendText = await InternalProcessDrawImage(chatId, fromUserId, prompt);
         var telegramResponce = await _telegramBotClient.SendMessage(
@@ -277,7 +276,7 @@ public class MessageProcessor : BaseService
         return result;
     }
 
-    internal async Task<global::Telegram.Bot.Types.Message> ProcessImage(long chatId, int messageId, int? replyToMessagemessageId,
+    internal async Task<TgMessage> ProcessImage(long chatId, int messageId, int? replyToMessagemessageId,
         long userId, string? messageText, string filePath, CancellationToken cancellationToken)
     {
         var gptImageResponce = await _chatService.CreateImageEditAsync(chatId, userId, filePath, messageText);

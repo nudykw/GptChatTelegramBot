@@ -11,7 +11,10 @@ using ServiceLayer.Services.MessageProcessor;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
 using ServiceLayer.Constans;
+using ServiceLayer.Constans;
 using Moq;
+using ServiceLayer.Services.Localization;
+using ServiceLayer.Utils;
 
 namespace ServiceLayer.IntegrationTests.Fixtures;
 
@@ -62,6 +65,10 @@ public class TestAppFixture : IDisposable
                 ModelName = AiModel.Gpt4oMini
             };
         services.AddSingleton(openAiConfig);
+
+        services.AddLocalization();
+        services.AddScoped<IUserContext, UserContext>();
+        services.AddScoped<IDynamicLocalizer, DynamicLocalizer>();
 
         // Add actual service we are testing
         services.AddSingleton<ChatGptService>();

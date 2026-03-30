@@ -102,7 +102,7 @@ public class ResilientChatService : IChatService
     public Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null, bool validateModels = true)
         => ExecuteWithFallback(s => s.GetAvailibleModels(userId, validateModels), nameof(GetAvailibleModels), userId);
 
-    public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages, string? model = null)
+    public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<AiMessage> messages, string? model = null)
     {
         var selectedModel = model;
         if (string.IsNullOrEmpty(selectedModel))

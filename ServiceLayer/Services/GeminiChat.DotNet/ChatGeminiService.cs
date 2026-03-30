@@ -135,7 +135,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             return result;
         }
 
-        public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages, string? model = null)
+        public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<AiMessage> messages, string? model = null)
         {
             var modelName = model ?? GetModelName();
             

@@ -8,7 +8,7 @@ namespace ServiceLayer.Services
     {
         Task<string> Ask(long chatId, long userId, string message);
         Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null, bool validateModels = true);
-        Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages, string? model = null);
+        Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<AiMessage> messages, string? model = null);
         Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt);
         Task<string> AudioTranscription(long chatId, long telegramUserId, Stream audio, string audioName, 
             string model = null, string prompt = null, AudioResponseFormat responseFormat = AudioResponseFormat.Json, 

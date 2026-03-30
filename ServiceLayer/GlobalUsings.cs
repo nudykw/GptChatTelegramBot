@@ -1,3 +1,12 @@
+global using TgMessage = Telegram.Bot.Types.Message;
+global using TgUser = Telegram.Bot.Types.User;
+global using AiMessage = OpenAI.Chat.Message;
+global using TgKeyboardRow = System.Collections.Generic.List<Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton>;
+global using TgKeyboardGrid = System.Collections.Generic.List<System.Collections.Generic.List<Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton>>;
+global using TgUserRepo = DataBaseLayer.Repositories.IRepository<DataBaseLayer.Models.TelegramUserInfo>;
+global using TgChatRepo = DataBaseLayer.Repositories.IRepository<DataBaseLayer.Models.TelegramChatInfo>;
+global using BillingRepo = DataBaseLayer.Repositories.IRepository<DataBaseLayer.Models.GptBilingItem>;
+
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("ServiceLayer.UnitTests")]

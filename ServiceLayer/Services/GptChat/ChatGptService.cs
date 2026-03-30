@@ -128,7 +128,7 @@ internal class ChatGptService : BaseService, IChatService
             {
                 try
                 {
-                    ChatRequest chatRequest = new ChatRequest(new[] { new Message(Role.User, "Hi") }
+                    ChatRequest chatRequest = new ChatRequest(new[] { new AiMessage(Role.User, "Hi") }
                     , model: model.Id
                     );
                     ChatResponse teatResult = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
@@ -149,9 +149,9 @@ internal class ChatGptService : BaseService, IChatService
     }
     public async Task<string> Ask(long chatId, long userId, string message)
     {
-        var chatServiceResponce = await SendMessages2ChatAsync(chatId, userId, new List<Message>()
+        var chatServiceResponce = await SendMessages2ChatAsync(chatId, userId, new List<AiMessage>()
         {
-            new Message(Role.User, message)
+            new AiMessage(Role.User, message)
         });
         _logger.LogInformation("Usage for ask '{0}: {1}", message,
             chatServiceResponce.TotalTokens);
@@ -162,7 +162,7 @@ internal class ChatGptService : BaseService, IChatService
         }
         return sb.ToString();
     }
-    public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<Message> messages, string? model = null)
+    public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<AiMessage> messages, string? model = null)
     {
         var modelName = model;
         if (string.IsNullOrEmpty(modelName))
@@ -375,7 +375,7 @@ internal class ChatGptService : BaseService, IChatService
         if (string.IsNullOrEmpty(modelName)) return (false, _localizer["EmptyModelName"]);
         try
         {
-            ChatRequest chatRequest = new ChatRequest(new[] { new Message(Role.User, "Hi") }, model:
+            ChatRequest chatRequest = new ChatRequest(new[] { new AiMessage(Role.User, "Hi") }, model:
             modelName
             );
             ChatResponse result = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);

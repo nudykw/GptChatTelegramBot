@@ -30,7 +30,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 {
 
     private readonly ITelegramBotClient _botClient;
-    private static User? _botInfo;
+    private static TgUser? _botInfo;
     private static readonly SemaphoreSlim _botInfoSemaphore = new(1, 1);
     private readonly MessageProcessor.MessageProcessor _messageProcessor;
     private readonly AudioTranscriptorService _audioTranscriptorService;
@@ -173,13 +173,13 @@ public class UpdateHandler : BaseService, IUpdateHandler
         }
     }
 
-    private async Task BotOnMessageReceived(Message message, CancellationToken cancellationToken)
+    private async Task BotOnMessageReceived(TgMessage message, CancellationToken cancellationToken)
     {
         _userContext.UserId = message.From.Id;
         _userContext.ChatId = message.Chat.Id;
 
         Chat chat = message.Chat;
-        User? user = message.From;
+        TgUser? user = message.From;
         await TrySaveMessageInfoAsync(chat, user);
 
         _logger.LogInformation("Receive message type: {MessageType}", message.Type);
@@ -279,7 +279,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 _ => ProcessMessage(_botClient, message, cancellationToken)
             }
         };
-        Message sentMessage = await action;
+        TgMessage sentMessage = await action;
         if (sentMessage != null)
         {
             _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.MessageId);
@@ -287,7 +287,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
         // Send inline keyboard 
         // You can process responses in BotOnCallbackQueryReceived handler
-        async Task<Message> SendInlineKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> SendInlineKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             await botClient.SendChatAction(
                 chatId: message.Chat.Id,
@@ -296,8 +296,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
             IReadOnlyList<OpenAI.Models.Model> gptModels = await ActionWithShowTypeng(message.Chat.Id, cancellationToken,
                 _messageProcessor.GetGPTModels(message.From.Id));
 
-            var choises = new List<List<InlineKeyboardButton>>();
-            var choisesRow = new List<InlineKeyboardButton>();
+            var choises = new TgKeyboardGrid();
+            var choisesRow = new TgKeyboardRow();
             int index = 0;
             foreach (OpenAI.Models.Model? model in gptModels.OrderBy(p => p.Id).ToList())
             {
@@ -315,7 +315,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     {
                         choises.Add(choisesRow);
                     }
-                    choisesRow = new List<InlineKeyboardButton>();
+                    choisesRow = new TgKeyboardRow();
                 }
                 choisesRow.Add(choise);
                 index++;
@@ -334,7 +334,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             return result;
 
         }
-        async Task<Message> SendBillingInlineKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> SendBillingInlineKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             await botClient.SendChatAction(
                 chatId: message.Chat.Id,
@@ -345,8 +345,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 .Select(p => string.Concat(p.CreationDate.Year, "-", p.CreationDate.Month))
                 .Distinct()
                 .ToList();
-            var choises = new List<List<InlineKeyboardButton>>();
-            var choisesRow = new List<InlineKeyboardButton>();
+            var choises = new TgKeyboardGrid();
+            var choisesRow = new TgKeyboardRow();
             int index = 0;
             foreach (string date in dates.OrderBy(p => p).ToList())
             {
@@ -358,7 +358,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     {
                         choises.Add(choisesRow);
                     }
-                    choisesRow = new List<InlineKeyboardButton>();
+                    choisesRow = new TgKeyboardRow();
                 }
                 choisesRow.Add(choise);
                 index++;
@@ -369,7 +369,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
 
             InlineKeyboardMarkup replyMarkup = new(choises);
-            Message result = await botClient.SendMessage(
+            TgMessage result = await botClient.SendMessage(
                 chatId: message.Chat.Id,
                 text: _localizer["SelectBillingDate"],
                 replyMarkup: replyMarkup,
@@ -377,7 +377,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             return result;
         }
 
-        async Task<Message> ProcessLanguageCommand(ITelegramBotClient botClient, Message message, string actionText, CancellationToken cancellationToken)
+        async Task<TgMessage> ProcessLanguageCommand(ITelegramBotClient botClient, TgMessage message, string actionText, CancellationToken cancellationToken)
         {
             var messageText = message.Text ?? message.Caption ?? string.Empty;
             var argument = string.IsNullOrEmpty(actionText) 
@@ -447,21 +447,21 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        async Task<Message> SendLanguageInlineKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> SendLanguageInlineKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             await botClient.SendChatAction(
                 chatId: message.Chat.Id,
                 action: ChatAction.Typing,
                 cancellationToken: cancellationToken);
 
-            var choises = new List<List<InlineKeyboardButton>>
+            var choises = new TgKeyboardGrid
             {
-                new List<InlineKeyboardButton>
+                new TgKeyboardRow
                 {
                     InlineKeyboardButton.WithCallbackData("🇬🇧 English", $"{BotCommand.Lang}:{LanguageCode.English}"),
                     InlineKeyboardButton.WithCallbackData("🇺🇦 Українська", $"{BotCommand.Lang}:{LanguageCode.Ukrainian}")
                 },
-                new List<InlineKeyboardButton>
+                new TgKeyboardRow
                 {
                      InlineKeyboardButton.WithCallbackData("🌍 " + _localizer["OtherLanguage"], $"{BotCommand.Lang}:prompt")
                 }
@@ -475,14 +475,14 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        async Task<Message> SendProviderInlineKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> SendProviderInlineKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             await botClient.SendChatAction(
                 chatId: message.Chat.Id,
                 action: ChatAction.Typing,
                 cancellationToken: cancellationToken);
 
-            var choises = new List<List<InlineKeyboardButton>>();
+            var choises = new TgKeyboardGrid();
             
             foreach (ChatStrategy strategy in Enum.GetValues(typeof(ChatStrategy)))
             {
@@ -495,7 +495,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     ChatStrategy.Grok => AiProvider.Grok.DisplayName,
                     _ => strategy.ToString()
                 };
-                choises.Add(new List<InlineKeyboardButton> { InlineKeyboardButton.WithCallbackData(text, $"{BotCommand.Provider}:{(int)strategy}") });
+                choises.Add(new TgKeyboardRow { InlineKeyboardButton.WithCallbackData(text, $"{BotCommand.Provider}:{(int)strategy}") });
             }
 
             InlineKeyboardMarkup replyMarkup = new(choises);
@@ -507,7 +507,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        async Task<Message> SendReplyKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> SendReplyKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             ReplyKeyboardMarkup replyKeyboardMarkup = new(
                 new[]
@@ -526,7 +526,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        async Task<Message> RemoveKeyboard(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> RemoveKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             return await botClient.SendMessage(
                 chatId: message.Chat.Id,
@@ -535,7 +535,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        async Task<Message> SendFile(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> SendFile(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             await botClient.SendChatAction(
                 message.Chat.Id,
@@ -553,7 +553,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        async Task<Message> RequestContactAndLocation(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> RequestContactAndLocation(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             ReplyKeyboardMarkup RequestReplyKeyboard = new(
                 new[]
@@ -569,7 +569,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        async Task<Message> Usage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> Usage(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             var userScopes = await GetUserScopesAsync(message.From, message.Chat);
             var availableCommands = BotCommand.GetAll()
@@ -622,7 +622,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken);
         }
-        async Task<Message> ProcessMessage(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> ProcessMessage(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             string messageText = message.Text;
             if (message.Voice != null)
@@ -704,7 +704,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             */
         }
         async Task<string> VoiceMessageToText(ITelegramBotClient botClient,
-            Message message)
+            TgMessage message)
         {
             if (message.Voice != null)
             {
@@ -723,7 +723,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             }
             return null;
         }
-        async Task<Message> StartInlineQuery(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        async Task<TgMessage> StartInlineQuery(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             InlineKeyboardMarkup inlineKeyboard = new(
                 InlineKeyboardButton.WithSwitchInlineQueryCurrentChat(_localizer["InlineMode"]));
@@ -737,7 +737,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
 #pragma warning disable RCS1163 // Unused parameter.
 #pragma warning disable IDE0060 // Remove unused parameter
-        static Task<Message> FailingHandler(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+        static Task<TgMessage> FailingHandler(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             Environment.Exit(1);
             throw new IndexOutOfRangeException();
@@ -746,7 +746,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 #pragma warning restore RCS1163 // Unused parameter.
     }
 
-    private async Task<Message> ShowUsersBalance(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+    private async Task<TgMessage> ShowUsersBalance(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
     {
         await botClient.SendChatAction(
             chatId: message.Chat.Id,
@@ -778,7 +778,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             cancellationToken: cancellationToken);
     }
 
-    private async Task<Message> SetUserBalance(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
+    private async Task<TgMessage> SetUserBalance(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
     {
         await botClient.SendChatAction(
             chatId: message.Chat.Id,
@@ -858,7 +858,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         return _localizer["TimeAgo_Days", (int)diff.TotalDays];
     }
 
-    private async Task TrySaveMessageInfoAsync(Chat chat, User? user)
+    private async Task TrySaveMessageInfoAsync(Chat chat, TgUser? user)
     {
         TelegramChatInfo? dbChat = await _telegramChatInfoRepository.Get(p => p.Id == chat.Id);
         if (dbChat == null)
@@ -1244,7 +1244,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         }
     }
 
-    private async Task<ServiceLayer.Constans.BotCommandScope> GetUserScopesAsync(User? user, Chat chat)
+    private async Task<ServiceLayer.Constans.BotCommandScope> GetUserScopesAsync(TgUser? user, Chat chat)
     {
         var scope = ServiceLayer.Constans.BotCommandScope.Default;
 
