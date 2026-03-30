@@ -1,4 +1,4 @@
-namespace DataBaseLayer.Models
+namespace DataBaseLayer.Enums
 {
     public enum ChatStrategy
     {

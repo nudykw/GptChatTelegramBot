@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -57,9 +57,9 @@ namespace DataBaseLayer.Migrations.Postgres
                     CreationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ModifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Text = table.Column<string>(type: "text", nullable: false),
-                    FromUserName = table.Column<string>(type: "text", nullable: true),
-                    ProviderName = table.Column<string>(type: "text", nullable: true),
-                    ModelName = table.Column<string>(type: "text", nullable: true)
+                    FromUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    ProviderName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
+                    ModelName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -152,23 +152,12 @@ namespace DataBaseLayer.Migrations.Postgres
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "AIBilingItem");
-
-            migrationBuilder.DropTable(
-                name: "BalanceHistories");
-
-            migrationBuilder.DropTable(
-                name: "CachedTranslations");
-
-            migrationBuilder.DropTable(
-                name: "Messages");
-
-            migrationBuilder.DropTable(
-                name: "TelegramChatInfos");
-
-            migrationBuilder.DropTable(
-                name: "TelegramUserInfos");
+            migrationBuilder.DropTable(name: "AIBilingItem");
+            migrationBuilder.DropTable(name: "BalanceHistories");
+            migrationBuilder.DropTable(name: "CachedTranslations");
+            migrationBuilder.DropTable(name: "Messages");
+            migrationBuilder.DropTable(name: "TelegramChatInfos");
+            migrationBuilder.DropTable(name: "TelegramUserInfos");
         }
     }
 }

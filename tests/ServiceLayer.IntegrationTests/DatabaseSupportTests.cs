@@ -36,11 +36,13 @@ public class DatabaseSupportTests
         Assert.True(canConnect);
     }
 
-    [Fact(Skip = "Requires Testcontainers and significant resources")]
+    [Fact(Skip = "To run this test you need to have Docker installed and running")]
     public async Task Postgres_Migrations_CanBeApplied()
     {
         // Arrange
-        var container = new PostgreSqlBuilder().Build();
+        var container = new PostgreSqlBuilder()
+            .WithImage("postgres:15-alpine")
+            .Build();
         await container.StartAsync();
 
         var services = new ServiceCollection();
@@ -65,11 +67,13 @@ public class DatabaseSupportTests
         }
     }
 
-    [Fact(Skip = "Requires Testcontainers and significant resources")]
+    [Fact(Skip = "To run this test you need to have Docker installed and running")]
     public async Task SqlServer_Migrations_CanBeApplied()
     {
         // Arrange
-        var container = new MsSqlBuilder().Build();
+        var container = new MsSqlBuilder()
+            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+            .Build();
         await container.StartAsync();
 
         var services = new ServiceCollection();
@@ -94,11 +98,13 @@ public class DatabaseSupportTests
         }
     }
 
-    [Fact(Skip = "Requires Testcontainers and significant resources")]
+    [Fact(Skip = "To run this test you need to have Docker installed and running")]
     public async Task MySql_Migrations_CanBeApplied()
     {
         // Arrange
-        var container = new MySqlBuilder().Build();
+        var container = new MySqlBuilder()
+            .WithImage("mysql:8.0")
+            .Build();
         await container.StartAsync();
 
         var services = new ServiceCollection();

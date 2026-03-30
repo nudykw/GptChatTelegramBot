@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataBaseLayer.Migrations.SqlServer
 {
     [DbContext(typeof(StoreContext))]
-    partial class StoreContextModelSnapshot : ModelSnapshot
+    partial class SqlServerStoreContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
@@ -149,10 +149,12 @@ namespace DataBaseLayer.Migrations.SqlServer
                         .HasColumnType("datetime2");
 
                     b.Property<string>("FromUserName")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("ModelName")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
@@ -161,7 +163,8 @@ namespace DataBaseLayer.Migrations.SqlServer
                         .HasColumnType("bigint");
 
                     b.Property<string>("ProviderName")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<int>("RoleId")
                         .HasColumnType("int");

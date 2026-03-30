@@ -102,6 +102,10 @@
 - Створіть новий API ключ.
 - У файлі `appsettings.json` встановіть `ProviderType` на `"OpenAI"` та `BaseUrl` на `https://api.x.ai/v1`.
 
+## 🗄️ База даних та міграції
+
+Проєкт підтримує кілька провайдерів баз даних (SQLite, PostgreSQL, MySQL, SQL Server). Для отримання інформації про те, як керувати міграціями та перемикатися між провайдерами, див. [Документацію з міграцій](docs/MIGRATIONS.md).
+
 ### 6. DeepSeek API Key
 - Перейдіть до [DeepSeek Platform](https://platform.deepseek.com/api_keys).
 - Створіть новий API ключ.

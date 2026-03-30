@@ -1,6 +1,6 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Metadata;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 #nullable disable
 
@@ -68,11 +68,11 @@ namespace DataBaseLayer.Migrations.MySql
                     ModifiedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Text = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    FromUserName = table.Column<string>(type: "longtext", nullable: true)
+                    FromUserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ProviderName = table.Column<string>(type: "longtext", nullable: true)
+                    ProviderName = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ModelName = table.Column<string>(type: "longtext", nullable: true)
+                    ModelName = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -182,23 +182,12 @@ namespace DataBaseLayer.Migrations.MySql
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "AIBilingItem");
-
-            migrationBuilder.DropTable(
-                name: "BalanceHistories");
-
-            migrationBuilder.DropTable(
-                name: "CachedTranslations");
-
-            migrationBuilder.DropTable(
-                name: "Messages");
-
-            migrationBuilder.DropTable(
-                name: "TelegramChatInfos");
-
-            migrationBuilder.DropTable(
-                name: "TelegramUserInfos");
+            migrationBuilder.DropTable(name: "AIBilingItem");
+            migrationBuilder.DropTable(name: "BalanceHistories");
+            migrationBuilder.DropTable(name: "CachedTranslations");
+            migrationBuilder.DropTable(name: "Messages");
+            migrationBuilder.DropTable(name: "TelegramChatInfos");
+            migrationBuilder.DropTable(name: "TelegramUserInfos");
         }
     }
 }

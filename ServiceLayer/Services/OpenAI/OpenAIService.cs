@@ -26,7 +26,7 @@ internal class OpenAIService : BaseService, IChatService
     private class OpenAIModelCache
     {
         internal DateTime? LastUpdates { get; set; }
-        internal IReadOnlyList<Model> Models { get; set; }
+        internal required IReadOnlyList<Model> Models { get; set; }
     }
     private const int defTokens = 1000;
     internal static readonly ConcurrentDictionary<string, AIModelCost> _liveModelsCosts = new();

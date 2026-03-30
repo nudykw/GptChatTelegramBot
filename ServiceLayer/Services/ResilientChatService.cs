@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using DataBaseLayer.Enums;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using ServiceLayer.Constans;

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using ServiceLayer.Services;
 using ServiceLayer.Constans;
 using ServiceLayer.Services.Localization;
+using DataBaseLayer.Enums;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using OpenAI.Models;

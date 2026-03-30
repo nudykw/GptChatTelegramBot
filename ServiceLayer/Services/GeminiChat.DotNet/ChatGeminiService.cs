@@ -31,7 +31,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         private class GeminiModelCache
         {
             internal DateTime? LastUpdates { get; set; }
-            internal IReadOnlyList<OpenAIModel> Models { get; set; }
+            internal required IReadOnlyList<OpenAIModel> Models { get; set; }
         }
         private GeminiModelCache? _geminiModelCache = null;
 

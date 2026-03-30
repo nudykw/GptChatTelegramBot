@@ -23,8 +23,8 @@ namespace DataBaseLayer.Models
         public int? TotalTokens { get; set; }
         public decimal? Cost { get; set; }
 
-        public TelegramChatInfo TelegramChatInfo { get; set; }
-        public TelegramUserInfo TelegramUserInfo { get; set; }
+        public TelegramChatInfo TelegramChatInfo { get; set; } = default!;
+        public TelegramUserInfo TelegramUserInfo { get; set; } = default!;
 
     }
 }
