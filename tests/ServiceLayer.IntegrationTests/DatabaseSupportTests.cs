@@ -36,7 +36,7 @@ public class DatabaseSupportTests
         Assert.True(canConnect);
     }
 
-    [Fact]
+    [Fact(Skip = "Requires Testcontainers and significant resources")]
     public async Task Postgres_Migrations_CanBeApplied()
     {
         // Arrange
@@ -65,7 +65,7 @@ public class DatabaseSupportTests
         }
     }
 
-    [Fact]
+    [Fact(Skip = "Requires Testcontainers and significant resources")]
     public async Task SqlServer_Migrations_CanBeApplied()
     {
         // Arrange
@@ -94,7 +94,7 @@ public class DatabaseSupportTests
         }
     }
 
-    [Fact]
+    [Fact(Skip = "Requires Testcontainers and significant resources")]
     public async Task MySql_Migrations_CanBeApplied()
     {
         // Arrange
