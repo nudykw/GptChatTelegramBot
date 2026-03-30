@@ -10,7 +10,8 @@ using OpenAI.Chat;
 using OpenAI.Images;
 using OpenAI.Models;
 
-using ServiceLayer.Services.GptChat.Models;
+using ServiceLayer.Models;
+using ServiceLayer.Services.OpenAI.Models;
 using System.Text;
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -18,56 +19,56 @@ using System.Net.Http;
 using ServiceLayer.Utils;
 using System.Diagnostics;
 
-namespace ServiceLayer.Services.GptChat;
+namespace ServiceLayer.Services.OpenAI;
 
-internal class ChatGptService : BaseService, IChatService
+internal class OpenAIService : BaseService, IChatService
 {
-    private class GptModelCache
+    private class OpenAIModelCache
     {
         internal DateTime? LastUpdates { get; set; }
         internal IReadOnlyList<Model> Models { get; set; }
     }
     private const int defTokens = 1000;
-    internal static readonly ConcurrentDictionary<string, GptModelCost> _liveModelsCosts = new();
+    internal static readonly ConcurrentDictionary<string, AIModelCost> _liveModelsCosts = new();
     internal static DateTime _lastPriceUpdate = DateTime.MinValue;
     internal static readonly object _priceLock = new();
 
-    private static Dictionary<string, GptModelCost> gptModelsCosts = new Dictionary<string, GptModelCost>()
+    private static Dictionary<string, AIModelCost> aiModelsCosts = new Dictionary<string, AIModelCost>()
     {
-        {"gpt-4-1106-preview",  new GptModelCost(defTokens, 0.01M, 0.03M)},
-        {"gpt-4-1106-vision-preview",  new GptModelCost(defTokens, 0.01M, 0.03M)},
-        {"gpt-4",  new GptModelCost(defTokens, 0.03M, 0.06M)},
-        {"gpt-4-32k",  new GptModelCost(defTokens, 0.06M, 0.12M)},
-        {"gpt-3.5-turbo-1106",  new GptModelCost(defTokens, 0.001M, 0.002M)},
-        {"gpt-3.5-turbo-instruct",  new GptModelCost(defTokens, 0.0015M, 0.002M)},
-        {AiModel.Gpt4oMini,  new GptModelCost(defTokens, 0.00015M, 0.0006M)},
-        {AiModel.Gpt4o,  new GptModelCost(defTokens, 0.005M, 0.015M)},
-        {AiModel.DeepSeekChat, new GptModelCost(defTokens, 0.00007M, 0.0011M)},
-        {AiModel.GrokBeta, new GptModelCost(defTokens, 0.005M, 0.015M)},
+        {"gpt-4-1106-preview",  new AIModelCost(defTokens, 0.01M, 0.03M)},
+        {"gpt-4-1106-vision-preview",  new AIModelCost(defTokens, 0.01M, 0.03M)},
+        {"gpt-4",  new AIModelCost(defTokens, 0.03M, 0.06M)},
+        {"gpt-4-32k",  new AIModelCost(defTokens, 0.06M, 0.12M)},
+        {"gpt-3.5-turbo-1106",  new AIModelCost(defTokens, 0.001M, 0.002M)},
+        {"gpt-3.5-turbo-instruct",  new AIModelCost(defTokens, 0.0015M, 0.002M)},
+        {AiModel.Gpt4oMini,  new AIModelCost(defTokens, 0.00015M, 0.0006M)},
+        {AiModel.Gpt4o,  new AIModelCost(defTokens, 0.005M, 0.015M)},
+        {AiModel.DeepSeekChat, new AIModelCost(defTokens, 0.00007M, 0.0011M)},
+        {AiModel.GrokBeta, new AIModelCost(defTokens, 0.005M, 0.015M)},
 
-        {"Code interpreter",  new GptModelCost(1, 0.03M, 0.0M)},
-        {"Retrieval",  new GptModelCost(1, 0.2M, 0.0M)},
+        {"Code interpreter",  new AIModelCost(1, 0.03M, 0.0M)},
+        {"Retrieval",  new AIModelCost(1, 0.2M, 0.0M)},
 
-        {Model.GPT3_5_Turbo,  new GptModelCost(defTokens, 0.003M, 0.006M)},
-        {Model.Davinci,  new GptModelCost(defTokens, 0.012M, 0.012M)},
-        {Model.Babbage,  new GptModelCost(defTokens, 0.0016M, 0.0016M)},
+        {Model.GPT3_5_Turbo,  new AIModelCost(defTokens, 0.003M, 0.006M)},
+        {Model.Davinci,  new AIModelCost(defTokens, 0.012M, 0.012M)},
+        {Model.Babbage,  new AIModelCost(defTokens, 0.0016M, 0.0016M)},
 
-        {Model.DallE_3,  new GptModelCost(1, 0.0M, 0.04M)},
-        {Model.DallE_2,  new GptModelCost(1, 0.0M, 0.02M)},
+        {Model.DallE_3,  new AIModelCost(1, 0.0M, 0.04M)},
+        {Model.DallE_2,  new AIModelCost(1, 0.0M, 0.02M)},
 
-        {Model.Whisper1,  new GptModelCost(1, 0.0M, 0.006M)},
-        {Model.TTS_1,  new GptModelCost(1, 0.0M, 0.015M)},
-        {Model.TTS_1HD,  new GptModelCost(1, 0.0M, 0.03M)},
+        {Model.Whisper1,  new AIModelCost(1, 0.0M, 0.006M)},
+        {Model.TTS_1,  new AIModelCost(1, 0.0M, 0.015M)},
+        {Model.TTS_1HD,  new AIModelCost(1, 0.0M, 0.03M)},
     };
 
     private readonly OpenAIClient _api;
     private readonly ChatProviderConfig _chatProviderConfiguration;
-    private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
+    private readonly IRepository<AIBilingItem>? _aiBilingItemRepository;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDynamicLocalizer _localizer;
-    private GptModelCache? gptModelCache = null;
+    private OpenAIModelCache? openAiModelCache = null;
 
-    public ChatGptService(IServiceProvider serviceProvider, ILogger<ChatGptService> logger,
+    public OpenAIService(IServiceProvider serviceProvider, ILogger<OpenAIService> logger,
         ChatProviderConfig chatProviderConfig, IHttpClientFactory httpClientFactory, 
         IDynamicLocalizer localizer, OpenAIClient? openAiClient = null)
         : base(serviceProvider, logger)
@@ -95,7 +96,7 @@ internal class ChatGptService : BaseService, IChatService
             httpClient.Timeout = TimeSpan.FromMinutes(_chatProviderConfiguration.TimeoutMinutes);
             _api = new OpenAIClient(auth, settings, httpClient);
         }
-        _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
+        _aiBilingItemRepository = _serviceProvider.GetService<IRepository<AIBilingItem>>();
         _httpClientFactory = httpClientFactory;
         _localizer = localizer;
         
@@ -106,9 +107,9 @@ internal class ChatGptService : BaseService, IChatService
     {
         IReadOnlyList<Model> modelsResponce = await _api.ModelsEndpoint.GetModelsAsync();
         var result = new List<Model>();
-        if (gptModelCache != null && (DateTime.UtcNow - gptModelCache.LastUpdates.Value).Hours < 6)
+        if (openAiModelCache != null && (DateTime.UtcNow - openAiModelCache.LastUpdates.Value).Hours < 6)
         {
-            return gptModelCache.Models;
+            return openAiModelCache.Models;
         }
         foreach (Model model in modelsResponce)
         {
@@ -119,7 +120,7 @@ internal class ChatGptService : BaseService, IChatService
                 !modelId.StartsWith("o3-") &&
                 !modelId.StartsWith("deepseek-") &&
                 !modelId.StartsWith("grok-") &&
-                !gptModelsCosts.ContainsKey(model.Id))
+                !aiModelsCosts.ContainsKey(model.Id))
             {
                 continue;
             }
@@ -140,7 +141,7 @@ internal class ChatGptService : BaseService, IChatService
             }
             result.Add(model);
         }
-        gptModelCache = new GptModelCache
+        openAiModelCache = new OpenAIModelCache
         {
             LastUpdates = DateTime.UtcNow,
             Models = result
@@ -206,23 +207,23 @@ internal class ChatGptService : BaseService, IChatService
         };
     }
 
-    private async Task<decimal?> SaveBilling(string modelName, string providerName, long telegramChatId, long telegramUserId, GptUsage usage)
+    private async Task<decimal?> SaveBilling(string modelName, string providerName, long telegramChatId, long telegramUserId, AIUsage usage)
     {
         if ((DateTime.UtcNow - _lastPriceUpdate).TotalHours > 24)
         {
             _ = RefreshModelPricesAsync();
         }
 
-        if (!_liveModelsCosts.TryGetValue(modelName, out GptModelCost? modelCost))
+        if (!_liveModelsCosts.TryGetValue(modelName, out AIModelCost? modelCost))
         {
-            gptModelsCosts.TryGetValue(modelName, out modelCost);
+            aiModelsCosts.TryGetValue(modelName, out modelCost);
         }
 
         decimal? cost = modelCost == null
             ? 0M
             : ((usage.PromptTokens * modelCost.Input) + (usage.CompletionTokens * modelCost.Output)) / modelCost.PerTokens;
         
-        var dbGptBilingItem = new GptBilingItem
+        var dbAIBilingItem = new AIBilingItem
         {
             CreationDate = DateTime.UtcNow,
             ModelName = modelName,
@@ -235,8 +236,8 @@ internal class ChatGptService : BaseService, IChatService
             Cost = cost,
             ProviderName = providerName
         };
-        _gptBilingItemRepository.Add(dbGptBilingItem);
-        await _gptBilingItemRepository.SaveChanges();
+        _aiBilingItemRepository.Add(dbAIBilingItem);
+        await _aiBilingItemRepository.SaveChanges();
 
         // Update user balance
         var userRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
@@ -287,7 +288,7 @@ internal class ChatGptService : BaseService, IChatService
         _logger.LogInformation("Use model: {0} for generate image", request.Model);
         var results = imageResults.Select(p => p.Url).ToList();
         
-        var usage = new GptUsage(0, 1, 1);
+        var usage = new AIUsage(0, 1, 1);
         decimal? cost = await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, usage);
 
         return new ChatServiceResponse
@@ -325,7 +326,7 @@ internal class ChatGptService : BaseService, IChatService
         {
             throw AiErrorHelper.HandleAndGetException(_logger, ex, _chatProviderConfiguration.Name, nameof(AudioTranscription));
         }
-        await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, new GptUsage(0, 1, 1));
+        await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, new AIUsage(0, 1, 1));
         return result;
     }
 
@@ -353,7 +354,7 @@ internal class ChatGptService : BaseService, IChatService
         sw.Stop();
         var results = imagesResults.Select(p => p.Url).ToList();
         
-        var usage = new GptUsage(0, 1, 1);
+        var usage = new AIUsage(0, 1, 1);
         decimal? cost = await SaveBilling(modelName, _chatProviderConfiguration.Name, chatId, telegramUserId, usage);
 
         return new ChatServiceResponse
@@ -427,7 +428,7 @@ internal class ChatGptService : BaseService, IChatService
                         {
                             var inputPrice = (decimal)info.InputCostPerToken.Value * defTokens;
                             var outputPrice = (decimal)info.OutputCostPerToken.Value * defTokens;
-                            _liveModelsCosts[modelId] = new GptModelCost(defTokens, inputPrice, outputPrice);
+                            _liveModelsCosts[modelId] = new AIModelCost(defTokens, inputPrice, outputPrice);
                         }
                     }
                     _logger.LogInformation("Successfully updated {0} OpenAI model prices from LiteLLM", _liveModelsCosts.Count);

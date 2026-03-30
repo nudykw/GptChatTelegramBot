@@ -5,32 +5,32 @@ using OpenAI;
 using OpenAI.Audio;
 using OpenAI.Chat;
 using ServiceLayer.IntegrationTests.Fixtures;
-using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.OpenAI;
 using System.Text;
 
 using Xunit;
 
-namespace ServiceLayer.IntegrationTests.Services.GptChat;
+namespace ServiceLayer.IntegrationTests.Services.OpenAI;
 
-[Trait("Service", "ChatGptService")]
-public class ChatGptServiceTests : IClassFixture<TestAppFixture>
+[Trait("Service", "OpenAIService")]
+public class OpenAIServiceTests : IClassFixture<TestAppFixture>
 {
-    private readonly ChatGptService _chatGptService;
-    private readonly IRepository<GptBilingItem> _billingRepository;
+    private readonly OpenAIService _openAIService;
+    private readonly IRepository<AIBilingItem> _billingRepository;
     private readonly long _testChatId = 12345;
     private readonly long _testUserId = 67890;
 
-    public ChatGptServiceTests(TestAppFixture fixture)
+    public OpenAIServiceTests(TestAppFixture fixture)
     {
-        _chatGptService = fixture.ServiceProvider.GetRequiredService<ChatGptService>();
-        _billingRepository = fixture.ServiceProvider.GetRequiredService<IRepository<GptBilingItem>>();
+        _openAIService = fixture.ServiceProvider.GetRequiredService<OpenAIService>();
+        _billingRepository = fixture.ServiceProvider.GetRequiredService<IRepository<AIBilingItem>>();
     }
 
     [Fact]
     public async Task GetAvailibleModels_ShouldReturnModelsList()
     {
         // Act
-        var models = await _chatGptService.GetAvailibleModels(validateModels: false);
+        var models = await _openAIService.GetAvailibleModels(validateModels: false);
 
         // Assert
         Assert.NotNull(models);
@@ -44,7 +44,7 @@ public class ChatGptServiceTests : IClassFixture<TestAppFixture>
         var message = "Hello, this is a test message. Please reply with 'OK'.";
 
         // Act
-        var response = await _chatGptService.Ask(_testChatId, _testUserId, message);
+        var response = await _openAIService.Ask(_testChatId, _testUserId, message);
 
         // Assert
         Assert.NotNull(response);
@@ -66,7 +66,7 @@ public class ChatGptServiceTests : IClassFixture<TestAppFixture>
         var messages = new List<Message> { new Message(Role.User, "Say 'Hello User'") };
 
         // Act
-        var response = await _chatGptService.SendMessages2ChatAsync(_testChatId, _testUserId, messages);
+        var response = await _openAIService.SendMessages2ChatAsync(_testChatId, _testUserId, messages);
 
         // Assert
         Assert.NotNull(response);
@@ -88,7 +88,7 @@ public class ChatGptServiceTests : IClassFixture<TestAppFixture>
         var prompt = "A small blue robot dancing in the rain, digital art style.";
 
         // Act
-        var result = await _chatGptService.GenerateImage(_testChatId, _testUserId, prompt);
+        var result = await _openAIService.GenerateImage(_testChatId, _testUserId, prompt);
 
         // Assert
         Assert.NotNull(result);
@@ -109,7 +109,7 @@ public class ChatGptServiceTests : IClassFixture<TestAppFixture>
         var audioName = "test.wav";
 
         // Act
-        var transcription = await _chatGptService.AudioTranscription(_testChatId, _testUserId, audioStream, audioName);
+        var transcription = await _openAIService.AudioTranscription(_testChatId, _testUserId, audioStream, audioName);
 
         // Assert
         Assert.NotNull(transcription);

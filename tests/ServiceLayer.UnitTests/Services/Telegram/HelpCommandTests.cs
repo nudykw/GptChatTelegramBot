@@ -35,7 +35,7 @@ namespace ServiceLayer.UnitTests.Services.Telegram
 
         private readonly Mock<IRepository<TelegramUserInfo>> _userInfoRepoMock = new();
         private readonly Mock<IRepository<TelegramChatInfo>> _chatInfoRepoMock = new();
-        private readonly Mock<IRepository<GptBilingItem>> _billingRepoMock = new();
+        private readonly Mock<IRepository<AIBilingItem>> _aiBilingItemRepoMock = new();
         private readonly Mock<IChatService> _chatServiceMock = new();
 
         public HelpCommandTests()
@@ -59,7 +59,7 @@ namespace ServiceLayer.UnitTests.Services.Telegram
             // Setup ServiceProvider to return mocks
             _serviceProviderMock.Setup(x => x.GetService(typeof(IRepository<TelegramUserInfo>))).Returns(_userInfoRepoMock.Object);
             _serviceProviderMock.Setup(x => x.GetService(typeof(IRepository<TelegramChatInfo>))).Returns(_chatInfoRepoMock.Object);
-            _serviceProviderMock.Setup(x => x.GetService(typeof(IRepository<GptBilingItem>))).Returns(_billingRepoMock.Object);
+            _serviceProviderMock.Setup(x => x.GetService(typeof(IRepository<AIBilingItem>))).Returns(_aiBilingItemRepoMock.Object);
             _serviceProviderMock.Setup(x => x.GetService(typeof(IUserContext))).Returns(_userContextMock.Object);
             _serviceProviderMock.Setup(x => x.GetService(typeof(IDynamicLocalizer))).Returns(_localizerMock.Object);
             _serviceProviderMock.Setup(x => x.GetService(typeof(IChatService))).Returns(_chatServiceMock.Object);

@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
 using OpenAI.Chat;
 using OpenAI.Models;
-using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.OpenAI;
 using ServiceLayer.Services.Telegram.Configuretions;
 using ServiceLayer.Services;
 using DataBaseLayer.Models;
@@ -20,27 +20,27 @@ using System.Reflection;
 using ServiceLayer.Services.Localization;
 using Xunit;
 
-namespace ServiceLayer.UnitTests.Services.GptChat;
+namespace ServiceLayer.UnitTests.Services.OpenAI;
 
-[Trait("Service", "ChatGptService")]
-public class ChatGptServiceTests
+[Trait("Service", "OpenAIService")]
+public class OpenAIServiceTests
 {
     private readonly Mock<IServiceProvider> _mockServiceProvider;
-    private readonly Mock<ILogger<ChatGptService>> _mockLogger;
+    private readonly Mock<ILogger<OpenAIService>> _mockLogger;
     private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
     private readonly Mock<IDynamicLocalizer> _mockLocalizer;
-    private readonly Mock<IRepository<GptBilingItem>> _mockBillingRepository;
+    private readonly Mock<IRepository<AIBilingItem>> _mockBillingRepository;
     private readonly Mock<IRepository<TelegramUserInfo>> _mockUserInfoRepository;
     private readonly Mock<HttpMessageHandler> _mockHandler;
     private readonly AppSettings _appSettings;
 
-    public ChatGptServiceTests()
+    public OpenAIServiceTests()
     {
         _mockServiceProvider = new Mock<IServiceProvider>();
-        _mockLogger = new Mock<ILogger<ChatGptService>>();
+        _mockLogger = new Mock<ILogger<OpenAIService>>();
         _mockHttpClientFactory = new Mock<IHttpClientFactory>();
         _mockLocalizer = new Mock<IDynamicLocalizer>();
-        _mockBillingRepository = new Mock<IRepository<GptBilingItem>>();
+        _mockBillingRepository = new Mock<IRepository<AIBilingItem>>();
         _mockUserInfoRepository = new Mock<IRepository<TelegramUserInfo>>();
         _mockHandler = new Mock<HttpMessageHandler>();
 
@@ -50,7 +50,7 @@ public class ChatGptServiceTests
         };
 
         _mockServiceProvider
-            .Setup(x => x.GetService(typeof(IRepository<GptBilingItem>)))
+            .Setup(x => x.GetService(typeof(IRepository<AIBilingItem>)))
             .Returns(_mockBillingRepository.Object);
 
         _mockServiceProvider
@@ -65,7 +65,7 @@ public class ChatGptServiceTests
         _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
     }
 
-    private ChatGptService CreateService(OpenAIClient? api = null)
+    private OpenAIService CreateService(OpenAIClient? api = null)
     {
         var config = new ChatProviderConfig
         {
@@ -75,7 +75,7 @@ public class ChatGptServiceTests
             ModelName = "gpt-4o-mini"
         };
 
-        return new ChatGptService(
+        return new OpenAIService(
             _mockServiceProvider.Object,
             _mockLogger.Object,
             config,
@@ -122,7 +122,7 @@ public class ChatGptServiceTests
 
         // Assert
         Assert.Contains("Hello world!", result);
-        _mockBillingRepository.Verify(r => r.Add(It.IsAny<GptBilingItem>()), Times.Once);
+        _mockBillingRepository.Verify(r => r.Add(It.IsAny<AIBilingItem>()), Times.Once);
         _mockBillingRepository.Verify(r => r.SaveChanges(), Times.Once);
     }
 
@@ -169,7 +169,7 @@ public class ChatGptServiceTests
         Assert.Equal(30, response.TotalTokens);
         Assert.Equal("OpenAI", response.ProviderName);
 
-        _mockBillingRepository.Verify(r => r.Add(It.Is<GptBilingItem>(item => 
+        _mockBillingRepository.Verify(r => r.Add(It.Is<AIBilingItem>(item => 
             item.TelegramChatInfoId == 123 && 
             item.TelegramUserInfoId == 456 && 
             item.PromptTokens == 10 && 

@@ -1,0 +1,16 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  DataBaseLayer -> /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/DataBaseLayer/bin/Debug/net9.0/DataBaseLayer.dll
+  ServiceLayer -> /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/ServiceLayer/bin/Debug/net9.0/ServiceLayer.dll
+  ServiceLayer.IntegrationTests -> /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.IntegrationTests/bin/Debug/net9.0/ServiceLayer.IntegrationTests.dll
+  ServiceLayer.BindingTests -> /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.BindingTests/bin/Debug/net10.0/ServiceLayer.BindingTests.dll
+Test run for /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.BindingTests/bin/Debug/net10.0/ServiceLayer.BindingTests.dll (.NETCoreApp,Version=v10.0)
+Test run for /Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.IntegrationTests/bin/Debug/net9.0/ServiceLayer.IntegrationTests.dll (.NETCoreApp,Version=v9.0)
+/Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.UnitTests/Services/Localization/DynamicLocalizerTests.cs(20,43): error CS0246: The type or namespace name 'GptBilingItem' could not be found (are you missing a using directive or an assembly reference?) [/Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.UnitTests/ServiceLayer.UnitTests.csproj]
+/Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.UnitTests/Services/Telegram/HelpCommandTests.cs(38,43): error CS0246: The type or namespace name 'GptBilingItem' could not be found (are you missing a using directive or an assembly reference?) [/Users/nudyk/Projects/DotNet/GPTChatTelegramBot/tests/ServiceLayer.UnitTests/ServiceLayer.UnitTests.csproj]
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 59 ms - ServiceLayer.BindingTests.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:    11, Skipped:     0, Total:    11, Duration: 18 s - ServiceLayer.IntegrationTests.dll (net9.0)

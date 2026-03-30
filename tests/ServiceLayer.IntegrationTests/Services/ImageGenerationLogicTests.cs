@@ -6,7 +6,7 @@ using Moq;
 using ServiceLayer.Constans;
 using ServiceLayer.IntegrationTests.Fixtures;
 using ServiceLayer.Services;
-using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.OpenAI;
 using ServiceLayer.Services.Localization;
 using Xunit;
 using System;

@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ServiceLayer.Services;
 using ServiceLayer.Services.AudioTranscriptor;
-using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.OpenAI;
 using ServiceLayer.Services.MessageProcessor;
 using ServiceLayer.Services.Telegram;
 using ServiceLayer.Services.Localization;

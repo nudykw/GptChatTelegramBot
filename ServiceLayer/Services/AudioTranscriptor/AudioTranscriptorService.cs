@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using OpenAI.Audio;
-using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.OpenAI;
 
 namespace ServiceLayer.Services.AudioTranscriptor
 {
@@ -16,13 +16,13 @@ namespace ServiceLayer.Services.AudioTranscriptor
             _chatServiceFactory = chatServiceFactory;
         }
 
-        private ChatGptService GetGptService() => (ChatGptService)_chatServiceFactory.CreateService("OpenAI");
+        private OpenAIService GetOpenAIService() => (OpenAIService)_chatServiceFactory.CreateService("OpenAI");
 
         public async Task<string> AudioTranscription(long chatId, long telegramUserId, Stream audio, string audioName,
             string model = null, string prompt = null, int? temperature = null,
             string language = null)
         {
-            var responce = await GetGptService().AudioTranscription(chatId, telegramUserId, audio,
+            var responce = await GetOpenAIService().AudioTranscription(chatId, telegramUserId, audio,
                 audioName, model, prompt, AudioResponseFormat.Json, temperature, language);
             if (string.IsNullOrWhiteSpace(responce))
             {

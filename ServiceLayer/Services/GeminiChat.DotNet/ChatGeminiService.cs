@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using OpenAI.Audio;
 using OpenAI.Chat;
 
-using ServiceLayer.Services.GptChat;
+using DataBaseLayer.Models;
 using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +26,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         private ChatProviderConfig _apiConfiguration;
         private IGeminiClient _client;
         private readonly IDynamicLocalizer _localizer;
-        private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
+        private readonly IRepository<AIBilingItem>? _aiBilingItemRepository;
 
         private class GeminiModelCache
         {
@@ -47,7 +47,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         {
             _apiConfiguration = chatProviderConfig;
             _client = client ?? new GeminiClientWrapper(_apiConfiguration.ApiKey);
-            _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
+            _aiBilingItemRepository = _serviceProvider.GetService<IRepository<AIBilingItem>>();
             _localizer = localizer;
         }
 
@@ -168,9 +168,9 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
 
         private async Task SaveBilling(string modelName, string providerName, long telegramChatId, long telegramUserId, GenerateContentResponseUsageMetadata usage)
         {
-            if (_gptBilingItemRepository == null) return;
+            if (_aiBilingItemRepository == null) return;
 
-            var dbGptBilingItem = new GptBilingItem
+            var dbAIBilingItem = new AIBilingItem
             {
                 CreationDate = DateTime.UtcNow,
                 ModelName = modelName,
@@ -183,8 +183,8 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
                 TotalTokens = usage.TotalTokenCount,
                 Cost = 0 // Cost calculation can be added if price mapping is available
             };
-            _gptBilingItemRepository.Add(dbGptBilingItem);
-            await _gptBilingItemRepository.SaveChanges();
+            _aiBilingItemRepository.Add(dbAIBilingItem);
+            await _aiBilingItemRepository.SaveChanges();
 
             // Update user balance
             var userRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
@@ -201,7 +201,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
                     {
                         // Note: Cost is currently 0 for Gemini in this implementation
                         // If cost calculation is implemented for Gemini, it will deduct correctly
-                        user.Balance -= dbGptBilingItem.Cost ?? 0;
+                        user.Balance -= dbAIBilingItem.Cost ?? 0;
                     }
                     user.LastAiInteraction = DateTime.UtcNow;
                     userRepository.Update(user);

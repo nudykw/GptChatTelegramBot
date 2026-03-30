@@ -24,7 +24,7 @@ public sealed class BotCommand : StaticStringEnumBase<BotCommand>, IStaticString
     public BotCommandScope RequiredScope { get; }
 
     public static readonly BotCommand Billing = new("/billing", "Show usage statistics", BotCommandScope.AnyAdmin | BotCommandScope.Owner);
-    public static readonly BotCommand Model = new("/model", "Select GPT model");
+    public static readonly BotCommand Model = new("/model", "Select AI model");
     public static readonly BotCommand Provider = new("/provider", "Select AI provider");
     public static readonly BotCommand Draw = new("/draw", "Generate image by description. You can also just send a text prompt asking to draw something, and the image will be generated.");
     public static readonly BotCommand Lang = new("/lang", "Change language (e.g. /lang German)");

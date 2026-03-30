@@ -17,7 +17,7 @@ namespace ServiceLayer.UnitTests.Services.Localization
         private readonly Mock<IStringLocalizer<BotMessages>> _localizerMock = new();
         private readonly Mock<IStringLocalizerFactory> _factoryMock = new();
         private readonly Mock<IRepository<CachedTranslation>> _cacheRepoMock = new();
-        private readonly Mock<IRepository<GptBilingItem>> _billingRepoMock = new();
+        private readonly Mock<IRepository<AIBilingItem>> _aiBilingItemRepoMock = new();
         private readonly Mock<IChatService> _chatServiceMock = new();
         private readonly Mock<IServiceProvider> _serviceProviderMock = new();
         private readonly Mock<IUserContext> _userContextMock = new();
@@ -34,7 +34,7 @@ namespace ServiceLayer.UnitTests.Services.Localization
                 _localizerMock.Object,
                 _factoryMock.Object,
                 _cacheRepoMock.Object,
-                _billingRepoMock.Object,
+                _aiBilingItemRepoMock.Object,
                 _serviceProviderMock.Object,
                 _userContextMock.Object,
                 _loggerMock.Object);

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ServiceLayer.Services.GptChat.Models;
+namespace ServiceLayer.Services.OpenAI.Models;
 
 public class LiteLlmModelInfo
 {

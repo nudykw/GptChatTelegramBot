@@ -29,7 +29,7 @@ namespace DataBaseLayer.Contexts
 
         #region models
         public DbSet<HistoryMessage> Messages { get; set; }
-        public DbSet<GptBilingItem> GptBilingItem { get; set; }
+        public DbSet<AIBilingItem> AIBilingItem { get; set; }
         public DbSet<TelegramChatInfo> TelegramChatInfos { get; set; }
         public DbSet<TelegramUserInfo> TelegramUserInfos { get; set; }
         public DbSet<CachedTranslation> CachedTranslations { get; set; }

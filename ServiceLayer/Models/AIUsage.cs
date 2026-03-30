@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ServiceLayer.Services.GptChat.Models
+namespace ServiceLayer.Models
 {
-    internal class GptUsage
+    internal class AIUsage
     {
         [JsonInclude]
         [JsonPropertyName("prompt_tokens")]
@@ -25,11 +25,11 @@ namespace ServiceLayer.Services.GptChat.Models
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         internal int? ReasoningTokens { get; set; }
 
-        internal GptUsage()
+        internal AIUsage()
         {
         }
 
-        internal GptUsage(int? promptTokens, int? completionTokens, int? totalTokens, int? reasoningTokens = null)
+        internal AIUsage(int? promptTokens, int? completionTokens, int? totalTokens, int? reasoningTokens = null)
         {
             PromptTokens = promptTokens;
             CompletionTokens = completionTokens;
@@ -37,7 +37,7 @@ namespace ServiceLayer.Services.GptChat.Models
             ReasoningTokens = reasoningTokens;
         }
 
-        public static implicit operator GptUsage(OpenAI.Usage usage)
+        public static implicit operator AIUsage(global::OpenAI.Usage usage)
         {
             if (usage == null)
             {
@@ -46,7 +46,7 @@ namespace ServiceLayer.Services.GptChat.Models
 
             // OpenAI library might have ReasoningTokens or similar in newer versions
             // but for now we'll stick to what we know exists and add more if possible.
-            return new GptUsage(usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens);
+            return new AIUsage(usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens);
         }
 
         public override string ToString()

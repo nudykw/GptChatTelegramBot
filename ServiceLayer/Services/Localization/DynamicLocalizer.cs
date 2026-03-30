@@ -15,7 +15,7 @@ namespace ServiceLayer.Services.Localization
     {
         private readonly IStringLocalizer<BotMessages> _localizer;
         private readonly IRepository<CachedTranslation> _cacheRepository;
-        private readonly IRepository<GptBilingItem> _billingRepository;
+        private readonly IRepository<AIBilingItem> _aiBilingItemRepository;
         private readonly IServiceProvider _serviceProvider;
         private readonly IUserContext _userContext;
         private readonly ILogger<DynamicLocalizer> _logger;
@@ -26,14 +26,14 @@ namespace ServiceLayer.Services.Localization
             IStringLocalizer<BotMessages> localizer,
             IStringLocalizerFactory localizerFactory,
             IRepository<CachedTranslation> cacheRepository,
-            IRepository<GptBilingItem> billingRepository,
+            IRepository<AIBilingItem> aiBilingItemRepository,
             IServiceProvider serviceProvider,
             IUserContext userContext,
             ILogger<DynamicLocalizer> logger)
         {
             _localizer = localizer;
             _cacheRepository = cacheRepository;
-            _billingRepository = billingRepository;
+            _aiBilingItemRepository = aiBilingItemRepository;
             _serviceProvider = serviceProvider;
             _userContext = userContext;
             _logger = logger;

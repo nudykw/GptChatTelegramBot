@@ -5,12 +5,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ServiceLayer.Services;
-using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.OpenAI;
 using ServiceLayer.Services.GeminiChat.DotNet;
 using ServiceLayer.Services.MessageProcessor;
 using Telegram.Bot;
 using Telegram.Bot.Requests;
-using ServiceLayer.Constans;
 using ServiceLayer.Constans;
 using Moq;
 using ServiceLayer.Services.Localization;
@@ -71,7 +70,7 @@ public class TestAppFixture : IDisposable
         services.AddScoped<IDynamicLocalizer, DynamicLocalizer>();
 
         // Add actual service we are testing
-        services.AddSingleton<ChatGptService>();
+        services.AddSingleton<OpenAIService>();
         services.AddSingleton<ChatGeminiService>();
         services.AddSingleton<IChatServiceFactory, ChatServiceFactory>();
 

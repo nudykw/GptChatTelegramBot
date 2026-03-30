@@ -36,14 +36,14 @@ public class UpdateHandler : BaseService, IUpdateHandler
     private readonly AudioTranscriptorService _audioTranscriptorService;
     private readonly IRepository<TelegramChatInfo>? _telegramChatInfoRepository;
     private readonly IRepository<TelegramUserInfo>? _telegramUserInfoRepository;
-    private readonly IRepository<GptBilingItem>? _gptBilingItemRepository;
+    private readonly IRepository<AIBilingItem>? _aiBilingItemRepository;
     private readonly IRepository<BalanceHistory>? _balanceHistoryRepository;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IDynamicLocalizer _localizer;
     private readonly IUserContext _userContext;
     private readonly AppSettings _appSettings;
     private readonly IChatService _chatService;
-    private static Dictionary<string, string> gptModelsCosts = new Dictionary<string, string>()
+    private static Dictionary<string, string> aiModelsCosts = new Dictionary<string, string>()
     {
         {AiModel.Gpt4Turbo,  "$0.01/$0.03"},
         {AiModel.Gpt4o,  "$0.01/$0.03"},
@@ -73,7 +73,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         _chatService = chatService;
         _telegramChatInfoRepository = _serviceProvider.GetService<IRepository<TelegramChatInfo>>();
         _telegramUserInfoRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
-        _gptBilingItemRepository = _serviceProvider.GetService<IRepository<GptBilingItem>>();
+        _aiBilingItemRepository = _serviceProvider.GetService<IRepository<AIBilingItem>>();
         _balanceHistoryRepository = _serviceProvider.GetService<IRepository<BalanceHistory>>();
     }
 
@@ -293,18 +293,18 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 chatId: message.Chat.Id,
                 action: ChatAction.Typing,
                 cancellationToken: cancellationToken);
-            IReadOnlyList<OpenAI.Models.Model> gptModels = await ActionWithShowTypeng(message.Chat.Id, cancellationToken,
-                _messageProcessor.GetGPTModels(message.From.Id));
+            IReadOnlyList<global::OpenAI.Models.Model> aiModels = await ActionWithShowTypeng(message.Chat.Id, cancellationToken,
+                _messageProcessor.GetAIModels(message.From.Id));
 
             var choises = new TgKeyboardGrid();
             var choisesRow = new TgKeyboardRow();
             int index = 0;
-            foreach (OpenAI.Models.Model? model in gptModels.OrderBy(p => p.Id).ToList())
+            foreach (global::OpenAI.Models.Model? model in aiModels.OrderBy(p => p.Id).ToList())
             {
                 var data = $"{BotCommand.Model}:{model.Id}";
                 var choise = InlineKeyboardButton.WithCallbackData($"{model.Id} ({model.CreatedAt.ToShortDateString()})",
                     data);
-                if (gptModelsCosts.TryGetValue(model.Id, out var costs))
+                if (aiModelsCosts.TryGetValue(model.Id, out var costs))
                 {
                     choise = InlineKeyboardButton.WithCallbackData($"{model.Id} ({model.CreatedAt.ToShortDateString()}. {costs})",
                         data);
@@ -340,7 +340,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 chatId: message.Chat.Id,
                 action: ChatAction.Typing,
                 cancellationToken: cancellationToken);
-            var dates = _gptBilingItemRepository
+            var dates = _aiBilingItemRepository
             .GetAll()
                 .Select(p => string.Concat(p.CreationDate.Year, "-", p.CreationDate.Month))
                 .Distinct()
@@ -957,7 +957,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         var data = string.Join(":", dataSet.Skip(1));
         if (originalMessageType == BotCommand.Model)
         {
-            var (isSuckes, errorMessage) = await _messageProcessor.SelectGPTModel(data, callbackQuery.From.Id);
+            var (isSuckes, errorMessage) = await _messageProcessor.SelectAIModel(data, callbackQuery.From.Id);
             if (!isSuckes)
             {
                 var errorText = _localizer["ModelSelectionError", data, errorMessage ?? string.Empty];
@@ -1097,7 +1097,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
             var billingUsersIds = new List<long>() { callbackQuery.Message.From.Id };
             // ActiveUsernames properties no longer exist on Chat
-            var bilingByUsers = _gptBilingItemRepository.GetAll()
+            var bilingByUsers = _aiBilingItemRepository.GetAll()
                 .AsNoTracking()
                 .Include(p => p.TelegramUserInfo)
                 .Include(p => p.TelegramChatInfo)
@@ -1119,7 +1119,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 var cost = b.Sum(p => p.Cost);
                 sb.AppendLine($"{user.FirstName} {user.LastName}({string.Concat(chat.Description, chat.Title)}) '{model}': {promptTokens} / {completionTokens} / {totalTokens} / ${cost}");
             }
-            var tottalCostsByUser = _gptBilingItemRepository.GetAll()
+            var tottalCostsByUser = _aiBilingItemRepository.GetAll()
                 .AsNoTracking()
                 .Include(p => p.TelegramUserInfo)
                 .Where(p => p.CreationDate >= startData && p.CreationDate < endData)

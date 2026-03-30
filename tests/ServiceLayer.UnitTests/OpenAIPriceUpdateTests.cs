@@ -1,7 +1,7 @@
 using Moq;
 using Moq.Protected;
 using Microsoft.Extensions.Logging;
-using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.OpenAI;
 using ServiceLayer.Services;
 using ServiceLayer.Constans;
 using System.Net;
@@ -14,17 +14,17 @@ using Xunit;
 using ServiceLayer.Services.Telegram.Configuretions;
 using ServiceLayer.Services.Localization;
 
-namespace ServiceLayer.UnitTests;
+namespace ServiceLayer.UnitTests.Services.OpenAI;
 
-[Trait("Service", "ChatGptService")]
-public class ChatGptPriceUpdateTests
+[Trait("Service", "OpenAIService")]
+public class OpenAIPriceUpdateTests
 {
     [Fact]
     public async Task RefreshModelPricesAsync_WithValidJson_UpdatesLiveModelsCosts()
     {
         // Arrange
         var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockLogger = new Mock<ILogger<ChatGptService>>();
+        var mockLogger = new Mock<ILogger<OpenAIService>>();
         var mockHttpClientFactory = new Mock<IHttpClientFactory>();
         var mockLocalizer = new Mock<IDynamicLocalizer>();
         var mockHandler = new Mock<HttpMessageHandler>();
@@ -51,8 +51,8 @@ public class ChatGptPriceUpdateTests
         };
 
         // Clear the static cache before testing
-        ChatGptService._liveModelsCosts.Clear();
-        typeof(ChatGptService)
+        OpenAIService._liveModelsCosts.Clear();
+        typeof(OpenAIService)
             .GetField("_lastPriceUpdate", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
             ?.SetValue(null, DateTime.MinValue);
 
@@ -64,15 +64,15 @@ public class ChatGptPriceUpdateTests
             ModelName = "gpt-4o-mini"
         };
 
-        var service = new ChatGptService(mockServiceProvider.Object, mockLogger.Object, config, mockHttpClientFactory.Object, mockLocalizer.Object);
+        var service = new OpenAIService(mockServiceProvider.Object, mockLogger.Object, config, mockHttpClientFactory.Object, mockLocalizer.Object);
 
         // Act
         // We call it once manually (though the constructor already calls it)
         await service.RefreshModelPricesAsync();
 
         // Assert
-        Assert.True(ChatGptService._liveModelsCosts.ContainsKey("gpt-4o-mini"));
-        var cost = ChatGptService._liveModelsCosts["gpt-4o-mini"];
+        Assert.True(OpenAIService._liveModelsCosts.ContainsKey("gpt-4o-mini"));
+        var cost = OpenAIService._liveModelsCosts["gpt-4o-mini"];
         Assert.Equal(0.00015M, cost.Input);
         Assert.Equal(0.0006M, cost.Output);
     }

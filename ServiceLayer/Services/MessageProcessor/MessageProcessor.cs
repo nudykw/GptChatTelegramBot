@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenAI.Images;
 using ServiceLayer.Constans;
-using ServiceLayer.Services.GptChat;
+using ServiceLayer.Services.OpenAI;
 using ServiceLayer.Utils;
 using ServiceLayer.Services.Localization;
 
@@ -75,7 +75,7 @@ public class MessageProcessor : BaseService
                 ChatId = chatId,
                 MessageId = messageId,
                 ParentMessageId = parentMessageId,
-                RoleId = (int)OpenAI.Role.User,
+                RoleId = (int)global::OpenAI.Role.User,
                 Text = message,
                 CreationDate = DateTime.UtcNow,
                 ModifiedDate = DateTime.UtcNow,
@@ -92,7 +92,7 @@ public class MessageProcessor : BaseService
 
         var query = new List<AiMessage>()
         {
-            new AiMessage((OpenAI.Role)historyMessage.RoleId, $"{message} (Respond in {languageName})", fromUserId.ToString())
+            new AiMessage((global::OpenAI.Role)historyMessage.RoleId, $"{message} (Respond in {languageName})", fromUserId.ToString())
         };
         while (historyMessage != null && historyMessage.ParentMessageId != null)
         {
@@ -100,7 +100,7 @@ public class MessageProcessor : BaseService
             && p.MessageId == historyMessage.ParentMessageId);
             if (historyMessage != null)
             {
-                query.Insert(0, new AiMessage((OpenAI.Role)historyMessage.RoleId, historyMessage.Text,
+                query.Insert(0, new AiMessage((global::OpenAI.Role)historyMessage.RoleId, historyMessage.Text,
                     historyMessage.FromUserName));
             }
         }
@@ -116,19 +116,19 @@ public class MessageProcessor : BaseService
         }
         else
         {
-            var gptChatResponce = await _chatService.SendMessages2ChatAsync(chatId, fromUserId, query);
+            var aiResponse = await _chatService.SendMessages2ChatAsync(chatId, fromUserId, query);
             var sb = new StringBuilder();
-            foreach (var choice in gptChatResponce.Choices)
+            foreach (var choice in aiResponse.Choices)
             {
                 sb.AppendLine(choice);
             }
             responceText = sb.ToString();
-            _logger.LogInformation("Message from gpt: {0}", responceText);
+            _logger.LogInformation("Message from AI: {0}", responceText);
             var balanceDisplay = await GetBalanceDisplay(fromUserId);
-            var summary = $"{gptChatResponce.ProviderName} | {gptChatResponce.ModelName} | " +
-                          $"In:{gptChatResponce.PromptTokens} Out:{gptChatResponce.CompletionTokens}" +
-                          (gptChatResponce.ReasoningTokens > 0 ? $" (R:{gptChatResponce.ReasoningTokens})" : "") +
-                          $" | T:{gptChatResponce.TotalTokens} | {gptChatResponce.TokensPerSecond:F1}t/s | {gptChatResponce.LatencySeconds:F1}s | ${gptChatResponce.Cost:F4}{balanceDisplay}";
+            var summary = $"{aiResponse.ProviderName} | {aiResponse.ModelName} | " +
+                          $"In:{aiResponse.PromptTokens} Out:{aiResponse.CompletionTokens}" +
+                          (aiResponse.ReasoningTokens > 0 ? $" (R:{aiResponse.ReasoningTokens})" : "") +
+                          $" | T:{aiResponse.TotalTokens} | {aiResponse.TokensPerSecond:F1}t/s | {aiResponse.LatencySeconds:F1}s | ${aiResponse.Cost:F4}{balanceDisplay}";
 
             if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
             {
@@ -150,8 +150,8 @@ public class MessageProcessor : BaseService
                 sb.AppendLine($"||_{summary}_||"); // Markdown spoiler and italic
             }
             toSendText = sb.ToString();
-            usedProviderName = gptChatResponce.ProviderName;
-            usedModelName = gptChatResponce.ModelName;
+            usedProviderName = aiResponse.ProviderName;
+            usedModelName = aiResponse.ModelName;
         }
         var chunks = SplitText(toSendText, 4000).ToList();
         TgMessage telegramResponce = null;
@@ -190,7 +190,7 @@ public class MessageProcessor : BaseService
                 MessageId = telegramResponce.MessageId,
                 ModifiedDate = DateTime.UtcNow,
                 ParentMessageId = telegramResponce.ReplyToMessage?.MessageId,
-                RoleId = (int)OpenAI.Role.Assistant,
+                RoleId = (int)global::OpenAI.Role.Assistant,
                 Text = responceText,
                 ProviderName = usedProviderName,
                 ModelName = usedModelName
@@ -243,16 +243,16 @@ public class MessageProcessor : BaseService
         var sb = new StringBuilder();
         try
         {
-            var gptImageResponce = await _chatService.GenerateImage(chatId, fromUserId, msg);
-            foreach (var image in gptImageResponce.Choices.Where(p => !string.IsNullOrWhiteSpace(p)))
+            var aiImageResponse = await _chatService.GenerateImage(chatId, fromUserId, msg);
+            foreach (var image in aiImageResponse.Choices.Where(p => !string.IsNullOrWhiteSpace(p)))
             {
                 sb.AppendLine(image);
             }
 
             var balanceDisplay = await GetBalanceDisplay(fromUserId);
-            var summary = $"{gptImageResponce.ProviderName} | {gptImageResponce.ModelName} | " +
-                          $"In:{gptImageResponce.PromptTokens} Out:{gptImageResponce.CompletionTokens} | " +
-                          $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}{balanceDisplay}";
+            var summary = $"{aiImageResponse.ProviderName} | {aiImageResponse.ModelName} | " +
+                          $"In:{aiImageResponse.PromptTokens} Out:{aiImageResponse.CompletionTokens} | " +
+                          $"L:{aiImageResponse.LatencySeconds:F1}s | ${aiImageResponse.Cost:F4}{balanceDisplay}";
 
             if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
             {
@@ -270,26 +270,26 @@ public class MessageProcessor : BaseService
         return sb.ToString();
     }
 
-    internal async Task<IReadOnlyList<OpenAI.Models.Model>> GetGPTModels(long userId)
+    internal async Task<IReadOnlyList<global::OpenAI.Models.Model>> GetAIModels(long userId)
     {
-        IReadOnlyList<OpenAI.Models.Model> result = await _chatService.GetAvailibleModels(userId);
+        IReadOnlyList<global::OpenAI.Models.Model> result = await _chatService.GetAvailibleModels(userId);
         return result;
     }
 
     internal async Task<TgMessage> ProcessImage(long chatId, int messageId, int? replyToMessagemessageId,
         long userId, string? messageText, string filePath, CancellationToken cancellationToken)
     {
-        var gptImageResponce = await _chatService.CreateImageEditAsync(chatId, userId, filePath, messageText);
+        var aiImageResponse = await _chatService.CreateImageEditAsync(chatId, userId, filePath, messageText);
         var sb = new StringBuilder();
-        foreach (var image in gptImageResponce.Choices.Where(p => !string.IsNullOrWhiteSpace(p)))
+        foreach (var image in aiImageResponse.Choices.Where(p => !string.IsNullOrWhiteSpace(p)))
         {
             sb.AppendLine(image);
         }
 
         var balanceDisplay = await GetBalanceDisplay(userId);
-        var summary = $"{gptImageResponce.ProviderName} | {gptImageResponce.ModelName} | " +
-                      $"In:{gptImageResponce.PromptTokens} Out:{gptImageResponce.CompletionTokens} | " +
-                      $"L:{gptImageResponce.LatencySeconds:F1}s | ${gptImageResponce.Cost:F4}{balanceDisplay}";
+        var summary = $"{aiImageResponse.ProviderName} | {aiImageResponse.ModelName} | " +
+                      $"In:{aiImageResponse.PromptTokens} Out:{aiImageResponse.CompletionTokens} | " +
+                      $"L:{aiImageResponse.LatencySeconds:F1}s | ${aiImageResponse.Cost:F4}{balanceDisplay}";
 
         if (_telegramBotConfiguration.DefaultParseMode == ParseMode.Html)
         {
@@ -311,7 +311,7 @@ public class MessageProcessor : BaseService
         return telegramResponce;
     }
 
-    internal async Task<(bool, string)> SelectGPTModel(string? modelName, long userId)
+    internal async Task<(bool, string)> SelectAIModel(string? modelName, long userId)
     {
         return await _chatService.SetGPTModel(modelName, userId);
     }

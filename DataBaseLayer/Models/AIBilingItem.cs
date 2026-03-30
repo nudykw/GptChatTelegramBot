@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace DataBaseLayer.Models
 {
     [PrimaryKey(nameof(Id))]
-    public class GptBilingItem
+    public class AIBilingItem
     {
         public long Id { get; set; }
         [ForeignKey("TelegramChatInfo")]
