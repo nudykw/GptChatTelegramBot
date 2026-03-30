@@ -43,7 +43,7 @@ public class TestAppFixture : IDisposable
         services.AddSingleton(appSettings);
 
         // Add InMemory DB instead of actual SQLite
-        services.AddDbContext<SqlLiteContext>(options =>
+        services.AddDbContext<StoreContext>(options =>
             options.UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()));
             
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -77,7 +77,7 @@ public class TestAppFixture : IDisposable
         ServiceProvider = services.BuildServiceProvider();
 
         // Ensure purely fresh DB scheme created in memory
-        var dbContext = ServiceProvider.GetRequiredService<SqlLiteContext>();
+        var dbContext = ServiceProvider.GetRequiredService<StoreContext>();
         dbContext.Database.EnsureCreated();
     }
 

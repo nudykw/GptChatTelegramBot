@@ -3,17 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DataBaseLayer.Contexts
 {
-    public class SqlLiteContext : DbContext
+    public class StoreContext : DbContext
     {
-        public SqlLiteContext() { }
-        public SqlLiteContext(DbContextOptions<SqlLiteContext> options) : base(options) { }
+        public StoreContext() { }
+        public StoreContext(DbContextOptions<StoreContext> options) : base(options) { }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!optionsBuilder.IsConfigured)
-            {
-                optionsBuilder.UseSqlite(@"Data Source=StoreContext.db;Cache=Shared;Mode=ReadWriteCreate;Default Timeout=30;");
-            }
+            // Configuration is now handled in MigrationConfigurator or Program.cs via DI
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

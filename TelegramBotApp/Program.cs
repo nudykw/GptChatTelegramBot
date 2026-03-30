@@ -18,6 +18,9 @@ IHost host = Host.CreateDefaultBuilder(args)
     {
         ConfigureServices(context, services);
         InitDb(context, services);
+        
+        var serviceProvider = services.BuildServiceProvider();
+        MigrationConfigurator.ApplyMigrations(serviceProvider);
     }))
     .Build();
 
@@ -25,11 +28,13 @@ await host.RunAsync();
 
 static void InitDb(HostBuilderContext context, IServiceCollection services)
 {
-    services.AddDbContext<SqlLiteContext>();
+    var appSettings = context.Configuration.GetSection(AppSettings.Configuration).Get<AppSettings>() 
+        ?? throw new Exception($"Failed to bind configuration section '{AppSettings.Configuration}' to {nameof(AppSettings)}.");
+    
+    services.AddDbContext<StoreContext>(options => 
+        MigrationConfigurator.Configure(options, appSettings.Database.Provider, appSettings.Database.ConnectionString));
 
     services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-    var serviceProvider = services.BuildServiceProvider();
-    MigrationConfigurator.ApplyMigrations(serviceProvider);
 }
 
 static void ConfigureServices(HostBuilderContext context, IServiceCollection services)

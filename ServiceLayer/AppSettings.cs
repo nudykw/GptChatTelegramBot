@@ -19,4 +19,15 @@ public class AppSettings
     /// List of configurations for AI providers (OpenAI, Gemini, etc.).
     /// </summary>
     public List<ChatProviderConfig> ChatProviders { get; set; } = new();
+
+    /// <summary>
+    /// Database configuration.
+    /// </summary>
+    public DatabaseSettings Database { get; set; } = new();
+}
+
+public class DatabaseSettings
+{
+    public DataBaseLayer.Enums.DatabaseProvider Provider { get; set; } = DataBaseLayer.Enums.DatabaseProvider.Sqlite;
+    public string ConnectionString { get; set; } = string.Empty;
 }

@@ -1,4 +1,4 @@
-﻿using DataBaseLayer.Contexts;
+using DataBaseLayer.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using System.Linq.Expressions;
@@ -9,7 +9,7 @@ public class Repository<T> : IRepository<T> where T : class
 {
     private readonly DbContext _dbContext;
 
-    public Repository(SqlLiteContext dbContext)
+    public Repository(StoreContext dbContext)
     {
         _dbContext = dbContext;
     }
