@@ -98,6 +98,12 @@ To restrict administrative commands (like `/billing` and `/restart`) and identif
 - Create a new API key.
 - In `appsettings.json`, set `ProviderType` to `"OpenAI"` and `BaseUrl` to `https://api.deepseek.com`.
 
+## 🐳 Docker Deployment
+
+The bot can be deployed using Docker Compose with support for multiple database providers (PostgreSQL, MySQL, SQL Server, SQLite) and an optional CloudBeaver web database manager.
+
+For a complete deployment guide see: [**Docker Deployment Guide**](docs/DOCKER.md)
+
 ## 🗄️ Database & Migrations
 
 The project supports multiple database providers (SQLite, PostgreSQL, MySQL, SQL Server). For information on how to manage migrations and switch between providers, see the [Migrations Documentation](docs/MIGRATIONS.md).
