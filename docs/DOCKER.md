@@ -1,9 +1,10 @@
 # 🐳 Docker Deployment Guide
 
+🇺🇸 English | 🇺🇦 [Українська](DOCKER.uk.md)
+
 > [!NOTE]
-> **Branch**: `feature/web-api-minimal`  
-> This guide describes deployment of the **web** version of the bot (`TelegramBotWebApp`).  
-> The console version (`TelegramBotApp`) can still be run locally — see [Getting Started](../README.md#-getting-started).
+> This guide covers deploying the **web version** of the bot (`TelegramBotWebApp`) via Docker Compose.  
+> To see **all** available run methods (local, console, systemd, etc.), see the [Hosting Guide](./HOSTING.md).
 
 ---
 

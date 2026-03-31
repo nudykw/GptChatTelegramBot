@@ -23,7 +23,11 @@ Welcome to the **GPTChatTelegramBot** documentation. This folder contains detail
 5. **[Docker Deployment](./DOCKER.md)**
    - Complete deployment guide with all database providers.
 
-6. **[API & Libraries Reference](./api_reference.md)**
+6. **[Hosting & Run Methods](./HOSTING.md)** ← *all ways to run the app*
+   - Local runs (console and web), Docker Compose, Docker console, systemd service on Linux.
+   - Comparison table by complexity and feature set.
+
+7. **[API & Libraries Reference](./api_reference.md)**
    - Links to documentation for all libraries used and external AI APIs.
 
 ---
