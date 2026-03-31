@@ -114,11 +114,11 @@ public class ResilientChatService : IChatService
         return await ExecuteWithFallback(s => s.SendMessages2ChatAsync(telegramChatId, telegramUserId, messages, selectedModel), nameof(SendMessages2ChatAsync), telegramUserId);
     }
 
-    public async Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt)
+    public async Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt, string? modelName = null)
     {
         try
         {
-            return await ExecuteWithFallback(s => s.GenerateImage(chatId, telegramUserId, prompt), nameof(GenerateImage), telegramUserId);
+            return await ExecuteWithFallback(s => s.GenerateImage(chatId, telegramUserId, prompt, modelName), nameof(GenerateImage), telegramUserId);
         }
         catch (Exception ex)
         {
@@ -133,7 +133,7 @@ public class ResilientChatService : IChatService
                 {
                     _logger.LogInformation("Falling back to OpenAI drawing model for provider: {Provider}", openAiProvider.Name);
                     var service = _chatServiceFactory.CreateService(openAiProvider.Name);
-                    return await service.GenerateImage(chatId, telegramUserId, prompt);
+                    return await service.GenerateImage(chatId, telegramUserId, prompt, modelName);
                 }
                 catch (Exception fallbackEx)
                 {
@@ -150,6 +150,9 @@ public class ResilientChatService : IChatService
 
     public Task<ChatServiceResponse> CreateImageEditAsync(long chatId, long telegramUserId, string filePath, string? messageText)
         => ExecuteWithFallback(s => s.CreateImageEditAsync(chatId, telegramUserId, filePath, messageText), nameof(CreateImageEditAsync), telegramUserId);
+
+    public Task<ChatServiceResponse> AnalyzeImageAsync(long chatId, long telegramUserId, string? imageUrl, string? filePath = null, string? prompt = null, string? model = null)
+        => ExecuteWithFallback(s => s.AnalyzeImageAsync(chatId, telegramUserId, imageUrl, filePath, prompt, model), nameof(AnalyzeImageAsync), telegramUserId);
 
     public async Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null)
     {

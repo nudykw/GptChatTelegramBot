@@ -12,7 +12,7 @@ The bot lets you chat with an AI via a Telegram bot, ask questions, and generate
 
 ## 🚀 Getting Started
 
-Before compiling the project, add your keys to the `TelegramBotApp/appsettings.sample.json` file and rename it to `appsettings.json`.
+Before compiling the project, add your keys to the `TelegramBotApp/appsettings.sample.json` file and rename it to `appsettings.json`. The project targets **.NET 10**.
 
 > [!IMPORTANT]
 > You **must** fill the `OwnerId` field with your Telegram User ID. To find your ID, use the [@userinfobot](https://t.me/userinfobot) bot in Telegram. Simply send a message to it and copy the numeric **ID**.
@@ -24,33 +24,26 @@ Before compiling the project, add your keys to the `TelegramBotApp/appsettings.s
 {
   "AppSettings": {
     "TelegramBotConfiguration": {
-      "BotToken": "YOUR_TELEGRAM_BOT_TOKEN",
-      "OwnerId": "YOUR_OWNER_ID"
+      "BotToken": "[YOUR_TELEGRAM_BOT_TOKEN]",
+      "OwnerId": [YOUR_OWNER_ID],
+      "AiTaskSettings": {
+        "Vision": { "ModelName": "gpt-4o", "ProviderName": "OpenAI" },
+        "Drawing": { "ModelName": "dall-e-3", "ProviderName": "OpenAI" },
+        "Classification": { "ModelName": "gpt-4o-mini", "ProviderName": "OpenAI" }
+      }
     },
     "ChatProviders": [
       {
         "Name": "OpenAI",
         "ProviderType": "OpenAI",
-        "ApiKey": "YOUR_OPENAI_API_KEY",
+        "ApiKey": "[YOUR_OPENAI_API_KEY]",
         "ModelName": "gpt-4o-mini"
       },
       {
         "Name": "Gemini",
         "ProviderType": "Gemini",
-        "ApiKey": "YOUR_GEMINI_API_KEY",
-        "ModelName": "gemini-pro"
-      },
-      {
-        "Name": "Grok",
-        "ProviderType": "OpenAI",
-        "ApiKey": "YOUR_GROK_API_KEY",
-        "BaseUrl": "https://api.x.ai/v1"
-      },
-      {
-        "Name": "DeepSeek",
-        "ProviderType": "OpenAI",
-        "ApiKey": "YOUR_DEEPSEEK_API_KEY",
-        "BaseUrl": "https://api.deepseek.com"
+        "ApiKey": "[YOUR_GEMINI_API_KEY]",
+        "ModelName": "gemini-2.0-flash"
       }
     ]
   }

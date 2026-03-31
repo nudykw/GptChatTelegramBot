@@ -18,6 +18,7 @@ namespace ServiceLayer.UnitTests.Services.MessageProcessor
         private readonly Mock<IServiceProvider> _serviceProviderMock = new();
         private readonly Mock<ILogger<MessageProcessorClass>> _loggerMock = new();
         private readonly Mock<IChatService> _chatServiceMock = new();
+        private readonly Mock<IChatServiceFactory> _chatServiceFactoryMock = new();
         private readonly Mock<ITelegramBotClient> _botClientMock = new();
         private readonly Mock<IRepository<TelegramUserInfo>> _userInfoRepositoryMock = new();
         private readonly Mock<IDynamicLocalizer> _localizerMock = new();
@@ -41,11 +42,15 @@ namespace ServiceLayer.UnitTests.Services.MessageProcessor
             _serviceProviderMock.Setup(x => x.GetService(typeof(IOptions<AppSettings>)))
                 .Returns(optionsMock.Object);
 
+            _chatServiceFactoryMock.Setup(f => f.CreateService(It.IsAny<string>()))
+                .Returns(_chatServiceMock.Object);
+
             _sut = new MessageProcessorClass(
                 _serviceProviderMock.Object,
                 _loggerMock.Object,
                 _historyRepositoryMock.Object,
                 _chatServiceMock.Object,
+                _chatServiceFactoryMock.Object,
                 _botClientMock.Object,
                 _userInfoRepositoryMock.Object,
                 _localizerMock.Object);

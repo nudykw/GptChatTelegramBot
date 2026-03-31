@@ -178,7 +178,14 @@ internal class OpenAIService : BaseService, IChatService
         Stopwatch sw = Stopwatch.StartNew();
         try
         {
+            _logger.LogInformation("OpenAI Request: Model={0}, MessagesCount={1}", modelName, messages.Count);
             result = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
+            if (result == null || result.Choices == null || !result.Choices.Any())
+            {
+                _logger.LogWarning("OpenAI returned an empty response for {0}", modelName);
+                throw new Exception($"OpenAI returned an empty response for {modelName}");
+            }
+            _logger.LogInformation("OpenAI Response: Choices={0}, Tokens={1}", result.Choices.Count, result.Usage?.TotalTokens);
         }
         catch (Exception ex)
         {
@@ -237,8 +244,6 @@ internal class OpenAIService : BaseService, IChatService
             ProviderName = providerName
         };
         _aiBilingItemRepository.Add(dbAIBilingItem);
-        await _aiBilingItemRepository.SaveChanges();
-
         // Update user balance
         var userRepository = _serviceProvider.GetService<IRepository<TelegramUserInfo>>();
         if (userRepository != null)
@@ -248,8 +253,8 @@ internal class OpenAIService : BaseService, IChatService
             {
                 var appConfig = _serviceProvider.GetConfiguration<AppSettings>();
                 var config = appConfig?.TelegramBotConfiguration;
-                bool isIgnored = config?.IgnoredBalanceUserIds?.Contains(telegramUserId) == true ||
-                                 config?.OwnerId == telegramUserId;
+                bool isIgnored = (config?.IgnoredBalanceUserIds?.Contains(telegramUserId) == true) ||
+                                 (config?.OwnerId == telegramUserId);
                 bool isFree = config?.InitialBalance == 0;
 
                 if (!isIgnored && !isFree)
@@ -259,19 +264,18 @@ internal class OpenAIService : BaseService, IChatService
                 }
                 user.LastAiInteraction = DateTime.UtcNow;
                 userRepository.Update(user);
-                await userRepository.SaveChanges();
             }
         }
 
-        return cost;
+        return await _aiBilingItemRepository.SaveChanges() > 0 ? (decimal?)cost : null;
     }
 
-    public async Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt)
+    public async Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt, string? modelName = null)
     {
-        var modelName = _chatProviderConfiguration.DrawingModelName 
-            ?? _chatProviderConfiguration.ProviderType.DefaultDrawingModel 
-            ?? _chatProviderConfiguration.ModelName 
-            ?? (string)AiModel.DallE3;
+        modelName ??= _chatProviderConfiguration.DrawingModelName 
+                 ?? _chatProviderConfiguration.ProviderType.DefaultDrawingModel 
+                 ?? _chatProviderConfiguration.ModelName 
+                 ?? (string)AiModel.DallE3;
 
         ImageGenerationRequest request = new ImageGenerationRequest(prompt, modelName, 1, null, ImageResponseFormat.Url);
         IReadOnlyList<ImageResult> imageResults;
@@ -328,6 +332,54 @@ internal class OpenAIService : BaseService, IChatService
         }
         await SaveBilling(request.Model, _chatProviderConfiguration.Name, chatId, telegramUserId, new AIUsage(0, 1, 1));
         return result;
+    }
+
+    public async Task<ChatServiceResponse> AnalyzeImageAsync(long chatId, long telegramUserId, string? imageUrl, string? filePath = null, string? prompt = null, string? model = null)
+    {
+        var appSettings = _serviceProvider.GetConfiguration<AppSettings>();
+        var visionModel = model ?? appSettings?.TelegramBotConfiguration?.AiTaskSettings?.Vision?.ModelName ?? (string)AiModel.Gpt4o;
+        var finalPrompt = prompt ?? "Describe this image.";
+
+        string? finalImageUrl = imageUrl;
+        string? finalFilePath = filePath;
+
+        // Safety: if imageUrl looks like a local path, treat it as filePath
+        if (!string.IsNullOrEmpty(finalImageUrl) && finalImageUrl.StartsWith("/"))
+        {
+            finalFilePath = finalImageUrl;
+            finalImageUrl = null;
+        }
+
+        if (string.IsNullOrEmpty(finalImageUrl) && !string.IsNullOrEmpty(finalFilePath))
+        {
+            var bytes = await File.ReadAllBytesAsync(finalFilePath);
+            var base64 = Convert.ToBase64String(bytes);
+            var extension = Path.GetExtension(finalFilePath).TrimStart('.').ToLower();
+            var mimeType = (extension == "png" || extension == "webp") ? $"image/{extension}" : "image/jpeg";
+            finalImageUrl = $"data:{mimeType};base64,{base64}";
+        }
+
+        if (string.IsNullOrEmpty(finalImageUrl))
+        {
+            throw new ArgumentException("imageUrl");
+        }
+
+        _logger.LogInformation("Vision Request: Model={Model}, URL_Start={URLStart}", visionModel, finalImageUrl.Length > 50 ? finalImageUrl.Substring(0, 50) : finalImageUrl);
+
+        var messages = new List<AiMessage>
+        {
+            new AiMessage(Role.System, "You are a visual analysis assistant. Provide direct and concise descriptions or answers based on the image. Do not provide tutorials, advice on how to edit images, or general chat unless relevant to the visual content."),
+            new AiMessage(Role.User, new List<Content>
+            {
+                finalPrompt,
+                new ImageUrl(finalImageUrl)
+            })
+        };
+
+        _logger.LogInformation("Analyzing image via SendMessages2ChatAsync: Model={0}", visionModel);
+        var response = await SendMessages2ChatAsync(chatId, telegramUserId, messages, visionModel);
+        _logger.LogInformation("Image analysis completed: ChoicesCount={0}", response.Choices?.Count ?? 0);
+        return response;
     }
 
     public async Task<ChatServiceResponse> CreateImageEditAsync(long chatId, long telegramUserId,

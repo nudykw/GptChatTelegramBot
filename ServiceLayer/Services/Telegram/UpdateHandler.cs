@@ -145,7 +145,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             var handler = update switch
             {
                 { Message: { } message } => BotOnMessageReceived(message, cancellationToken),
-                { EditedMessage: { } message } => BotOnMessageReceived(message, cancellationToken),
+                { EditedMessage: { } message } => BotOnMessageReceived(message, cancellationToken, isEdit: true),
                 { CallbackQuery: { } callbackQuery } => BotOnCallbackQueryReceived(callbackQuery, cancellationToken),
                 { InlineQuery: { } inlineQuery } => BotOnInlineQueryReceived(inlineQuery, cancellationToken),
                 { ChosenInlineResult: { } chosenInlineResult } => BotOnChosenInlineResultReceived(chosenInlineResult, cancellationToken),
@@ -174,7 +174,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         }
     }
 
-    private async Task BotOnMessageReceived(TgMessage message, CancellationToken cancellationToken)
+    private async Task BotOnMessageReceived(TgMessage message, CancellationToken cancellationToken, bool isEdit = false)
     {
         _userContext.UserId = message.From.Id;
         _userContext.ChatId = message.Chat.Id;
@@ -277,7 +277,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 "/inline_mode" => StartInlineQuery(_botClient, message, cancellationToken),
                 "/throw" => FailingHandler(_botClient, message, cancellationToken),
                 "/help" => Usage(_botClient, message, cancellationToken),
-                _ => ProcessMessage(_botClient, message, cancellationToken)
+                _ => ProcessMessage(_botClient, message, cancellationToken, isEdit)
             }
         };
         TgMessage sentMessage = await action;
@@ -623,7 +623,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 replyMarkup: new ReplyKeyboardRemove(),
                 cancellationToken: cancellationToken);
         }
-        async Task<TgMessage> ProcessMessage(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
+        async Task<TgMessage> ProcessMessage(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken, bool isEdit = false)
         {
             string messageText = message.Text;
             if (message.Voice != null)
@@ -646,7 +646,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     }
                     await ActionWithShowTypeng(message.Chat.Id, cancellationToken, _messageProcessor.ProcessImage(message.Chat.Id,
                             message.MessageId, message.ReplyToMessage?.MessageId, (long)(message.From?.Id),
-                            message.Caption, temFileName, cancellationToken));
+                            message.Caption, temFileName, file.FileId, cancellationToken));
                 }
 
                 var filePath = file.FilePath;
@@ -678,7 +678,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
                         }
                         await ActionWithShowTypeng(message.Chat.Id, cancellationToken, _messageProcessor.ProcessImage(message.Chat.Id,
                                 message.MessageId, message.ReplyToMessage?.MessageId, (long)(message.From?.Id),
-                                message.Caption, temFileName, cancellationToken)
+                                message.Caption, temFileName, photo.FileId, cancellationToken)
                         );
                     }
                     finally
@@ -694,7 +694,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
             string responce = await ActionWithShowTypeng(message.Chat.Id, cancellationToken, _messageProcessor.ProcessMessage(message.Chat.Id,
                     message.MessageId, message.ReplyToMessage?.MessageId, message.From.Id,
                     messageText,
-                    cancellationToken));
+                    cancellationToken,
+                    isEdit));
             return null;
             /*
             return await botClient.SendMessage(

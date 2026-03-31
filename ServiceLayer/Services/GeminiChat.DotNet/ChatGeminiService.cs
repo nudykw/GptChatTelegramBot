@@ -210,7 +210,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             }
         }
 
-        public Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt)
+        public Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt, string? modelName = null)
         {
             throw new NotSupportedException("Gemini provider does not support image generation yet.");
         }
@@ -225,6 +225,11 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         public Task<ChatServiceResponse> CreateImageEditAsync(long chatId, long telegramUserId, string filePath, string? messageText)
         {
             throw new NotSupportedException("Gemini provider does not support image editing yet.");
+        }
+
+        public async Task<ChatServiceResponse> AnalyzeImageAsync(long chatId, long telegramUserId, string? imageUrl, string? filePath = null, string? prompt = null, string? model = null)
+        {
+            throw new NotSupportedException("Gemini provider analysis not implemented yet.");
         }
 
         public async Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null)

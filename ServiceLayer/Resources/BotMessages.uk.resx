@@ -245,6 +245,9 @@
     <value>❌ Користувача с ID {0} не знайдено</value>
   </data>
   <data name="SetBalance_InvalidFormat" xml:space="preserve">
-    <value>❌ Некоректний формат. Введіть числові ID та суму.</value>
+    <value>❌ Невірний формат. Будь ласка, вкажіть числовий ID користувача та суму.</value>
+  </data>
+  <data name="Error_ImageGenerationFailed" xml:space="preserve">
+    <value>❌ Не вдалося створити зображення. Будь ласка, спробуйте ще раз з іншим запитом або пізніше.</value>
   </data>
 </root>

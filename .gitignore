@@ -3,6 +3,7 @@ bin/
 obj/
 TelegramBotApp/Properties/PublishProfiles/FolderProfile.pubxml.user
 TelegramBotApp/StoreContext.db
+TelegramBotApp/bot.db
 /.vscode
 appsettings.json
 TelegramBotApp/Properties/PublishProfiles/FolderProfile.pubxml
@@ -16,3 +17,19 @@ tmp/
 *.db-journal
 *.db-wal
 *.db-shm
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent

@@ -21,16 +21,28 @@ This document highlights the most important files in the repository to help you 
 - Dynamically instantiates the appropriate `IChatService` implementation (OpenAI or Gemini) based on name and configuration.
 - **Intelligent Configuration Filtering**: Automatically ignores any chat provider configurations where the `ApiKey` contains a placeholder like `[YOUR_...]`, preventing errors from incomplete setups.
 
+## [MessageProcessor.cs](../ServiceLayer/Services/MessageProcessor/MessageProcessor.cs)
+**The Brain of the Bot**
+- Located in `ServiceLayer`.
+- Coordinates all incoming update processing (text, voice, photos).
+- **Intent Classification**: Uses a specialized AI classifier to decide whether a message requires image analysis, text response, or transcription.
+- **Image Refinement**: Implements the "Vision-to-Prompt" workflow for high-quality DALL-E 3 regenerations.
+
+## [TelegramBotConfiguration.cs](../ServiceLayer/Services/Telegram/Configurations/TelegramBotConfiguration.cs)
+**Modular Settings Architecture**
+- Defines the hierarchical structure of the bot's configuration.
+- **AiTaskSettings**: Centralizes model and provider settings for specialized tasks like `Vision`, `Drawing`, and `Classification`.
+
 ## [ChatProviderConfig.cs](../ServiceLayer/Services/ChatProviderConfig.cs)
 **Provider Metadata**
 - Defines the structure for a single AI provider (Name, Type, API Key, Base URL, Model Name).
 
-## [ChatGptService.cs](../ServiceLayer/Services/GptChat/ChatGptService.cs)
-**The Heart of GPT Integration**
+## [OpenAIService.cs](../ServiceLayer/Services/OpenAI/OpenAIService.cs)
+**The Heart of OpenAI Integration**
 - Located in `ServiceLayer`.
 - Implements `IChatService` for OpenAI models.
-- Manages the interaction with OpenAI's API (streaming text, using models like `gpt-4o-mini`).
-- Calculates prices and generates billing items.
+- **Multimodal Support**: Handles both text completions and visual analysis (Vision).
+- Calculates prices and generates billing items based on actual token usage.
 
 ## [AudioTranscriptorService.cs](../ServiceLayer/Services/AudioTranscriptor/AudioTranscriptorService.cs)
 **Voice Processing Core**

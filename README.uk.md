@@ -12,7 +12,7 @@
 
 ## 🚀 Швидкий старт
 
-Перед компіляцією проєкту додайте свої ключі до файлу `TelegramBotApp/appsettings.sample.json` і перейменуйте його на `appsettings.json`.
+Перед компіляцією проєкту додайте свої ключі до файлу `TelegramBotApp/appsettings.sample.json` і перейменуйте його на `appsettings.json`. Проєкт базується на **.NET 10**.
 
 > [!IMPORTANT]
 > Ви **обов'язково** повинні заповнити поле `OwnerId` своїм Telegram User ID. Щоб дізнатися свій ID, скористайтеся ботом [@userinfobot](https://t.me/userinfobot) у Telegram. Просто надішліть йому будь-яке повідомлення та скопіюйте числовий **ID**.
@@ -24,33 +24,26 @@
 {
   "AppSettings": {
     "TelegramBotConfiguration": {
-      "BotToken": "YOUR_TELEGRAM_BOT_TOKEN",
-      "OwnerId": "YOUR_OWNER_ID"
+      "BotToken": "[YOUR_TELEGRAM_BOT_TOKEN]",
+      "OwnerId": [YOUR_OWNER_ID],
+      "AiTaskSettings": {
+        "Vision": { "ModelName": "gpt-4o", "ProviderName": "OpenAI" },
+        "Drawing": { "ModelName": "dall-e-3", "ProviderName": "OpenAI" },
+        "Classification": { "ModelName": "gpt-4o-mini", "ProviderName": "OpenAI" }
+      }
     },
     "ChatProviders": [
       {
         "Name": "OpenAI",
         "ProviderType": "OpenAI",
-        "ApiKey": "YOUR_OPENAI_API_KEY",
+        "ApiKey": "[YOUR_OPENAI_API_KEY]",
         "ModelName": "gpt-4o-mini"
       },
       {
         "Name": "Gemini",
         "ProviderType": "Gemini",
-        "ApiKey": "YOUR_GEMINI_API_KEY",
-        "ModelName": "gemini-pro"
-      },
-      {
-        "Name": "Grok",
-        "ProviderType": "OpenAI",
-        "ApiKey": "YOUR_GROK_API_KEY",
-        "BaseUrl": "https://api.x.ai/v1"
-      },
-      {
-        "Name": "DeepSeek",
-        "ProviderType": "OpenAI",
-        "ApiKey": "YOUR_DEEPSEEK_API_KEY",
-        "BaseUrl": "https://api.deepseek.com"
+        "ApiKey": "[YOUR_GEMINI_API_KEY]",
+        "ModelName": "gemini-2.0-flash"
       }
     ]
   }

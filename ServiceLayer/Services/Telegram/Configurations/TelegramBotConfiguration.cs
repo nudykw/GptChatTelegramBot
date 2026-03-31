@@ -1,4 +1,5 @@
 using Telegram.Bot.Types.Enums;
+using ServiceLayer.Models;
 
 namespace ServiceLayer.Services.Telegram.Configuretions;
 
@@ -33,4 +34,27 @@ public class TelegramBotConfiguration
     /// List of user IDs whose balance should not be deducted.
     /// </summary>
     public List<long> IgnoredBalanceUserIds { get; set; } = new();
+    
+    /// <summary>
+    /// Specialized AI task configurations.
+    /// </summary>
+    public AiTaskSettings AiTaskSettings { get; set; } = new AiTaskSettings();
+}
+
+public class AiTaskSettings
+{
+    /// <summary>
+    /// Vision configuration containing model and provider names.
+    /// </summary>
+    public FullModelName? Vision { get; set; } = new FullModelName { ModelName = "gpt-4o", ProviderName = "OpenAI" };
+
+    /// <summary>
+    /// Drawing configuration containing model and provider names.
+    /// </summary>
+    public FullModelName? Drawing { get; set; } = new FullModelName { ModelName = "dall-e-3", ProviderName = "OpenAI" };
+
+    /// <summary>
+    /// Classification configuration for intent analysis and internal tasks.
+    /// </summary>
+    public FullModelName? Classification { get; set; } = new FullModelName { ModelName = "gpt-4o", ProviderName = "OpenAI" };
 }
