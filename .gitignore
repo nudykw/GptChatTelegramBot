@@ -1,6 +1,9 @@
-# Environment secrets (never commit)
+# Environment secrets — real keys, never commit
 .env
-Configs/*.local.json
+Configs/appsettings.json
+Configs/appsettings.web.json
+Configs/appsettings.console.json
+# Configs/appsettings.sample.json is intentionally tracked (no real keys)
 
 /.vs
 bin/

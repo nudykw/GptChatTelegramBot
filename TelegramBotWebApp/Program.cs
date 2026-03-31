@@ -10,18 +10,23 @@ using TelegramBotWebApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load configuration: shared web appsettings → environment variables.
-// In development: Configs/ is one level above the project directory.
-// In Docker: Configs/ is copied next to the published binary.
-var configsFromSource = Path.GetFullPath(
-    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Configs", "appsettings.web.json"));
-var configsFromPublish = Path.Combine(AppContext.BaseDirectory, "Configs", "appsettings.web.json");
-
-var webConfigPath = File.Exists(configsFromSource) ? configsFromSource : configsFromPublish;
+// Load configuration (layered, each layer overrides the previous):
+//   1. Configs/appsettings.json      — shared base: AI keys, BotToken, SQLite default
+//   2. Configs/appsettings.web.json  — web overrides: AllowedHosts, log levels
+//   3. Environment variables         — Docker overrides: DB provider, connection string
+//
+// In development: Configs/ is four levels up from bin/Debug/net*/
+// In Docker:      Configs/ is copied next to the published binary
+var configsDevBase  = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Configs"));
+var configsPubBase  = Path.Combine(AppContext.BaseDirectory, "Configs");
+var configsBase     = Directory.Exists(configsDevBase) && File.Exists(Path.Combine(configsDevBase, "appsettings.json"))
+                          ? configsDevBase
+                          : configsPubBase;
 
 builder.Configuration
-    .AddJsonFile(webConfigPath, optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables(); // env vars always override the file (used in Docker)
+    .AddJsonFile(Path.Combine(configsBase, "appsettings.json"),     optional: true, reloadOnChange: true)
+    .AddJsonFile(Path.Combine(configsBase, "appsettings.web.json"), optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables(); // env vars always win (used in Docker)
 
 // ── Bot Services ─────────────────────────────────────────────────────────────
 // Resolve TelegramBotConfiguration early so we can decide which mode to register

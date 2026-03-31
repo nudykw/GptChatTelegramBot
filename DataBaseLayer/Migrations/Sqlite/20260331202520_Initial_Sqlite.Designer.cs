@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataBaseLayer.Migrations.Sqlite
 {
     [DbContext(typeof(StoreContext))]
-    [Migration("20260331153939_Initial_Sqlite")]
+    [Migration("20260331202520_Initial_Sqlite")]
     partial class Initial_Sqlite
     {
         /// <inheritdoc />

@@ -88,6 +88,8 @@ services:
     restart: unless-stopped
     ports:
       - "${BOT_PORT:-8080}:8080"
+    volumes:
+      - sqlite_data:/app/data
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: "http://+:8080"
@@ -127,9 +129,10 @@ services:
       CB_ADMIN_PASSWORD: ${CLOUDBEAVER_ADMIN_PASSWORD}
     volumes:
       - cloudbeaver_workspace:/opt/cloudbeaver/workspace
-      # Pre-configure PostgreSQL connection so CloudBeaver shows it on first launch.
-      # The file is read by CloudBeaver on startup from the GlobalConfiguration project.
+      # Pre-configured DB connections (auto-loaded by CloudBeaver on first launch)
       - ./cloudbeaver/GlobalConfiguration/.dbeaver:/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver
+      # Shared SQLite volume — lets CloudBeaver browse the bot database
+      - sqlite_data:/sqlite
 
 # ──────────────────────────────────────────────────────────────────────────
 # VOLUMES
@@ -140,3 +143,4 @@ volumes:
   mysql_data:
   mssql_data:
   cloudbeaver_workspace:
+  sqlite_data:
