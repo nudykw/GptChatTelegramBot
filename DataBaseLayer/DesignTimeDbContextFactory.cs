@@ -13,7 +13,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<StoreConte
         
         // Default to Sqlite if no provider specified in args
         var provider = DatabaseProvider.Sqlite;
-        var connectionString = "Data Source=design.db";
+        var connectionString = "Data Source=/home/nudyk/Projects/DotNet/GptChatTelegramBot/TelegramBotApp/StoreContext.db";
 
         if (args.Length > 0 && Enum.TryParse<DatabaseProvider>(args[0], true, out var p))
         {
@@ -29,7 +29,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<StoreConte
             // Use dummy connection strings for design time if not provided
             connectionString = provider switch
             {
-                DatabaseProvider.Sqlite => "Data Source=design.db",
+                DatabaseProvider.Sqlite => "Data Source=/home/nudyk/Projects/DotNet/GptChatTelegramBot/TelegramBotApp/StoreContext.db",
                 DatabaseProvider.SqlServer => "Server=(localdb)\\mssqllocaldb;Database=design;Trusted_Connection=True;",
                 DatabaseProvider.PostgreSql => "Host=localhost;Database=design;Username=postgres;Password=password",
                 DatabaseProvider.MySql => "Server=localhost;Database=design;Uid=root;Pwd=password",

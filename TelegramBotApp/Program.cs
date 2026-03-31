@@ -14,15 +14,18 @@ using ServiceLayer.Utils;
 using Telegram.Bot;
 
 IHost host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((Action<HostBuilderContext, IServiceCollection>)((context, services) =>
+    .ConfigureServices((context, services) =>
     {
         ConfigureServices(context, services);
         InitDb(context, services);
-        
-        var serviceProvider = services.BuildServiceProvider();
-        MigrationConfigurator.ApplyMigrations(serviceProvider);
-    }))
+    })
     .Build();
+
+using (var scope = host.Services.CreateScope())
+{
+    var serviceProvider = scope.ServiceProvider;
+    MigrationConfigurator.ApplyMigrations(serviceProvider);
+}
 
 await host.RunAsync();
 

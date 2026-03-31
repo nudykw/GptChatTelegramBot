@@ -47,7 +47,6 @@ public static class MigrationConfigurator
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<StoreContext>();
-
         dbContext.Database.Migrate();
 
         if (dbContext.Database.IsSqlite())
