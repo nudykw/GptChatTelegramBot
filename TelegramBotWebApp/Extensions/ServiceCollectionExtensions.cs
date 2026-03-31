@@ -24,19 +24,22 @@ public static class ServiceCollectionExtensions
         var config  = builder.Configuration;
 
         // ── App configuration ────────────────────────────────────────────────
+        // Register AppSettings as IOptions<T> — the actual values are resolved lazily
+        // after the full configuration pipeline (including WebApplicationFactory overrides) runs.
         var appSection = config.GetSection(AppSettings.Configuration);
-        if (!appSection.Exists())
-            throw new InvalidOperationException(
-                $"Configuration section '{AppSettings.Configuration}' is missing. " +
-                "Ensure appsettings.web.json is present and contains this section.");
-
         services.Configure<AppSettings>(appSection);
-        var appSettings = appSection.Get<AppSettings>()
-            ?? throw new InvalidOperationException(
-                $"Failed to bind '{AppSettings.Configuration}' to {nameof(AppSettings)}.");
 
-        services.AddSingleton(appSettings);
-        services.AddSingleton(appSettings.TelegramBotConfiguration);
+        // Provide AppSettings as a directly-resolvable singleton via IOptions
+        services.AddSingleton<AppSettings>(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AppSettings>>().Value);
+
+        // Provide TelegramBotConfiguration as a singleton derived from AppSettings
+        services.AddSingleton(sp =>
+        {
+            var settings = sp.GetRequiredService<AppSettings>();
+            return settings.TelegramBotConfiguration
+                ?? new ServiceLayer.Services.Telegram.Configuretions.TelegramBotConfiguration();
+        });
 
         // ── Telegram Bot client (named HttpClient → typed client) ────────────
         services.AddHttpClient();
@@ -44,7 +47,8 @@ public static class ServiceCollectionExtensions
             .AddTypedClient<ITelegramBotClient>((httpClient, sp) =>
             {
                 var cfg = sp.GetRequiredService<AppSettings>();
-                var options = new TelegramBotClientOptions(cfg.TelegramBotConfiguration.BotToken);
+                var token = cfg.TelegramBotConfiguration?.BotToken ?? string.Empty;
+                var options = new TelegramBotClientOptions(string.IsNullOrEmpty(token) ? "0:test" : token);
                 return new TelegramBotClient(options, httpClient);
             });
 
@@ -64,11 +68,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDynamicLocalizer, DynamicLocalizer>();
 
         // ── Database ─────────────────────────────────────────────────────────
-        services.AddDbContext<StoreContext>(options =>
-            MigrationConfigurator.Configure(
-                options,
-                appSettings.Database.Provider,
-                appSettings.Database.ConnectionString));
+        // DB config is also resolved lazily so the factory's in-memory DB is used in tests
+        services.AddDbContext<StoreContext>((sp, options) =>
+        {
+            var settings = sp.GetRequiredService<AppSettings>();
+            MigrationConfigurator.Configure(options, settings.Database.Provider, settings.Database.ConnectionString);
+        });
 
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 

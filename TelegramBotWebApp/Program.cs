@@ -28,6 +28,7 @@ builder.Configuration
 builder.AddBotServices();
 
 // Read the config to decide the bot mode before Build()
+// In testing environment the factory replaces config, so section may be absent — default to Polling
 var tempConfig = builder.Configuration
     .GetSection(ServiceLayer.Services.AppSettings.Configuration)
     .Get<ServiceLayer.Services.AppSettings>();
