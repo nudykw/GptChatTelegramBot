@@ -121,6 +121,35 @@ else
 // Prometheus metrics: GET /metrics
 app.MapMetrics();
 
+// ── Service URL banner ────────────────────────────────────────────────────────
+// Printed once on startup so operators can see exactly where each service lives.
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    var botPort         = app.Configuration["BOT_PORT"] ?? "8080";
+    var composeProfiles = app.Configuration["COMPOSE_PROFILES"] ?? "";
+    var webhookUrl      = telegramConfig.IsWebhookMode() ? telegramConfig.GetWebhookUrl() : null;
+
+    app.Logger.LogInformation("──────────────────────────────────────────────────────");
+    app.Logger.LogInformation("🤖  Bot WebApp  →  http://localhost:{Port}", botPort);
+    app.Logger.LogInformation("    /health     →  http://localhost:{Port}/health",    botPort);
+    app.Logger.LogInformation("    /api/info   →  http://localhost:{Port}/api/info",  botPort);
+    app.Logger.LogInformation("    /metrics    →  http://localhost:{Port}/metrics",   botPort);
+
+    if (webhookUrl is not null)
+        app.Logger.LogInformation("    /aibot      →  {WebhookUrl} (Webhook)", webhookUrl);
+
+    if (swaggerEnabled)
+        app.Logger.LogInformation("    /scalar     →  http://localhost:{Port}/scalar/v1 (Swagger)", botPort);
+
+    if (composeProfiles.Contains("cloudbeaver", StringComparison.OrdinalIgnoreCase))
+    {
+        var cbPort = app.Configuration["CLOUDBEAVER_PORT"] ?? "8978";
+        app.Logger.LogInformation("🗄️   CloudBeaver →  http://localhost:{Port}", cbPort);
+    }
+
+    app.Logger.LogInformation("──────────────────────────────────────────────────────");
+});
+
 // ── Run ───────────────────────────────────────────────────────────────────────
 
 await app.RunAsync();
