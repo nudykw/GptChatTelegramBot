@@ -377,10 +377,19 @@ internal class OpenAIService : BaseService, IChatService
 
     public async Task<ChatServiceResponse> GenerateImage(long chatId, long telegramUserId, string prompt, string? modelName = null)
     {
-        modelName ??= _chatProviderConfiguration.DrawingModelName 
-                 ?? _chatProviderConfiguration.ProviderType.DefaultDrawingModel 
-                 ?? _chatProviderConfiguration.ModelName 
-                 ?? (string)AiModel.DallE3;
+        // Determine the drawing model. DrawingModelName and DefaultDrawingModel are only set
+        // for providers that actually support image generation (OpenAI → dall-e-3, Gemini → imagen-3).
+        // Grok and DeepSeek have no image API; fail fast with NotSupportedException so
+        // ResilientChatService can fall back to a provider that does support it.
+        modelName ??= _chatProviderConfiguration.DrawingModelName
+                  ?? _chatProviderConfiguration.ProviderType.DefaultDrawingModel;
+
+        if (string.IsNullOrEmpty(modelName))
+        {
+            throw new NotSupportedException(
+                $"Provider '{_chatProviderConfiguration.Name}' ({_chatProviderConfiguration.ProviderType.DisplayName}) " +
+                "does not support image generation.");
+        }
 
         ImageGenerationRequest request = new ImageGenerationRequest(prompt, modelName, 1, null, ImageResponseFormat.Url);
         IReadOnlyList<ImageResult> imageResults;

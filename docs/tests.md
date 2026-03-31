@@ -2,7 +2,7 @@
 
 🇺🇸 English | 🇺🇦 [Українська](tests.uk.md)
 
-This document provides information about the testing strategy and provides guidance on where tests are located and what they cover.
+This document describes the testing strategy, what is covered, and how to run tests locally with real API keys.
 
 ## Test Location
 All tests are located in the `tests/` directory at the root of the solution.
@@ -19,34 +19,68 @@ All tests are located in the `tests/` directory at the root of the solution.
 ---
 
 ## [ServiceLayer.IntegrationTests](../tests/ServiceLayer.IntegrationTests)
-- **Objective**: Verifying that the application components work together correctly.
-- **Technologies**: xUnit, Microsoft.AspNetCore.Mvc.Testing.
+- **Objective**: End-to-end verification that all AI provider integrations work correctly.
+- **Technologies**: xUnit, Moq, Testcontainers (DB tests), InMemory EF Core.
 - **Key Files**:
-    - `Fixtures/TestAppFixture.cs`: Sets up the shared environment for integration tests (e.g., database, configuration).
-    - `ChatGptPriceIntegrationTests.cs`: Verifying model cost calculation and persistence in the database.
-    - `ChatGptServiceTests.cs`: Integration tests for the GPT services.
+    - `Fixtures/TestAppFixture.cs` — Shared test host; loads config, registers InMemory DB and all real services.
+    - `DatabaseSupportTests.cs` — Verifies DB migrations work against real containers (SQLite, PostgreSQL, MySQL, MariaDB, MSSQL). Requires Docker.
+    - `Services/OpenAI/OpenAIServiceTests.cs` — Real OpenAI API calls: chat, image generation, audio transcription, billing.
+    - `Services/OpenAI/OpenAIPriceIntegrationTests.cs` — Fetches live model prices from LiteLLM and verifies parsing.
+    - `Services/ModelsIntegrationTests.cs` — Lists and validates models for all configured providers.
+    - `Services/ImageGenerationLogicTests.cs` — Tests per-provider image generation and `ResilientChatService` fallback with real API calls.
+
+---
+
+## Configuration for Integration Tests
+
+Integration tests that call AI APIs require real API keys. Keys are **never committed to git**.
+
+### Setup
+1. Copy the template:
+   ```bash
+   cp Configs/appsettings.Test.json.example Configs/appsettings.Test.json
+   ```
+2. Fill in your API keys in `Configs/appsettings.Test.json`.
+
+The file is loaded as a second configuration layer on top of `TelegramBotApp/appsettings.json`, so only the sections you override need to be present.
+
+> **Note**: `Configs/appsettings.Test.json` is listed in `.gitignore` and will never be committed.
+
+### Configuration Loading Order (TestAppFixture)
+| Priority | File | Location | Tracked |
+|----------|------|----------|---------|
+| 1 (base) | `appsettings.json` | linked from `TelegramBotApp/` | ✅ yes |
+| 2 (override) | `appsettings.Test.json` | `Configs/` | ❌ gitignored |
+
+Tests that have no keys configured will fail with clear `AiProviderException: Unauthorized` errors — not silent passes.
 
 ---
 
 ## How to Run Tests
-To run all tests in the solution, use the following command from the root directory:
+
+Run all tests:
 ```bash
 dotnet test
 ```
-To run tests for a specific project:
+
+Run a specific project:
 ```bash
+dotnet test tests/ServiceLayer.IntegrationTests
 dotnet test tests/ServiceLayer.UnitTests
 ```
 
-## Running Specific Service Tests
-Tests are categorized by service using xUnit `Trait` attributes. This allows you to run only the tests relevant to the service you are working on.
-
-To run only tests for `ChatGptService`:
+Skip Docker-dependent DB tests (run only AI/service tests):
 ```bash
-dotnet test --filter Service=ChatGptService
+dotnet test tests/ServiceLayer.IntegrationTests --filter "FullyQualifiedName!~DatabaseSupport"
 ```
 
-To run only tests for `ChatServiceFactory`:
+Run only AI service integration tests:
 ```bash
-dotnet test --filter Service=ChatServiceFactory
+dotnet test tests/ServiceLayer.IntegrationTests --filter "Service=OpenAIService|Service=ModelVerification|FullyQualifiedName~ImageGeneration"
+```
+
+Run tests by Trait category:
+```bash
+dotnet test --filter Service=OpenAIService
+dotnet test --filter Service=ModelVerification
 ```

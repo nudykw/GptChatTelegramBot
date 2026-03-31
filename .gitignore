@@ -3,7 +3,10 @@
 Configs/appsettings.json
 Configs/appsettings.web.json
 Configs/appsettings.console.json
+Configs/appsettings.Test.json
 # Configs/appsettings.sample.json is intentionally tracked (no real keys)
+# Configs/appsettings.Test.json.example is intentionally tracked (no real keys)
+
 
 /.vs
 bin/

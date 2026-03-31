@@ -42,8 +42,9 @@
 ## [OpenAIService.cs](../ServiceLayer/Services/OpenAI/OpenAIService.cs)
 **Серце інтеграції з OpenAI**
 - Розташований у `ServiceLayer`.
-- Реалізує `IChatService` для моделей OpenAI.
-- **Мультимодальна підтримка**: Обробляє як текстові доповнення, так і візуальний аналіз (Vision).
+- Реалізує `IChatService` для моделей OpenAI, а також обслуговує Grok і DeepSeek (OpenAI-сумісні API).
+- **Мультимодальна підтримка**: Обробляє текстові діалоги, генерацію зображень (DALL-E), редагування зображень, візуальний аналіз та транскрипцію аудіо.
+- **Захист можливостей провайдера**: `GenerateImage` кидає `NotSupportedException` одразу для провайдерів без моделі малювання (Grok, DeepSeek), дозволяючи `ResilientChatService` коректно перемикатися на OpenAI.
 - Розраховує вартість і генерує білінгові записи на основі реального використання токенів.
 
 ## [AudioTranscriptorService.cs](../ServiceLayer/Services/AudioTranscriptor/AudioTranscriptorService.cs)
@@ -62,6 +63,21 @@
 **Структура конфігурації**
 - POCO-клас (Plain Old CLR Object), що відображає вміст `appsettings.json` у строго типізований об'єкт.
 - Зручний для доступу до секретів і лімітів з будь-якої частини рішення.
+
+## [Configs/](../Configs)
+**Централізована директорія конфігурацій**
+- Містить усі конфігураційні файли, специфічні для середовища. Жоден файл з реальними секретами не комітиться в git.
+
+| Файл | В git | Призначення |
+|------|-------|-------------|
+| `appsettings.sample.json` | ✅ так | Повний шаблон із заглушками — довідник усіх доступних налаштувань |
+| `appsettings.Test.json.example` | ✅ так | Шаблон для API-ключів інтеграційних тестів |
+| `appsettings.json` | ❌ gitignored | Реальні ключі для запуску бота |
+| `appsettings.web.json` | ❌ gitignored | Перевизначення для Webhook-режиму |
+| `appsettings.console.json` | ❌ gitignored | Перевизначення для Polling-режиму |
+| `appsettings.Test.json` | ❌ gitignored | Реальні API-ключі для інтеграційних тестів |
+
+Для налаштування локально: скопіюйте відповідний файл `*.example`, перейменуйте (приберіть `.example`) та заповніть ключі.
 
 ## [ChatGeminiService.cs](../ServiceLayer/Services/GeminiChat.DotNet/ChatGeminiService.cs)
 **Реалізація Google AI**
