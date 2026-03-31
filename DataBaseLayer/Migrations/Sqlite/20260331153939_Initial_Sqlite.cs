@@ -1,3 +1,4 @@
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -5,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DataBaseLayer.Migrations.Sqlite
 {
     /// <inheritdoc />
-    public partial class CreateInitialSchema : Migration
+    public partial class Initial_Sqlite : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -25,6 +26,23 @@ namespace DataBaseLayer.Migrations.Sqlite
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_BalanceHistories", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CachedAIModels",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ModelId = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
+                    ProviderName = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
+                    IsAvailable = table.Column<bool>(type: "INTEGER", nullable: false),
+                    LastChecked = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    FriendlyName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CachedAIModels", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -150,7 +168,26 @@ namespace DataBaseLayer.Migrations.Sqlite
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "AIBilingItem");
 
+            migrationBuilder.DropTable(
+                name: "BalanceHistories");
+
+            migrationBuilder.DropTable(
+                name: "CachedAIModels");
+
+            migrationBuilder.DropTable(
+                name: "CachedTranslations");
+
+            migrationBuilder.DropTable(
+                name: "Messages");
+
+            migrationBuilder.DropTable(
+                name: "TelegramChatInfos");
+
+            migrationBuilder.DropTable(
+                name: "TelegramUserInfos");
         }
     }
 }

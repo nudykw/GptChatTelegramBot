@@ -55,7 +55,7 @@ public class TestAppFixture : IDisposable
         services.AddHttpClient();
 
         // Register default OpenAI provider config for tests
-        var openAiConfig = appSettings.ChatProviders.FirstOrDefault(p => p.ProviderType == AiProvider.OpenAI)
+        var openAiConfig = appSettings.TelegramBotConfiguration.AiSettings.ChatProviders.FirstOrDefault(p => p.ProviderType == AiProvider.OpenAI)
             ?? new ChatProviderConfig
             {
                 Name = "OpenAI-Default",

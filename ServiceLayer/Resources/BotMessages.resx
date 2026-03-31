@@ -259,4 +259,13 @@
   <data name="Error_ImageGenerationFailed" xml:space="preserve">
     <value>❌ Image generation failed. Please try again with a different prompt or later.</value>
   </data>
+  <data name="RefreshModels_Success" xml:space="preserve">
+    <value>✅ AI models cache has been successfully refreshed for all providers.</value>
+  </data>
+  <data name="RefreshModels_Error" xml:space="preserve">
+    <value>❌ Failed to refresh AI models cache: {0}</value>
+  </data>
+  <data name="Desc_refresh_models" xml:space="preserve">
+    <value>Refresh AI models cache from providers (Admins only).</value>
+  </data>
 </root>

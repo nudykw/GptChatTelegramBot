@@ -28,6 +28,7 @@ namespace ServiceLayer.UnitTests.Services.Telegram
         private readonly Mock<ILogger<UpdateHandler>> _loggerMock = new();
         private readonly Mock<IDynamicLocalizer> _localizerMock = new();
         private readonly Mock<IUserContext> _userContextMock = new();
+        private readonly Mock<IChatServiceFactory> _chatServiceFactoryMock = new();
         
         // Use MockBehavior.Loose for dependencies we don't strictly care about in this functional test
         private readonly Mock<MessageProcessorClass> _messageProcessorMock;
@@ -43,6 +44,7 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 new Mock<ILogger<MessageProcessorClass>>().Object,
                 null, // history
                 null, // chatService
+                _chatServiceFactoryMock.Object,
                 _botClientMock.Object,
                 null, // telegramUserInfoRepository
                 _localizerMock.Object); 
@@ -50,7 +52,7 @@ namespace ServiceLayer.UnitTests.Services.Telegram
             _audioTranscriptorMock = new Mock<AudioTranscriptorService>(
                 _serviceProviderMock.Object,
                 new Mock<ILogger<AudioTranscriptorService>>().Object,
-                null); // factory
+                _chatServiceFactoryMock.Object); // factory
 
             // Setup infrastructure
             _scopeFactoryMock.Setup(x => x.CreateScope()).Returns(_scopeMock.Object);

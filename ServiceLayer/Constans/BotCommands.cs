@@ -32,6 +32,7 @@ public sealed class BotCommand : StaticStringEnumBase<BotCommand>, IStaticString
     public static readonly BotCommand Restart = new("/restart", "Restart the bot", BotCommandScope.Owner | BotCommandScope.AnyAdmin);
     public static readonly BotCommand UsersBalance = new("/users_balance", "Show all users' balances", BotCommandScope.AnyAdmin);
     public static readonly BotCommand SetBalance = new("/set_balance", "Set user balance by Id", BotCommandScope.AnyAdmin);
+    public static readonly BotCommand RefreshModels = new("/refresh_models", "Refresh AI models cache", BotCommandScope.AnyAdmin);
 
     /// <summary>
     /// Commands are typically case-insensitive.

@@ -29,7 +29,7 @@ public class ChatServiceFactory : IChatServiceFactory
     {
         var uniqueProviders = new HashSet<(AiProvider Type, string ApiKey, string? BaseUrl)>();
 
-        foreach (var config in _appSettings.ChatProviders)
+        foreach (var config in _appSettings.TelegramBotConfiguration.AiSettings.ChatProviders)
         {
             if (ChatProviderConfig.IsPlaceholder(config.ApiKey))
             {

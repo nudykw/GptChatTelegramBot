@@ -24,20 +24,26 @@ public class ChatServiceFactoryTests
         // Arrange
         var appSettings = new AppSettings
         {
-            TelegramBotConfiguration = new() { BotToken = "test" },
-            ChatProviders = new List<ChatProviderConfig>
-            {
-                new ChatProviderConfig
+            TelegramBotConfiguration = new() 
+            { 
+                BotToken = "test",
+                AiSettings = new()
                 {
-                    Name = "ValidProvider",
-                    ProviderType = AiProvider.OpenAI,
-                    ApiKey = "real-api-key"
-                },
-                new ChatProviderConfig
-                {
-                    Name = "PlaceholderProvider",
-                    ProviderType = AiProvider.Gemini,
-                    ApiKey = "[YOUR_GEMINI_API_KEY]"
+                    ChatProviders = new List<ChatProviderConfig>
+                    {
+                        new ChatProviderConfig
+                        {
+                            Name = "ValidProvider",
+                            ProviderType = AiProvider.OpenAI,
+                            ApiKey = "real-api-key"
+                        },
+                        new ChatProviderConfig
+                        {
+                            Name = "PlaceholderProvider",
+                            ProviderType = AiProvider.Gemini,
+                            ApiKey = "[YOUR_GEMINI_API_KEY]"
+                        }
+                    }
                 }
             }
         };

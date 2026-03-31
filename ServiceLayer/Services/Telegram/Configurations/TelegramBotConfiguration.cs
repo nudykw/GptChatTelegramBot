@@ -38,10 +38,15 @@ public class TelegramBotConfiguration
     /// <summary>
     /// Specialized AI task configurations.
     /// </summary>
-    public AiTaskSettings AiTaskSettings { get; set; } = new AiTaskSettings();
+    public AiSettings AiSettings { get; set; } = new AiSettings();
+
+    /// <summary>
+    /// AI model cache expiry in hours.
+    /// </summary>
+    public int ModelCacheExpiryHours { get; set; } = 48;
 }
 
-public class AiTaskSettings
+public class AiSettings
 {
     /// <summary>
     /// Vision configuration containing model and provider names.
@@ -57,4 +62,9 @@ public class AiTaskSettings
     /// Classification configuration for intent analysis and internal tasks.
     /// </summary>
     public FullModelName? Classification { get; set; } = new FullModelName { ModelName = "gpt-4o", ProviderName = "OpenAI" };
+
+    /// <summary>
+    /// List of configurations for AI providers (OpenAI, Gemini, etc.).
+    /// </summary>
+    public List<ChatProviderConfig> ChatProviders { get; set; } = new();
 }

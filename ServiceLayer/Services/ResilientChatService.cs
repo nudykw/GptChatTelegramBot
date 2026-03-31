@@ -182,4 +182,30 @@ public class ResilientChatService : IChatService
 
         return await ExecuteWithFallback(s => s.GetSelectedModel(userId), nameof(GetSelectedModel), userId);
     }
+
+    public async Task RefreshAvailibleModels(bool validate = true)
+    {
+        var providers = _chatServiceFactory.GetAvailableProviders().ToList();
+        var exceptions = new List<Exception>();
+
+        foreach (var provider in providers)
+        {
+            try
+            {
+                _logger.LogInformation("Refreshing models for provider: {0} (validate={1})", provider.Name, validate);
+                var service = _chatServiceFactory.CreateService(provider.Name);
+                await service.RefreshAvailibleModels(validate);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to refresh models for provider {Provider}", provider.Name);
+                exceptions.Add(ex);
+            }
+        }
+
+        if (exceptions.Any())
+        {
+            throw new AggregateException("Some providers failed to refresh models.", exceptions);
+        }
+    }
 }

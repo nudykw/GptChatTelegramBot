@@ -202,7 +202,7 @@ public class MessageProcessor : BaseService
                 bool isAnalysis = true; 
                 try 
                 {
-                    var classificationProvider = _telegramBotConfiguration.AiTaskSettings.Classification?.ProviderName ?? "OpenAI";
+                    var classificationProvider = _telegramBotConfiguration.AiSettings.Classification?.ProviderName ?? "OpenAI";
                     var classificationService = _chatServiceFactory.CreateService(classificationProvider);
                     
                     var classificationPrompt = $"Task: Classify user intent for the following image-related message.\n" +
@@ -227,7 +227,7 @@ public class MessageProcessor : BaseService
                 if (isAnalysis)
                 {
                     // Proceed to ANALYZE mode (Vision API)
-                    var visionProviderName = _telegramBotConfiguration.AiTaskSettings.Vision?.ProviderName ?? "OpenAI";
+                    var visionProviderName = _telegramBotConfiguration.AiSettings.Vision?.ProviderName ?? "OpenAI";
                     var visionService = _chatServiceFactory.CreateService(visionProviderName);
                     
                     // Supress tutorial instructions in the prompt
@@ -252,9 +252,9 @@ public class MessageProcessor : BaseService
                 else
                 {
                     // Proceed to EDIT mode (DALL-E 3 Refinement via Vision Prompt)
-                    var drawingProviderName = _telegramBotConfiguration.AiTaskSettings.Drawing?.ProviderName ?? "OpenAI"; 
-                    var drawingModelName = _telegramBotConfiguration.AiTaskSettings.Drawing?.ModelName ?? "dall-e-3";
-                    var visionProviderName = _telegramBotConfiguration.AiTaskSettings.Vision?.ProviderName ?? "OpenAI";
+                    var drawingProviderName = _telegramBotConfiguration.AiSettings.Drawing?.ProviderName ?? "OpenAI"; 
+                    var drawingModelName = _telegramBotConfiguration.AiSettings.Drawing?.ModelName ?? "dall-e-3";
+                    var visionProviderName = _telegramBotConfiguration.AiSettings.Vision?.ProviderName ?? "OpenAI";
                     var visionService = _chatServiceFactory.CreateService(visionProviderName);
                     var drawingService = _chatServiceFactory.CreateService(drawingProviderName);
 
@@ -497,8 +497,8 @@ public class MessageProcessor : BaseService
         try
         {
             // Use pinned Drawing provider and model from config
-            var drawingProviderName = _telegramBotConfiguration.AiTaskSettings.Drawing?.ProviderName ?? "OpenAI";
-            var drawingModelName = _telegramBotConfiguration.AiTaskSettings.Drawing?.ModelName ?? "dall-e-3";
+            var drawingProviderName = _telegramBotConfiguration.AiSettings.Drawing?.ProviderName ?? "OpenAI";
+            var drawingModelName = _telegramBotConfiguration.AiSettings.Drawing?.ModelName ?? "dall-e-3";
             
             var drawingService = _chatServiceFactory.CreateService(drawingProviderName);
             return await drawingService.GenerateImage(chatId, fromUserId, msg, drawingModelName);
@@ -508,6 +508,24 @@ public class MessageProcessor : BaseService
             _logger.LogError(ex, "Failed to generate image.");
             return new ChatServiceResponse { ProviderName = "Error", ModelName = "Error", Choices = new List<string>() };
         }
+    }
+
+    private async Task SaveHistory(long chatId, long messageId, long? parentMessageId, int roleId, string text, string? providerName, string? modelName)
+    {
+        var historyMessage = new HistoryMessage
+        {
+            ChatId = chatId,
+            MessageId = (int)messageId,
+            ParentMessageId = parentMessageId,
+            RoleId = roleId,
+            Text = text,
+            ProviderName = providerName,
+            ModelName = modelName,
+            CreationDate = DateTime.UtcNow,
+            ModifiedDate = DateTime.UtcNow
+        };
+        _historyMessageRepository.Add(historyMessage);
+        await _historyMessageRepository.SaveChanges();
     }
 
     internal async Task<IReadOnlyList<global::OpenAI.Models.Model>> GetAIModels(long userId)
@@ -536,16 +554,16 @@ public class MessageProcessor : BaseService
 
         // Determine intent: Analyze (Vision) or Edit (DALL-E)
         var appSettings = _serviceProvider.GetConfiguration<AppSettings>();
-        var visionModel = appSettings?.TelegramBotConfiguration?.AiTaskSettings?.Vision?.ModelName ?? "gpt-4o";
-        var visionProvider = appSettings?.TelegramBotConfiguration?.AiTaskSettings?.Vision?.ProviderName ?? "OpenAI";
+        var visionModel = appSettings?.TelegramBotConfiguration?.AiSettings?.Vision?.ModelName ?? "gpt-4o";
+        var visionProvider = appSettings?.TelegramBotConfiguration?.AiSettings?.Vision?.ProviderName ?? "OpenAI";
 
         bool isAnalysis = true;
         if (!string.IsNullOrWhiteSpace(messageText))
         {
             try 
             {
-                var classificationProvider = _telegramBotConfiguration.AiTaskSettings.Classification?.ProviderName ?? "OpenAI";
-                var classificationModel = _telegramBotConfiguration.AiTaskSettings.Classification?.ModelName ?? "gpt-4o";
+                var classificationProvider = _telegramBotConfiguration.AiSettings.Classification?.ProviderName ?? "OpenAI";
+                var classificationModel = _telegramBotConfiguration.AiSettings.Classification?.ModelName ?? "gpt-4o";
                 var classificationService = _chatServiceFactory.CreateService(classificationProvider);
                 
                 var classificationPrompt = $"Task: Classify user intent for an image. \n" +
@@ -566,15 +584,15 @@ public class MessageProcessor : BaseService
         if (isAnalysis)
         {
             // Use Vision for analysis with pinned provider
-            var visionProviderName = _telegramBotConfiguration.AiTaskSettings.Vision?.ProviderName ?? "OpenAI";
-            var visionModelName = _telegramBotConfiguration.AiTaskSettings.Vision?.ModelName ?? "gpt-4o";
+            var visionProviderName = _telegramBotConfiguration.AiSettings.Vision?.ProviderName ?? "OpenAI";
+            var visionModelName = _telegramBotConfiguration.AiSettings.Vision?.ModelName ?? "gpt-4o";
             var visionService = _chatServiceFactory.CreateService(visionProviderName);
             aiImageResponse = await visionService.AnalyzeImageAsync(chatId, userId, null, filePath, messageText, visionModelName);
         }
         else
         {
             // NEW: Use intelligent DALL-E 3 Refinement for direct photo uploads too
-            var visionProviderName = _telegramBotConfiguration.AiTaskSettings.Vision?.ProviderName ?? "OpenAI";
+            var visionProviderName = _telegramBotConfiguration.AiSettings.Vision?.ProviderName ?? "OpenAI";
             var visionService = _chatServiceFactory.CreateService(visionProviderName);
             
             _logger.LogInformation("Photo upload with EDIT intent. Describing image first.");
@@ -665,7 +683,7 @@ public class MessageProcessor : BaseService
                      "Do NOT translate. Just return the 2-letter or standard code. " +
                      $"If you are not sure, return '{LanguageCode.English}'.";
         
-        var classificationProvider = _telegramBotConfiguration.AiTaskSettings.Classification?.ProviderName ?? "OpenAI";
+        var classificationProvider = _telegramBotConfiguration.AiSettings.Classification?.ProviderName ?? "OpenAI";
         var classificationService = _chatServiceFactory.CreateService(classificationProvider);
         var result = await classificationService.Ask(chatId, userId, prompt);
         var langCode = result.Trim().ToLowerInvariant();
@@ -704,7 +722,7 @@ public class MessageProcessor : BaseService
             CultureInfo.CurrentUICulture = oldCulture;
         }
 
-        var classificationProvider = _telegramBotConfiguration.AiTaskSettings.Classification?.ProviderName ?? "OpenAI";
+        var classificationProvider = _telegramBotConfiguration.AiSettings.Classification?.ProviderName ?? "OpenAI";
         var classificationService = _chatServiceFactory.CreateService(classificationProvider);
         var isNeewDrawResponce = await classificationService.Ask(charId, userId, prompt);
         _logger.LogInformation("Intent detection response: {Response}", isNeewDrawResponce);
@@ -727,7 +745,7 @@ public class MessageProcessor : BaseService
             CultureInfo.CurrentUICulture = oldCulture;
         }
 
-        var classificationProvider = _telegramBotConfiguration.AiTaskSettings.Classification?.ProviderName ?? "OpenAI";
+        var classificationProvider = _telegramBotConfiguration.AiSettings.Classification?.ProviderName ?? "OpenAI";
         var classificationService = _chatServiceFactory.CreateService(classificationProvider);
         string isNeewDrawResponce = await classificationService.Ask(charId, userId, prompt);
         _logger.LogInformation($"GPT Bot response: {isNeewDrawResponce}");

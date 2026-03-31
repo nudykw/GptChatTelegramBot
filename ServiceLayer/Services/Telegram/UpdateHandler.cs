@@ -80,6 +80,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
     public Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Received update {UpdateId} of type {UpdateType}", update.Id, update.Type);
         // We do NOT await this Task.Run, allowing the Telegram polling loop
         // to receive the next update immediately.
         _ = Task.Run(async () =>
@@ -100,7 +101,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
         return Task.CompletedTask;
     }
 
-    private async Task ProcessUpdateInternalAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
+    internal async Task ProcessUpdateInternalAsync(ITelegramBotClient _, Update update, CancellationToken cancellationToken)
     {
         if (_botInfo == null)
         {
@@ -268,6 +269,7 @@ public class UpdateHandler : BaseService, IUpdateHandler
             var v when v == BotCommand.Restart => FailingHandler(_botClient, message, cancellationToken),
             var v when v == BotCommand.UsersBalance => ShowUsersBalance(_botClient, message, cancellationToken),
             var v when v == BotCommand.SetBalance => SetUserBalance(_botClient, message, cancellationToken),
+            var v when v == BotCommand.RefreshModels => RefreshModelsCache(_botClient, message, cancellationToken),
             _ => actionText switch
             {
                 "/keyboard" => SendReplyKeyboard(_botClient, message, cancellationToken),
@@ -407,7 +409,6 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 chatId: message.Chat.Id,
                 action: ChatAction.Typing,
                 cancellationToken: cancellationToken);
-
             var choises = new TgKeyboardGrid
             {
                 new TgKeyboardRow
@@ -769,6 +770,31 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 dbUser.Id, 
                 dbUser.Balance.ToString("0.######")],
             cancellationToken: cancellationToken);
+    }
+
+    private async Task<TgMessage> RefreshModelsCache(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await ActionWithShowTypeng(message.Chat.Id, cancellationToken, Task.Run(async () =>
+            {
+                await _chatService.RefreshAvailibleModels();
+                return true;
+            }));
+
+            return await botClient.SendMessage(
+                chatId: message.Chat.Id,
+                text: _localizer["RefreshModels_Success"],
+                cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Manual refresh of models failed");
+            return await botClient.SendMessage(
+                chatId: message.Chat.Id,
+                text: _localizer["RefreshModels_Error", ex.Message],
+                cancellationToken: cancellationToken);
+        }
     }
 
     private string FormatTimeAgo(DateTime? dateTime)

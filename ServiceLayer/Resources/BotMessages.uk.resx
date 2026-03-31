@@ -250,4 +250,13 @@
   <data name="Error_ImageGenerationFailed" xml:space="preserve">
     <value>❌ Не вдалося створити зображення. Будь ласка, спробуйте ще раз з іншим запитом або пізніше.</value>
   </data>
+  <data name="RefreshModels_Success" xml:space="preserve">
+    <value>✅ Кеш AI-моделей успішно оновлено для всіх провайдерів.</value>
+  </data>
+  <data name="RefreshModels_Error" xml:space="preserve">
+    <value>❌ Не вдалося оновити кеш AI-моделей: {0}</value>
+  </data>
+  <data name="Desc_refresh_models" xml:space="preserve">
+    <value>Оновити кеш AI-моделей від провайдерів (тільки для адмінів).</value>
+  </data>
 </root>
