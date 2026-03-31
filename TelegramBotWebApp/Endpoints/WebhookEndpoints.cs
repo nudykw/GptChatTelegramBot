@@ -1,5 +1,5 @@
-using ServiceLayer.Services.Telegram;
 using Telegram.Bot;
+using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 
 namespace TelegramBotWebApp.Endpoints;
@@ -15,7 +15,7 @@ public static class WebhookEndpoints
         app.MapPost("/aibot", async (
             Update update,
             ITelegramBotClient botClient,
-            UpdateHandler handler,
+            IUpdateHandler handler,
             CancellationToken cancellationToken) =>
         {
             await handler.HandleUpdateAsync(botClient, update, cancellationToken);

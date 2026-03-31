@@ -91,6 +91,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: "http://+:8080"
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
       # Telegram
       AppSettings__TelegramBotConfiguration__BotToken:   ${TELEGRAM_BOT_TOKEN}
       AppSettings__TelegramBotConfiguration__OwnerId:    ${TELEGRAM_OWNER_ID}

@@ -9,6 +9,7 @@ using ServiceLayer.Services.OpenAI;
 using ServiceLayer.Services.Telegram;
 using ServiceLayer.Utils;
 using Telegram.Bot;
+using Telegram.Bot.Polling;
 
 namespace TelegramBotWebApp.Extensions;
 
@@ -53,7 +54,10 @@ public static class ServiceCollectionExtensions
             });
 
         // ── Bot handler services ─────────────────────────────────────────────
+        // IUpdateHandler: used by the webhook endpoint (easily mockable in tests)
+        // UpdateHandler:  used by ReceiverService for Polling mode
         services.AddScoped<UpdateHandler>();
+        services.AddScoped<IUpdateHandler>(sp => sp.GetRequiredService<UpdateHandler>());
         services.AddScoped<ReceiverService>();
 
         // ── Chat / AI services ───────────────────────────────────────────────

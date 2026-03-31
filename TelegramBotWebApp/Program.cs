@@ -93,15 +93,30 @@ if (telegramConfig.IsWebhookMode())
     app.MapWebhookEndpoints(); // POST /aibot
 }
 
-// OpenAPI JSON: GET /openapi/v1.json
-app.MapOpenApi();
+// ── Swagger / OpenAPI (controlled by SWAGGER_ENABLED in .env) ────────────────
+// Default: enabled in Development, disabled in Production.
+// Override in .env: SWAGGER_ENABLED=true | false
+var swaggerEnabledRaw = app.Configuration["SWAGGER_ENABLED"];
+var swaggerEnabled = string.IsNullOrWhiteSpace(swaggerEnabledRaw)
+    ? app.Environment.IsDevelopment()
+    : swaggerEnabledRaw.Equals("true", StringComparison.OrdinalIgnoreCase);
 
-// Scalar Swagger UI: GET /scalar/v1
-app.MapScalarApiReference(options =>
+if (swaggerEnabled)
 {
-    options.Title = "GPTChatBot API";
-    options.Theme = ScalarTheme.DeepSpace;
-});
+    app.MapOpenApi(); // GET /openapi/v1.json
+
+    app.MapScalarApiReference(options =>
+    {
+        options.Title = "GPTChatBot API";
+        options.Theme = ScalarTheme.DeepSpace;
+    }); // GET /scalar/v1
+
+    app.Logger.LogInformation("Swagger UI enabled at /scalar/v1");
+}
+else
+{
+    app.Logger.LogInformation("Swagger UI disabled (SWAGGER_ENABLED=false)");
+}
 
 // Prometheus metrics: GET /metrics
 app.MapMetrics();
