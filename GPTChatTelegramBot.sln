@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceLayer.UnitTests", "t
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceLayer.BindingTests", "tests\ServiceLayer.BindingTests\ServiceLayer.BindingTests.csproj", "{2E594FBB-3C30-4F13-AC7D-7831B100C3D6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelegramBotWebApp", "TelegramBotWebApp\TelegramBotWebApp.csproj", "{9F281235-9076-48E9-9D69-87EDB662002E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -99,6 +101,18 @@ Global
 		{2E594FBB-3C30-4F13-AC7D-7831B100C3D6}.Release|x64.Build.0 = Release|Any CPU
 		{2E594FBB-3C30-4F13-AC7D-7831B100C3D6}.Release|x86.ActiveCfg = Release|Any CPU
 		{2E594FBB-3C30-4F13-AC7D-7831B100C3D6}.Release|x86.Build.0 = Release|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Debug|x64.Build.0 = Debug|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Debug|x86.Build.0 = Debug|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Release|x64.ActiveCfg = Release|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Release|x64.Build.0 = Release|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Release|x86.ActiveCfg = Release|Any CPU
+		{9F281235-9076-48E9-9D69-87EDB662002E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

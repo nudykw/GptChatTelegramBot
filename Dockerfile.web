@@ -1,0 +1,35 @@
+# ── Build stage ──────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and project files first (layer cache for NuGet restore)
+COPY GPTChatTelegramBot.sln .
+COPY TelegramBotWebApp/TelegramBotWebApp.csproj   TelegramBotWebApp/
+COPY ServiceLayer/ServiceLayer.csproj             ServiceLayer/
+COPY DataBaseLayer/DataBaseLayer.csproj           DataBaseLayer/
+
+RUN dotnet restore TelegramBotWebApp/TelegramBotWebApp.csproj
+
+# Copy remaining source code
+COPY TelegramBotWebApp/ TelegramBotWebApp/
+COPY ServiceLayer/      ServiceLayer/
+COPY DataBaseLayer/     DataBaseLayer/
+COPY Configs/           Configs/
+
+RUN dotnet publish TelegramBotWebApp/TelegramBotWebApp.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+# ── Runtime stage ─────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+COPY --from=build /app/publish .
+# Include Configs so the web app can locate appsettings.web.json at runtime
+COPY --from=build /src/Configs ./Configs
+
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+
+ENTRYPOINT ["dotnet", "TelegramBotWebApp.dll"]

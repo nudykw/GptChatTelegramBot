@@ -1,15 +1,138 @@
+# =============================================================================
+# GptChatTelegramBot — Docker Compose
+# =============================================================================
+# All secrets and ports are loaded from the .env file (see .env.example).
+#
+# Activate services with COMPOSE_PROFILES in .env:
+#   postgres,cloudbeaver  — PostgreSQL + CloudBeaver + Bot
+#   postgres              — PostgreSQL + Bot
+#   mysql                 — MySQL + Bot
+#   mssql                 — SQL Server + Bot
+#   (empty)               — Bot only (SQLite, no DB container)
+# =============================================================================
+
 services:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # DATABASES
+  # ──────────────────────────────────────────────────────────────────────────
+
   postgres:
-    image: postgres:15-alpine
-    container_name: gpt_chat_bot_db
+    profiles: ["postgres"]
+    image: postgres:17-alpine
+    container_name: gpt_bot_postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: gpt_chat_bot
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql:
+    profiles: ["mysql"]
+    image: mysql:9-oracle
+    container_name: gpt_bot_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE:      ${MYSQL_DB}
+      MYSQL_USER:          ${MYSQL_USER}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mssql:
+    profiles: ["mssql"]
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: gpt_bot_mssql
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA:        "Y"
+      MSSQL_SA_PASSWORD:  ${MSSQL_SA_PASSWORD}
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL",
+        "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${MSSQL_SA_PASSWORD}' -C -Q 'SELECT 1'"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # BOT — Web application (TelegramBotWebApp)
+  # ──────────────────────────────────────────────────────────────────────────
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: gpt_telegram_bot
+    restart: unless-stopped
+    ports:
+      - "${BOT_PORT:-8080}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: "http://+:8080"
+      # Telegram
+      AppSettings__TelegramBotConfiguration__BotToken:   ${TELEGRAM_BOT_TOKEN}
+      AppSettings__TelegramBotConfiguration__OwnerId:    ${TELEGRAM_OWNER_ID}
+      AppSettings__TelegramBotConfiguration__BaseApiUrl: ${TELEGRAM_BASE_API_URL:-}
+      # Database
+      AppSettings__Database__Provider:          ${DB_PROVIDER}
+      AppSettings__Database__ConnectionString:  ${DB_CONNECTION_STRING}
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+      mysql:
+        condition: service_healthy
+        required: false
+      mssql:
+        condition: service_healthy
+        required: false
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # CLOUDBEAVER — Web database manager (optional, profile: cloudbeaver)
+  # ──────────────────────────────────────────────────────────────────────────
+
+  cloudbeaver:
+    profiles: ["cloudbeaver"]
+    image: dbeaver/cloudbeaver:latest
+    container_name: gpt_cloudbeaver
+    restart: unless-stopped
+    ports:
+      - "${CLOUDBEAVER_PORT:-8978}:${CLOUDBEAVER_PORT:-8978}"
+    environment:
+      CLOUDBEAVER_WEB_SERVER_PORT: ${CLOUDBEAVER_PORT:-8978}
+      CB_ADMIN_NAME:     ${CLOUDBEAVER_ADMIN_NAME}
+      CB_ADMIN_PASSWORD: ${CLOUDBEAVER_ADMIN_PASSWORD}
+    volumes:
+      - cloudbeaver_workspace:/opt/cloudbeaver/workspace
+
+# ──────────────────────────────────────────────────────────────────────────
+# VOLUMES
+# ──────────────────────────────────────────────────────────────────────────
 
 volumes:
   postgres_data:
+  mysql_data:
+  mssql_data:
+  cloudbeaver_workspace:

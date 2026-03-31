@@ -44,6 +44,14 @@ public class TelegramBotConfiguration
     /// AI model cache expiry in hours.
     /// </summary>
     public int ModelCacheExpiryHours { get; set; } = 48;
+
+    /// <summary>
+    /// Public base URL of the web application (e.g. "https://example.com").
+    /// When set, the bot uses Webhook mode: Telegram will POST updates to {BaseApiUrl}/aibot.
+    /// When null or empty, the bot falls back to Polling mode.
+    /// Trailing slash is normalised automatically.
+    /// </summary>
+    public string? BaseApiUrl { get; set; }
 }
 
 public class AiSettings
