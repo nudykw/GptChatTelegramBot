@@ -127,6 +127,9 @@ services:
       CB_ADMIN_PASSWORD: ${CLOUDBEAVER_ADMIN_PASSWORD}
     volumes:
       - cloudbeaver_workspace:/opt/cloudbeaver/workspace
+      # Pre-configure PostgreSQL connection so CloudBeaver shows it on first launch.
+      # The file is read by CloudBeaver on startup from the GlobalConfiguration project.
+      - ./cloudbeaver/GlobalConfiguration/.dbeaver:/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver
 
 # ──────────────────────────────────────────────────────────────────────────
 # VOLUMES

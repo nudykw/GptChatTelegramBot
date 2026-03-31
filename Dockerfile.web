@@ -2,13 +2,15 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy solution and project files first (layer cache for NuGet restore)
-COPY GPTChatTelegramBot.sln .
+# Copy project files first for NuGet restore layer caching
 COPY TelegramBotWebApp/TelegramBotWebApp.csproj   TelegramBotWebApp/
 COPY ServiceLayer/ServiceLayer.csproj             ServiceLayer/
 COPY DataBaseLayer/DataBaseLayer.csproj           DataBaseLayer/
 
-RUN dotnet restore TelegramBotWebApp/TelegramBotWebApp.csproj
+# Restore only the web app and its direct project dependencies
+# Use --packages to ensure all transitive packages are fetched
+RUN dotnet restore TelegramBotWebApp/TelegramBotWebApp.csproj \
+    --packages /root/.nuget/packages
 
 # Copy remaining source code
 COPY TelegramBotWebApp/ TelegramBotWebApp/
@@ -16,10 +18,10 @@ COPY ServiceLayer/      ServiceLayer/
 COPY DataBaseLayer/     DataBaseLayer/
 COPY Configs/           Configs/
 
+# Publish — restore again here to catch any missed transitive deps
 RUN dotnet publish TelegramBotWebApp/TelegramBotWebApp.csproj \
     -c Release \
-    -o /app/publish \
-    --no-restore
+    -o /app/publish
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
