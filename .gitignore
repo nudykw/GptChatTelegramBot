@@ -1,3 +1,7 @@
+# Environment secrets (never commit)
+.env
+Configs/*.local.json
+
 /.vs
 bin/
 obj/
