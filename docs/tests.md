@@ -1,5 +1,7 @@
 # Testing Strategy
 
+🇺🇸 English | 🇺🇦 [Українська](tests.uk.md)
+
 This document provides information about the testing strategy and provides guidance on where tests are located and what they cover.
 
 ## Test Location

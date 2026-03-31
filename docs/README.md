@@ -1,5 +1,7 @@
 # Project Documentation Index
 
+🇺🇸 English | 🇺🇦 [Українська](README.uk.md)
+
 Welcome to the **GPTChatTelegramBot** documentation. This folder contains detailed information about the project's structure, core files, and testing strategy.
 
 ## Documentation Sections
@@ -14,6 +16,15 @@ Welcome to the **GPTChatTelegramBot** documentation. This folder contains detail
 3. **[Testing Strategy](./tests.md)**
    - Information about where to find unit and integration tests.
    - Instructions on how to run tests.
+
+4. **[Database Migrations](./MIGRATIONS.md)**
+   - Step-by-step guide: first migration, subsequent migrations, troubleshooting.
+
+5. **[Docker Deployment](./DOCKER.md)**
+   - Complete deployment guide with all database providers.
+
+6. **[API & Libraries Reference](./api_reference.md)**
+   - Links to documentation for all libraries used and external AI APIs.
 
 ---
 

@@ -1,5 +1,7 @@
 # Project Descriptions
 
+🇺🇸 English | 🇺🇦 [Українська](projects.uk.md)
+
 This document provides an overview of each project within the **GPTChatTelegramBot** solution.
 
 ## [TelegramBotApp](../TelegramBotApp)

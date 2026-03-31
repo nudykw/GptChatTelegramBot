@@ -1,5 +1,7 @@
 # Core Files Description
 
+🇺🇸 English | 🇺🇦 [Українська](core_files.uk.md)
+
 This document highlights the most important files in the repository to help you understand the application's flow and logic.
 
 ## [Program.cs](../TelegramBotApp/Program.cs)

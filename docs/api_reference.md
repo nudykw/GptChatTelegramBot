@@ -1,5 +1,7 @@
 # API and Library Documentation
 
+🇺🇸 English | 🇺🇦 [Українська](api_reference.uk.md)
+
 This file contains up-to-date links to the documentation for all key libraries used in the project, as well as external Artificial Intelligence APIs. You can use it as a single entry point for finding integration information.
 
 ## 📚 Used Libraries (NuGet)
