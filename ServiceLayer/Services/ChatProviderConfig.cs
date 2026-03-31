@@ -17,17 +17,17 @@ public class ChatProviderConfig
     /// <summary>
     /// Provider name (e.g., "OpenAI", "Gemini").
     /// </summary>
-    public required string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     /// <summary>
     /// Provider type for processing strategy selection.
     /// </summary>
-    public required AiProvider ProviderType { get; set; }
+    public AiProvider ProviderType { get; set; } = default!;
 
     /// <summary>
     /// API key for service access.
     /// </summary>
-    public required string ApiKey { get; set; }
+    public string ApiKey { get; set; } = null!;
 
     /// <summary>
     /// Base API URL (if different from default).

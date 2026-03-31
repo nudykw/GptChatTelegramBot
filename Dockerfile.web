@@ -1,5 +1,5 @@
 # ── Build stage ──────────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
 # Copy project files first for NuGet restore layer caching
@@ -7,10 +7,6 @@ COPY TelegramBotWebApp/TelegramBotWebApp.csproj   TelegramBotWebApp/
 COPY ServiceLayer/ServiceLayer.csproj             ServiceLayer/
 COPY DataBaseLayer/DataBaseLayer.csproj           DataBaseLayer/
 
-# Restore only the web app and its direct project dependencies
-# Use --packages to ensure all transitive packages are fetched
-RUN dotnet restore TelegramBotWebApp/TelegramBotWebApp.csproj \
-    --packages /root/.nuget/packages
 
 # Copy remaining source code
 COPY TelegramBotWebApp/ TelegramBotWebApp/
@@ -18,20 +14,30 @@ COPY ServiceLayer/      ServiceLayer/
 COPY DataBaseLayer/     DataBaseLayer/
 COPY Configs/           Configs/
 
-# Publish — restore again here to catch any missed transitive deps
+# Self-contained + trimmed publication → no .NET runtime needed in final image
 RUN dotnet publish TelegramBotWebApp/TelegramBotWebApp.csproj \
     -c Release \
+    -r linux-musl-x64 \
+    --self-contained true \
+    -p:PublishTrimmed=true \
+    -p:PublishSingleFile=true \
     -o /app/publish
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# runtime-deps:alpine contains only the native libs required by a self-contained .NET app
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS runtime
 WORKDIR /app
 
-COPY --from=build /app/publish .
+# Non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=build --chown=appuser:appgroup /app/publish/TelegramBotWebApp .
 # Include Configs so the web app can locate appsettings.web.json at runtime
-COPY --from=build /src/Configs ./Configs
+COPY --from=build --chown=appuser:appgroup /src/Configs ./Configs
+
+USER appuser
 
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
-ENTRYPOINT ["dotnet", "TelegramBotWebApp.dll"]
+ENTRYPOINT ["./TelegramBotWebApp"]
