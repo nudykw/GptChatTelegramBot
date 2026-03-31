@@ -1,4 +1,5 @@
 using DataBaseLayer.Contexts;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using DataBaseLayer.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -15,28 +16,23 @@ public static class MigrationConfigurator
         {
             case DatabaseProvider.Sqlite:
                 optionsBuilder.UseSqlite(connectionString, x => x.MigrationsAssembly("DataBaseLayer"))
-                              .ReplaceService<IMigrationsAssembly, DataBaseLayer.Internal.ProviderSpecificMigrationsAssembly>();
+                               .ReplaceService<IMigrationsAssembly, DataBaseLayer.Internal.ProviderSpecificMigrationsAssembly>()
+                               .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
                 break;
             case DatabaseProvider.SqlServer:
                 optionsBuilder.UseSqlServer(connectionString, x => x.MigrationsAssembly("DataBaseLayer"))
-                              .ReplaceService<IMigrationsAssembly, DataBaseLayer.Internal.ProviderSpecificMigrationsAssembly>();
+                              .ReplaceService<IMigrationsAssembly, DataBaseLayer.Internal.ProviderSpecificMigrationsAssembly>()
+                               .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
                 break;
             case DatabaseProvider.PostgreSql:
                 optionsBuilder.UseNpgsql(connectionString, x => x.MigrationsAssembly("DataBaseLayer"))
-                              .ReplaceService<IMigrationsAssembly, DataBaseLayer.Internal.ProviderSpecificMigrationsAssembly>();
+                              .ReplaceService<IMigrationsAssembly, DataBaseLayer.Internal.ProviderSpecificMigrationsAssembly>()
+                               .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
                 break;
             case DatabaseProvider.MySql:
-                try 
-                {
-                    optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), x => x.MigrationsAssembly("DataBaseLayer"))
-                                  .ReplaceService<IMigrationsAssembly, DataBaseLayer.Internal.ProviderSpecificMigrationsAssembly>();
-                }
-                catch
-                {
-                    // Default version for design-time if connection fails
-                    optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21)), x => x.MigrationsAssembly("DataBaseLayer"))
-                                  .ReplaceService<IMigrationsAssembly, DataBaseLayer.Internal.ProviderSpecificMigrationsAssembly>();
-                }
+                optionsBuilder.UseMySQL(connectionString, x => x.MigrationsAssembly("DataBaseLayer"))
+                              .ReplaceService<IMigrationsAssembly, DataBaseLayer.Internal.ProviderSpecificMigrationsAssembly>()
+                               .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(provider), provider, null);

@@ -8,17 +8,17 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace DataBaseLayer.Migrations.Sqlite
+namespace DataBaseLayer.Migrations.Postgres
 {
     [DbContext(typeof(StoreContext))]
-    [Migration("20260331010626_CreateInitialSchema")]
-    partial class CreateInitialSchema
+    [Migration("20260331154030_Initial_Postgres")]
+    partial class Initial_Postgres
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.4");
 
             modelBuilder.Entity("DataBaseLayer.Models.AIBilingItem", b =>
                 {
@@ -93,6 +93,37 @@ namespace DataBaseLayer.Migrations.Sqlite
                     b.HasKey("Id");
 
                     b.ToTable("BalanceHistories");
+                });
+
+            modelBuilder.Entity("DataBaseLayer.Models.CachedAIModel", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FriendlyName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastChecked")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModelId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CachedAIModels");
                 });
 
             modelBuilder.Entity("DataBaseLayer.Models.CachedTranslation", b =>

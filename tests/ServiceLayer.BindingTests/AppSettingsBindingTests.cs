@@ -12,9 +12,9 @@ public class AppSettingsBindingTests
     {
         var myConfiguration = new Dictionary<string, string?> {
             {"AppSettings:TelegramBotConfiguration:BotToken", "abc"},
-            {"AppSettings:ChatProviders:0:Name", "Test"},
-            {"AppSettings:ChatProviders:0:ProviderType", "openai"},
-            {"AppSettings:ChatProviders:0:ApiKey", "key"}
+            {"AppSettings:TelegramBotConfiguration:AiSettings:ChatProviders:0:Name", "Test"},
+            {"AppSettings:TelegramBotConfiguration:AiSettings:ChatProviders:0:ProviderType", "openai"},
+            {"AppSettings:TelegramBotConfiguration:AiSettings:ChatProviders:0:ApiKey", "key"}
         };
 
         var configuration = new ConfigurationBuilder()
@@ -26,7 +26,7 @@ public class AppSettingsBindingTests
 
         Assert.NotNull(appSettings);
         Assert.Equal("abc", appSettings.TelegramBotConfiguration.BotToken);
-        Assert.Single(appSettings.ChatProviders);
-        Assert.Equal("openai", appSettings.ChatProviders[0].ProviderType.Value);
+        Assert.Single(appSettings.TelegramBotConfiguration.AiSettings.ChatProviders);
+        Assert.Equal("openai", appSettings.TelegramBotConfiguration.AiSettings.ChatProviders[0].ProviderType.Value);
     }
 }

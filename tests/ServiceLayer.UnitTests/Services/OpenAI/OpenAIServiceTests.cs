@@ -263,7 +263,7 @@ public class OpenAIServiceTests
         Assert.True(user.Balance < initialBalance, $"Balance {user.Balance} should be less than {initialBalance}");
         Assert.NotNull(user.LastAiInteraction);
         _mockUserInfoRepository.Verify(r => r.Update(user), Times.Once);
-        _mockUserInfoRepository.Verify(r => r.SaveChanges(), Times.Once);
+        _mockBillingRepository.Verify(r => r.SaveChanges(), Times.Once);
     }
 
     [Fact]

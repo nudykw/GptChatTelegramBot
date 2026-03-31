@@ -39,7 +39,7 @@ public class ImageGenerationLogicTests : IClassFixture<TestAppFixture>
     {
         // This test verifies that all providers in appsettings.json are correctly wired.
         // It treats API errors (like Unauthorized) as a "Pass" for wiring.
-        foreach (var provider in _appSettings.ChatProviders)
+        foreach (var provider in _appSettings.TelegramBotConfiguration.AiSettings.ChatProviders)
         {
             var service = _chatServiceFactory.CreateService(provider.Name);
             try

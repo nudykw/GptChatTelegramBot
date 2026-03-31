@@ -16,11 +16,6 @@ public class AppSettings
     public TelegramBotConfiguration TelegramBotConfiguration { get; set; } = null!;
 
     /// <summary>
-    /// List of configurations for AI providers (OpenAI, Gemini, etc.).
-    /// </summary>
-    public List<ChatProviderConfig> ChatProviders { get; set; } = new();
-
-    /// <summary>
     /// Database configuration.
     /// </summary>
     public DatabaseSettings Database { get; set; } = new();

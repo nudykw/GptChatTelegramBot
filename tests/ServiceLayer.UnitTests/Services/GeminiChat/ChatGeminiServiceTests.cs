@@ -1,4 +1,5 @@
 using Moq;
+using Microsoft.Extensions.Options;
 using ServiceLayer.Services.GeminiChat.DotNet;
 using ServiceLayer.Constans;
 using ServiceLayer.Services;
@@ -33,6 +34,11 @@ namespace ServiceLayer.UnitTests.Services.GeminiChat
                 ApiKey = "test-key",
                 ProviderType = AiProvider.Gemini
             };
+
+            var appSettings = new AppSettings { TelegramBotConfiguration = new ServiceLayer.Services.Telegram.Configuretions.TelegramBotConfiguration() };
+            var mockOptions = new Mock<IOptions<AppSettings>>();
+            mockOptions.Setup(o => o.Value).Returns(appSettings);
+            _mockServiceProvider.Setup(s => s.GetService(typeof(IOptions<AppSettings>))).Returns(mockOptions.Object);
         }
 
         [Fact]

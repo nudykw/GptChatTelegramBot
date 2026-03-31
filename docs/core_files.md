@@ -31,7 +31,7 @@ This document highlights the most important files in the repository to help you 
 ## [TelegramBotConfiguration.cs](../ServiceLayer/Services/Telegram/Configurations/TelegramBotConfiguration.cs)
 **Modular Settings Architecture**
 - Defines the hierarchical structure of the bot's configuration.
-- **AiTaskSettings**: Centralizes model and provider settings for specialized tasks like `Vision`, `Drawing`, and `Classification`.
+- **AiSettings**: Centralizes model and provider settings for specialized tasks like `Vision`, `Drawing`, and `Classification`. Now also contains the `ChatProviders` list for a unified AI configuration.
 
 ## [ChatProviderConfig.cs](../ServiceLayer/Services/ChatProviderConfig.cs)
 **Provider Metadata**
@@ -59,7 +59,6 @@ This document highlights the most important files in the repository to help you 
 ## [AppSettings.cs](../ServiceLayer/AppSettings.cs)
 **Configuration Structure**
 - A POCO (Plain Old CLR Object) class that maps the `appsettings.json` content into a strongly-typed object.
-- Includes the `ChatProviders` collection for multi-provider support.
 - Highly useful for accessing secrets and limits across the entire solution.
 
 ## [ChatGeminiService.cs](../ServiceLayer/Services/GeminiChat.DotNet/ChatGeminiService.cs)

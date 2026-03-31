@@ -35,6 +35,7 @@ namespace ServiceLayer.UnitTests.Services.Telegram
         private readonly Mock<IRepository<TelegramUserInfo>> _userInfoRepositoryMock = new();
         private readonly Mock<IRepository<TelegramChatInfo>> _chatInfoRepositoryMock = new();
         private readonly Mock<IRepository<BalanceHistory>> _balanceHistoryRepositoryMock = new();
+        private Mock<IChatServiceFactory> _chatServiceFactoryMock;
         private readonly AppSettings _appSettings;
 
         public UpdateHandlerAdminCommandTests()
@@ -60,16 +61,18 @@ namespace ServiceLayer.UnitTests.Services.Telegram
             _serviceProviderMock.Setup(x => x.GetService(typeof(Microsoft.Extensions.Options.IOptions<AppSettings>)))
                 .Returns(optionsMock.Object);
 
+            _chatServiceFactoryMock = new Mock<IChatServiceFactory>();
+
             // Mocks for constructor
             _messageProcessorMock = new Mock<MessageProcessorClass>(
                 _serviceProviderMock.Object, 
                 new Mock<ILogger<MessageProcessorClass>>().Object,
-                null, null, _botClientMock.Object, null, _localizerMock.Object);
+                null, null, _chatServiceFactoryMock.Object, _botClientMock.Object, null, _localizerMock.Object);
 
             _audioTranscriptorMock = new Mock<AudioTranscriptorService>(
                 _serviceProviderMock.Object,
                 new Mock<ILogger<AudioTranscriptorService>>().Object,
-                null);
+                _chatServiceFactoryMock.Object);
 
             // Mock bot info
             _botClientMock.Setup(x => x.SendRequest(
@@ -135,16 +138,11 @@ namespace ServiceLayer.UnitTests.Services.Telegram
             // But UpdateHandler has BotOnMessageReceived as private too.
             // Let's use HandleUpdateAsync which is public and handles scoping.
             
-            // For HandleUpdateAsync, we need to mock _scopeFactory
-            var scopeMock = new Mock<IServiceScope>();
-            scopeMock.Setup(s => s.ServiceProvider).Returns(_serviceProviderMock.Object);
-            _scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
             _serviceProviderMock.Setup(s => s.GetService(typeof(UpdateHandler))).Returns(sut);
 
-            await sut.HandleUpdateAsync(_botClientMock.Object, new Update { Message = message }, CancellationToken.None);
+            await sut.ProcessUpdateInternalAsync(_botClientMock.Object, new Update { Message = message }, CancellationToken.None);
 
-            // Wait a bit for Task.Run
-            await Task.Delay(200);
+
 
             // Assert
             _botClientMock.Verify(b => b.SendRequest(
@@ -171,14 +169,8 @@ namespace ServiceLayer.UnitTests.Services.Telegram
             _localizerMock.Setup(l => l["PermissionDenied"]).Returns("No access");
 
             var sut = CreateSut();
-            var scopeMock = new Mock<IServiceScope>();
-            scopeMock.Setup(s => s.ServiceProvider).Returns(_serviceProviderMock.Object);
-            _scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
-            _serviceProviderMock.Setup(s => s.GetService(typeof(UpdateHandler))).Returns(sut);
-
             // Act
-            await sut.HandleUpdateAsync(_botClientMock.Object, new Update { Message = message }, CancellationToken.None);
-            await Task.Delay(200);
+            await sut.ProcessUpdateInternalAsync(_botClientMock.Object, new Update { Message = message }, CancellationToken.None);
 
             // Assert
             _botClientMock.Verify(b => b.SendRequest(
@@ -212,14 +204,10 @@ namespace ServiceLayer.UnitTests.Services.Telegram
                 .Returns((string key, object[] args) => $"Success: {args[0]} ({args[1]}) balance set to {args[2]}");
 
             var sut = CreateSut();
-            var scopeMock = new Mock<IServiceScope>();
-            scopeMock.Setup(s => s.ServiceProvider).Returns(_serviceProviderMock.Object);
-            _scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
             _serviceProviderMock.Setup(s => s.GetService(typeof(UpdateHandler))).Returns(sut);
 
             // Act
-            await sut.HandleUpdateAsync(_botClientMock.Object, new Update { Message = message }, CancellationToken.None);
-            await Task.Delay(200);
+            await sut.ProcessUpdateInternalAsync(_botClientMock.Object, new Update { Message = message }, CancellationToken.None);
 
             // Assert
             Assert.Equal(150.5M, targetUser.Balance);
@@ -257,14 +245,10 @@ namespace ServiceLayer.UnitTests.Services.Telegram
             _localizerMock.Setup(l => l["SetBalance_InvalidFormat"]).Returns("Invalid format");
 
             var sut = CreateSut();
-            var scopeMock = new Mock<IServiceScope>();
-            scopeMock.Setup(s => s.ServiceProvider).Returns(_serviceProviderMock.Object);
-            _scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
             _serviceProviderMock.Setup(s => s.GetService(typeof(UpdateHandler))).Returns(sut);
 
             // Act
-            await sut.HandleUpdateAsync(_botClientMock.Object, new Update { Message = message }, CancellationToken.None);
-            await Task.Delay(200);
+            await sut.ProcessUpdateInternalAsync(_botClientMock.Object, new Update { Message = message }, CancellationToken.None);
 
             // Assert
             _botClientMock.Verify(b => b.SendRequest(

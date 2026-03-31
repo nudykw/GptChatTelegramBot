@@ -66,6 +66,7 @@ internal class OpenAIService : BaseService, IChatService
     private readonly IRepository<AIBilingItem>? _aiBilingItemRepository;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDynamicLocalizer _localizer;
+    private readonly IRepository<CachedAIModel>? _cachedAIModelRepository;
     private OpenAIModelCache? openAiModelCache = null;
 
     public OpenAIService(IServiceProvider serviceProvider, ILogger<OpenAIService> logger,
@@ -97,6 +98,7 @@ internal class OpenAIService : BaseService, IChatService
             _api = new OpenAIClient(auth, settings, httpClient);
         }
         _aiBilingItemRepository = _serviceProvider.GetService<IRepository<AIBilingItem>>();
+        _cachedAIModelRepository = _serviceProvider.GetService<IRepository<CachedAIModel>>();
         _httpClientFactory = httpClientFactory;
         _localizer = localizer;
         
@@ -105,49 +107,152 @@ internal class OpenAIService : BaseService, IChatService
     }
     public async Task<IReadOnlyList<Model>> GetAvailibleModels(long? userId = null, bool validateModels = true)
     {
-        IReadOnlyList<Model> modelsResponce = await _api.ModelsEndpoint.GetModelsAsync();
-        var result = new List<Model>();
-        if (openAiModelCache != null && (DateTime.UtcNow - openAiModelCache.LastUpdates.Value).Hours < 6)
+        var appSettings = _serviceProvider.GetConfiguration<AppSettings>();
+        var expiryHours = appSettings?.TelegramBotConfiguration?.ModelCacheExpiryHours ?? 48;
+        var providerName = _chatProviderConfiguration.Name;
+
+        if (_cachedAIModelRepository != null)
+        {
+            var cachedModels = _cachedAIModelRepository.GetAll()
+                .Where(p => p.ProviderName == providerName && p.IsAvailable)
+                .ToList();
+
+            if (cachedModels.Any())
+            {
+                var oldestChecked = cachedModels.Min(p => p.LastChecked);
+                if ((DateTime.UtcNow - oldestChecked).TotalHours < expiryHours)
+                {
+                    return cachedModels.Select(p => new Model(p.ModelId)).ToList();
+                }
+            }
+        }
+
+        // Fallback to in-memory if repo is null or no cache
+        if (openAiModelCache != null && (DateTime.UtcNow - openAiModelCache.LastUpdates.Value).TotalHours < expiryHours)
         {
             return openAiModelCache.Models;
         }
-        foreach (Model model in modelsResponce)
+
+        await RefreshAvailibleModels(validateModels);
+        return openAiModelCache?.Models ?? new List<Model>();
+    }
+
+    public async Task RefreshAvailibleModels(bool validate = true)
+    {
+        _logger.LogInformation("Refreshing OpenAI models cache (validate={0})...", validate);
+        IReadOnlyList<Model> modelsResponce;
+        try
         {
-            // Pre-filter: only attempt chat check for known model prefixes or if we have cost info
+            modelsResponce = await _api.ModelsEndpoint.GetModelsAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch models from OpenAI API");
+            return;
+        }
+
+        var providerName = _chatProviderConfiguration.Name;
+        var result = new ConcurrentBag<Model>();
+        var filteredModels = modelsResponce.Where(model => 
+        {
             string modelId = model.Id.ToLowerInvariant();
-            if (!modelId.StartsWith("gpt-") && 
-                !modelId.StartsWith("o1-") && 
-                !modelId.StartsWith("o3-") &&
-                !modelId.StartsWith("deepseek-") &&
-                !modelId.StartsWith("grok-") &&
-                !aiModelsCosts.ContainsKey(model.Id))
+            
+            // Skip non-chat models explicitly
+            if (modelId.Contains("embedding") || 
+                modelId.Contains("whisper") || 
+                modelId.Contains("dall-e") || 
+                modelId.Contains("tts") || 
+                modelId.Contains("moderation"))
             {
-                continue;
+                return false;
             }
 
-            if (validateModels)
+            // Regular filtering
+            return modelId.StartsWith("gpt-") || 
+                   modelId.StartsWith("o1-") || 
+                   modelId.StartsWith("o3-") ||
+                   modelId.StartsWith("deepseek-") ||
+                   modelId.StartsWith("grok-") ||
+                   aiModelsCosts.ContainsKey(model.Id);
+        }).ToList();
+
+        if (validate)
+        {
+            _logger.LogInformation("Validating {0} models for provider {1} in parallel...", filteredModels.Count, providerName);
+
+            var validationTasks = filteredModels.Select(async model => 
             {
                 try
                 {
-                    ChatRequest chatRequest = new ChatRequest(new[] { new AiMessage(Role.User, "Hi") }
-                    , model: model.Id
-                    );
-                    ChatResponse teatResult = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
+                    ChatRequest chatRequest = new ChatRequest(new[] { new AiMessage(Role.User, "Hi") }, model: model.Id);
+                    await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
+                    result.Add(model);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    continue;
+                    _logger.LogDebug("Model {0} validation failed: {1}", model.Id, ex.Message);
+                }
+            });
+
+            await Task.WhenAll(validationTasks);
+        }
+        else
+        {
+            foreach (var model in filteredModels)
+            {
+                result.Add(model);
+            }
+        }
+
+        if (_cachedAIModelRepository != null)
+        {
+            var existingModels = _cachedAIModelRepository.GetAll()
+                .Where(p => p.ProviderName == providerName)
+                .ToList();
+            
+            foreach (var model in result)
+            {
+                var existing = existingModels.FirstOrDefault(p => p.ModelId == model.Id);
+                if (existing != null)
+                {
+                    existing.LastChecked = DateTime.UtcNow;
+                    existing.IsAvailable = true;
+                    _cachedAIModelRepository.Update(existing);
+                }
+                else
+                {
+                    _cachedAIModelRepository.Add(new CachedAIModel
+                    {
+                        ModelId = model.Id,
+                        ProviderName = providerName,
+                        IsAvailable = true,
+                        LastChecked = DateTime.UtcNow,
+                        FriendlyName = model.Id
+                    });
                 }
             }
-            result.Add(model);
+            
+            // Mark those not in result as unavailable
+            foreach (var existing in existingModels.Where(e => result.All(r => r.Id != e.ModelId)))
+            {
+                if (existing.IsAvailable)
+                {
+                    existing.IsAvailable = false;
+                    existing.LastChecked = DateTime.UtcNow;
+                    _cachedAIModelRepository.Update(existing);
+                }
+            }
+            await _cachedAIModelRepository.SaveChanges();
         }
+
         openAiModelCache = new OpenAIModelCache
         {
             LastUpdates = DateTime.UtcNow,
-            Models = result
+            Models = result.ToList()
         };
-        return result;
+        _logger.LogInformation("{0} models cache refreshed. Found {1} available models.", providerName, result.Count);
     }
+
     public async Task<string> Ask(long chatId, long userId, string message)
     {
         var chatServiceResponce = await SendMessages2ChatAsync(chatId, userId, new List<AiMessage>()
@@ -337,7 +442,7 @@ internal class OpenAIService : BaseService, IChatService
     public async Task<ChatServiceResponse> AnalyzeImageAsync(long chatId, long telegramUserId, string? imageUrl, string? filePath = null, string? prompt = null, string? model = null)
     {
         var appSettings = _serviceProvider.GetConfiguration<AppSettings>();
-        var visionModel = model ?? appSettings?.TelegramBotConfiguration?.AiTaskSettings?.Vision?.ModelName ?? (string)AiModel.Gpt4o;
+        var visionModel = model ?? appSettings?.TelegramBotConfiguration?.AiSettings?.Vision?.ModelName ?? (string)AiModel.Gpt4o;
         var finalPrompt = prompt ?? "Describe this image.";
 
         string? finalImageUrl = imageUrl;
@@ -428,9 +533,7 @@ internal class OpenAIService : BaseService, IChatService
         if (string.IsNullOrEmpty(modelName)) return (false, _localizer["EmptyModelName"]);
         try
         {
-            ChatRequest chatRequest = new ChatRequest(new[] { new AiMessage(Role.User, "Hi") }, model:
-            modelName
-            );
+            ChatRequest chatRequest = new ChatRequest(new[] { new AiMessage(Role.User, "Hi") }, model: modelName);
             ChatResponse result = await _api.ChatEndpoint.GetCompletionAsync(chatRequest);
         }
         catch (Exception ex)

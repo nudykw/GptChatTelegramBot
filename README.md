@@ -26,26 +26,26 @@ Before compiling the project, add your keys to the `TelegramBotApp/appsettings.s
     "TelegramBotConfiguration": {
       "BotToken": "[YOUR_TELEGRAM_BOT_TOKEN]",
       "OwnerId": [YOUR_OWNER_ID],
-      "AiTaskSettings": {
+      "AiSettings": {
         "Vision": { "ModelName": "gpt-4o", "ProviderName": "OpenAI" },
         "Drawing": { "ModelName": "dall-e-3", "ProviderName": "OpenAI" },
-        "Classification": { "ModelName": "gpt-4o-mini", "ProviderName": "OpenAI" }
+        "Classification": { "ModelName": "gpt-4o-mini", "ProviderName": "OpenAI" },
+        "ChatProviders": [
+          {
+            "Name": "OpenAI",
+            "ProviderType": "OpenAI",
+            "ApiKey": "[YOUR_OPENAI_API_KEY]",
+            "ModelName": "gpt-4o-mini"
+          },
+          {
+            "Name": "Gemini",
+            "ProviderType": "Gemini",
+            "ApiKey": "[YOUR_GEMINI_API_KEY]",
+            "ModelName": "gemini-2.0-flash"
+          }
+        ]
       }
-    },
-    "ChatProviders": [
-      {
-        "Name": "OpenAI",
-        "ProviderType": "OpenAI",
-        "ApiKey": "[YOUR_OPENAI_API_KEY]",
-        "ModelName": "gpt-4o-mini"
-      },
-      {
-        "Name": "Gemini",
-        "ProviderType": "Gemini",
-        "ApiKey": "[YOUR_GEMINI_API_KEY]",
-        "ModelName": "gemini-2.0-flash"
-      }
-    ]
+    }
   }
 }
 ```

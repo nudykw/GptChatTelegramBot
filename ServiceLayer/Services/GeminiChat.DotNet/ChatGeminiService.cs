@@ -16,6 +16,7 @@ using GoogleContent = Google.GenAI.Types.Content;
 using GooglePart = Google.GenAI.Types.Part;
 using OpenAI;
 using System.Linq;
+using System.Collections.Concurrent;
 using ServiceLayer.Utils;
 
 
@@ -27,6 +28,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
         private IGeminiClient _client;
         private readonly IDynamicLocalizer _localizer;
         private readonly IRepository<AIBilingItem>? _aiBilingItemRepository;
+        private readonly IRepository<CachedAIModel>? _cachedAIModelRepository;
 
         private class GeminiModelCache
         {
@@ -48,6 +50,7 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
             _apiConfiguration = chatProviderConfig;
             _client = client ?? new GeminiClientWrapper(_apiConfiguration.ApiKey);
             _aiBilingItemRepository = _serviceProvider.GetService<IRepository<AIBilingItem>>();
+            _cachedAIModelRepository = _serviceProvider.GetService<IRepository<CachedAIModel>>();
             _localizer = localizer;
         }
 
@@ -76,63 +79,147 @@ namespace ServiceLayer.Services.GeminiChat.DotNet
 
         public async Task<IReadOnlyList<OpenAIModel>> GetAvailibleModels(long? userId = null, bool validateModels = true)
         {
-            if (_geminiModelCache != null && _geminiModelCache.LastUpdates.HasValue && (DateTime.UtcNow - _geminiModelCache.LastUpdates.Value).TotalHours < 6)
+            var appConfig = _serviceProvider.GetConfiguration<AppSettings>();
+            var expiryHours = appConfig?.TelegramBotConfiguration?.ModelCacheExpiryHours ?? 48;
+            var providerName = _apiConfiguration.Name;
+
+            if (_cachedAIModelRepository != null)
+            {
+                var cachedModels = _cachedAIModelRepository.GetAll()
+                    .Where(p => p.ProviderName == providerName && p.IsAvailable)
+                    .ToList();
+
+                if (cachedModels.Any())
+                {
+                    var oldestChecked = cachedModels.Min(p => p.LastChecked);
+                    if ((DateTime.UtcNow - oldestChecked).TotalHours < expiryHours)
+                    {
+                        return cachedModels.Select(p => new OpenAIModel(p.ModelId)).ToList();
+                    }
+                }
+            }
+
+            if (_geminiModelCache != null && _geminiModelCache.LastUpdates.HasValue && (DateTime.UtcNow - _geminiModelCache.LastUpdates.Value).TotalHours < expiryHours)
             {
                 return _geminiModelCache.Models;
             }
 
-            var result = new List<OpenAIModel>();
+            await RefreshAvailibleModels();
+            return _geminiModelCache?.Models ?? new List<OpenAIModel> 
+            { 
+                new OpenAIModel((string)AiModel.GeminiPro),
+                new OpenAIModel((string)AiModel.GeminiFlash)
+            };
+        }
+
+        public async Task RefreshAvailibleModels(bool validate = true)
+        {
+            var providerName = _apiConfiguration.Name;
+            _logger.LogInformation("Refreshing {0} models cache (validate={1})...", providerName, validate);
+            var result = new ConcurrentBag<OpenAIModel>();
             try
             {
                 var models = _client.ListModelsAsync();
-                await foreach (GoogleModel modelInfo in models)
+                var modelInfos = new List<GoogleModel>();
+                await foreach (var modelInfo in models)
                 {
-                    // Filter for models that support generating content
-                    if (modelInfo.SupportedActions != null && 
-                        modelInfo.SupportedActions.Any(a => string.Equals(a, "generateContent", StringComparison.OrdinalIgnoreCase)))
+                    modelInfos.Add(modelInfo);
+                }
+
+                if (validate)
+                {
+                    var validationTasks = modelInfos.Select(async modelInfo => 
                     {
-                        var modelName = modelInfo.Name.StartsWith("models/") 
-                            ? modelInfo.Name.Substring("models/".Length) 
-                            : modelInfo.Name;
-
-                        if (!modelName.StartsWith("gemini-", StringComparison.OrdinalIgnoreCase))
+                        // Filter for models that support generating content
+                        if (modelInfo.SupportedActions != null && 
+                            modelInfo.SupportedActions.Any(a => string.Equals(a, "generateContent", StringComparison.OrdinalIgnoreCase)))
                         {
-                            continue;
-                        }
+                            var modelName = modelInfo.Name.StartsWith("models/") 
+                                ? modelInfo.Name.Substring("models/".Length) 
+                                : modelInfo.Name;
 
-                        if (validateModels)
-                        {
+                            if (!modelName.StartsWith("gemini-", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return;
+                            }
+
                             try
                             {
                                 await _client.GenerateContentAsync(modelInfo.Name, "Hi");
+                                result.Add(new OpenAIModel(modelName));
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogWarning(ex, "Gemini model {ModelName} failed validation and will be skipped.", modelInfo.Name);
-                                continue;
+                                _logger.LogDebug("Gemini model {0} validation failed: {1}", modelInfo.Name, ex.Message);
                             }
                         }
-                        result.Add(new OpenAIModel(modelName));
+                    });
+
+                    await Task.WhenAll(validationTasks);
+                }
+                else
+                {
+                     foreach (var modelInfo in modelInfos)
+                     {
+                        var modelName = modelInfo.Name.StartsWith("models/") 
+                            ? modelInfo.Name.Substring("models/".Length) 
+                            : modelInfo.Name;
+                        if (modelName.StartsWith("gemini-", StringComparison.OrdinalIgnoreCase))
+                            result.Add(new OpenAIModel(modelName));
+                     }
+                }
+
+                if (_cachedAIModelRepository != null)
+                {
+                    var existingModels = _cachedAIModelRepository.GetAll()
+                        .Where(p => p.ProviderName == providerName)
+                        .ToList();
+                    foreach (var model in result)
+                    {
+                        var existing = existingModels.FirstOrDefault(p => p.ModelId == model.Id);
+                        if (existing != null)
+                        {
+                            existing.LastChecked = DateTime.UtcNow;
+                            existing.IsAvailable = true;
+                            _cachedAIModelRepository.Update(existing);
+                        }
+                        else
+                        {
+                            _cachedAIModelRepository.Add(new CachedAIModel
+                            {
+                                ModelId = model.Id,
+                                ProviderName = providerName,
+                                IsAvailable = true,
+                                LastChecked = DateTime.UtcNow,
+                                FriendlyName = model.Id
+                            });
+                        }
                     }
+
+                    // Mark those not in result as unavailable
+                    foreach (var existing in existingModels.Where(e => result.All(r => r.Id != e.ModelId)))
+                    {
+                        if (existing.IsAvailable)
+                        {
+                            existing.IsAvailable = false;
+                            existing.LastChecked = DateTime.UtcNow;
+                            _cachedAIModelRepository.Update(existing);
+                        }
+                    }
+                    await _cachedAIModelRepository.SaveChanges();
                 }
 
                 _geminiModelCache = new GeminiModelCache
                 {
                     LastUpdates = DateTime.UtcNow,
-                    Models = result
+                    Models = result.ToList()
                 };
+                _logger.LogInformation("{0} models cache refreshed. Found {1} available models.", providerName, result.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching Gemini models dynamically. Falling back to hardcoded list.");
-                return new List<OpenAIModel> 
-                { 
-                    new OpenAIModel((string)AiModel.GeminiPro),
-                    new OpenAIModel((string)AiModel.GeminiFlash)
-                };
+                _logger.LogError(ex, "Error refreshing {0} models cache.", providerName);
             }
-
-            return result;
         }
 
         public async Task<ChatServiceResponse> SendMessages2ChatAsync(long telegramChatId, long telegramUserId, List<AiMessage> messages, string? model = null)

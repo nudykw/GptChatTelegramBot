@@ -31,7 +31,8 @@ namespace ServiceLayer.UnitTests.Services.Telegram
         private readonly Mock<IUserContext> _userContextMock = new();
         private readonly Mock<IChatService> _chatServiceMock = new();
         private readonly Mock<IRepository<TelegramUserInfo>> _userInfoRepositoryMock = new();
-        private readonly AppSettings _appSettings;
+        private Mock<IChatServiceFactory> _chatServiceFactoryMock;
+        private AppSettings _appSettings;
 
         public UpdateHandlerBillingTests()
         {
@@ -54,16 +55,18 @@ namespace ServiceLayer.UnitTests.Services.Telegram
             _serviceProviderMock.Setup(x => x.GetService(typeof(IOptions<AppSettings>)))
                 .Returns(optionsMock.Object);
 
+            _chatServiceFactoryMock = new Mock<IChatServiceFactory>();
+
             // Mocks for constructor
             _messageProcessorMock = new Mock<MessageProcessorClass>(
                 _serviceProviderMock.Object, 
                 new Mock<ILogger<MessageProcessorClass>>().Object,
-                null, null, _botClientMock.Object, null, _localizerMock.Object);
+                null, null, _chatServiceFactoryMock.Object, _botClientMock.Object, null, _localizerMock.Object);
 
             _audioTranscriptorMock = new Mock<AudioTranscriptorService>(
                 _serviceProviderMock.Object,
                 new Mock<ILogger<AudioTranscriptorService>>().Object,
-                null);
+                _chatServiceFactoryMock.Object);
         }
 
         private UpdateHandler CreateSut()

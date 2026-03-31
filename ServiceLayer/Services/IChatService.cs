@@ -17,5 +17,6 @@ namespace ServiceLayer.Services
         Task<ChatServiceResponse> AnalyzeImageAsync(long chatId, long telegramUserId, string? imageUrl, string? filePath = null, string? prompt = null, string? model = null);
         Task<(bool, string)> SetGPTModel(string? modelName, long? userId = null);
         Task<string?> GetSelectedModel(long userId);
+        Task RefreshAvailibleModels(bool validate = true);
     }
 }
