@@ -34,7 +34,7 @@ public class ProviderSpecificMigrationsAssembly : MigrationsAssembly
                 "Microsoft.EntityFrameworkCore.Sqlite" => "DataBaseLayer.Migrations.Sqlite",
                 "Microsoft.EntityFrameworkCore.SqlServer" => "DataBaseLayer.Migrations.SqlServer",
                 "Npgsql.EntityFrameworkCore.PostgreSQL" => "DataBaseLayer.Migrations.Postgres",
-                "Pomelo.EntityFrameworkCore.MySql" => "DataBaseLayer.Migrations.MySql",
+                "MySql.EntityFrameworkCore" => "DataBaseLayer.Migrations.MySql",
                 _ => null
             };
 
@@ -62,7 +62,7 @@ public class ProviderSpecificMigrationsAssembly : MigrationsAssembly
                 "Microsoft.EntityFrameworkCore.Sqlite" => "DataBaseLayer.Migrations.Sqlite",
                 "Microsoft.EntityFrameworkCore.SqlServer" => "DataBaseLayer.Migrations.SqlServer",
                 "Npgsql.EntityFrameworkCore.PostgreSQL" => "DataBaseLayer.Migrations.Postgres",
-                "Pomelo.EntityFrameworkCore.MySql" => "DataBaseLayer.Migrations.MySql",
+                "MySql.EntityFrameworkCore" => "DataBaseLayer.Migrations.MySql",
                 _ => null
             };
 
