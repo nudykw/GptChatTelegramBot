@@ -260,8 +260,8 @@ public class UpdateHandler : BaseService, IUpdateHandler
         var action = command?.Value switch
         {
             var v when v == BotCommand.Billing => SendBillingInlineKeyboard(_botClient, message, cancellationToken),
-            var v when v == BotCommand.Model => SendInlineKeyboard(_botClient, message, cancellationToken),
-            var v when v == BotCommand.Provider => SendProviderInlineKeyboard(_botClient, message, cancellationToken),
+            var v when v == BotCommand.Model => SendModelInlineKeyboard(_botClient, message.Chat.Id, message.From.Id, cancellationToken),
+            var v when v == BotCommand.Provider => SendProviderInlineKeyboard(_botClient, message.Chat.Id, message.From.Id, cancellationToken),
             var v when v == BotCommand.Lang => ProcessLanguageCommand(_botClient, message, actionText, cancellationToken),
             var v when v == BotCommand.Draw => _messageProcessor.ProcessDrawCommand(message.Chat.Id, message.MessageId, message.From.Id, messageText.Replace(actionText, string.Empty).Trim(), cancellationToken),
             var v when v == BotCommand.Help => Usage(_botClient, message, cancellationToken),
@@ -288,53 +288,6 @@ public class UpdateHandler : BaseService, IUpdateHandler
 
         // Send inline keyboard 
         // You can process responses in BotOnCallbackQueryReceived handler
-        async Task<TgMessage> SendInlineKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
-        {
-            await botClient.SendChatAction(
-                chatId: message.Chat.Id,
-                action: ChatAction.Typing,
-                cancellationToken: cancellationToken);
-            IReadOnlyList<global::OpenAI.Models.Model> aiModels = await ActionWithShowTypeng(message.Chat.Id, cancellationToken,
-                _messageProcessor.GetAIModels(message.From.Id));
-
-            var choises = new TgKeyboardGrid();
-            var choisesRow = new TgKeyboardRow();
-            int index = 0;
-            foreach (global::OpenAI.Models.Model? model in aiModels.OrderBy(p => p.Id).ToList())
-            {
-                var data = $"{BotCommand.Model}:{model.Id}";
-                var choise = InlineKeyboardButton.WithCallbackData($"{model.Id} ({model.CreatedAt.ToShortDateString()})",
-                    data);
-                if (aiModelsCosts.TryGetValue(model.Id, out var costs))
-                {
-                    choise = InlineKeyboardButton.WithCallbackData($"{model.Id} ({model.CreatedAt.ToShortDateString()}. {costs})",
-                        data);
-                }
-                //if (index == 0 || (index % 2) == 0)
-                {
-                    if (choisesRow.Any())
-                    {
-                        choises.Add(choisesRow);
-                    }
-                    choisesRow = new TgKeyboardRow();
-                }
-                choisesRow.Add(choise);
-                index++;
-            }
-            if (choisesRow.Any())
-            {
-                choises.Add(choisesRow);
-            }
-
-            InlineKeyboardMarkup replyMarkup = new(choises);
-            var result = await botClient.SendMessage(
-                chatId: message.Chat.Id,
-                text: _localizer["SelectModel"],
-                replyMarkup: replyMarkup,
-                cancellationToken: cancellationToken);
-            return result;
-
-        }
         async Task<TgMessage> SendBillingInlineKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
             await botClient.SendChatAction(
@@ -476,37 +429,6 @@ public class UpdateHandler : BaseService, IUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        async Task<TgMessage> SendProviderInlineKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
-        {
-            await botClient.SendChatAction(
-                chatId: message.Chat.Id,
-                action: ChatAction.Typing,
-                cancellationToken: cancellationToken);
-
-            var choises = new TgKeyboardGrid();
-            
-            foreach (ChatStrategy strategy in Enum.GetValues(typeof(ChatStrategy)))
-            {
-                string text = strategy switch
-                {
-                    ChatStrategy.Auto => _localizer["AutoRotation"],
-                    ChatStrategy.OpenAI => AiProvider.OpenAI.DisplayName,
-                    ChatStrategy.Gemini => AiProvider.Gemini.DisplayName,
-                    ChatStrategy.DeepSeek => AiProvider.DeepSeek.DisplayName,
-                    ChatStrategy.Grok => AiProvider.Grok.DisplayName,
-                    _ => strategy.ToString()
-                };
-                choises.Add(new TgKeyboardRow { InlineKeyboardButton.WithCallbackData(text, $"{BotCommand.Provider}:{(int)strategy}") });
-            }
-
-            InlineKeyboardMarkup replyMarkup = new(choises);
-            return await botClient.SendMessage(
-                chatId: message.Chat.Id,
-                text: _localizer["SelectProvider"] + "\n\n" + _localizer["SelectProviderHelp"],
-                replyMarkup: replyMarkup,
-                parseMode: ParseMode.Markdown,
-                cancellationToken: cancellationToken);
-        }
 
         async Task<TgMessage> SendReplyKeyboard(ITelegramBotClient botClient, TgMessage message, CancellationToken cancellationToken)
         {
@@ -1012,6 +934,9 @@ public class UpdateHandler : BaseService, IUpdateHandler
                     chatId: callbackQuery.Message!.Chat.Id,
                     text: responseText,
                     cancellationToken: cancellationToken);
+
+                // Immediately show model selection as if /model was called
+                await SendModelInlineKeyboard(_botClient, callbackQuery.Message.Chat.Id, callbackQuery.From.Id, cancellationToken);
             }
             return;
         }
@@ -1282,6 +1207,84 @@ public class UpdateHandler : BaseService, IUpdateHandler
         }
 
         return scope;
+    }
+
+    private async Task<TgMessage> SendModelInlineKeyboard(ITelegramBotClient botClient, long chatId, long userId, CancellationToken cancellationToken)
+    {
+        await botClient.SendChatAction(
+            chatId: chatId,
+            action: ChatAction.Typing,
+            cancellationToken: cancellationToken);
+        IReadOnlyList<global::OpenAI.Models.Model> aiModels = await ActionWithShowTypeng(chatId, cancellationToken,
+            _messageProcessor.GetAIModels(userId));
+
+        var choises = new TgKeyboardGrid();
+        var choisesRow = new TgKeyboardRow();
+        int index = 0;
+        foreach (global::OpenAI.Models.Model? model in aiModels.OrderBy(p => p.Id).ToList())
+        {
+            var data = $"{BotCommand.Model}:{model.Id}";
+            var choise = InlineKeyboardButton.WithCallbackData($"{model.Id} ({model.CreatedAt.ToShortDateString()})",
+                data);
+            if (aiModelsCosts.TryGetValue(model.Id, out var costs))
+            {
+                choise = InlineKeyboardButton.WithCallbackData($"{model.Id} ({model.CreatedAt.ToShortDateString()}. {costs})",
+                    data);
+            }
+            {
+                if (choisesRow.Any())
+                {
+                    choises.Add(choisesRow);
+                }
+                choisesRow = new TgKeyboardRow();
+            }
+            choisesRow.Add(choise);
+            index++;
+        }
+        if (choisesRow.Any())
+        {
+            choises.Add(choisesRow);
+        }
+
+        InlineKeyboardMarkup replyMarkup = new(choises);
+        var result = await botClient.SendMessage(
+            chatId: chatId,
+            text: _localizer["SelectModel"],
+            replyMarkup: replyMarkup,
+            cancellationToken: cancellationToken);
+        return result;
+    }
+
+    private async Task<TgMessage> SendProviderInlineKeyboard(ITelegramBotClient botClient, long chatId, long userId, CancellationToken cancellationToken)
+    {
+        await botClient.SendChatAction(
+            chatId: chatId,
+            action: ChatAction.Typing,
+            cancellationToken: cancellationToken);
+
+        var choises = new TgKeyboardGrid();
+
+        foreach (ChatStrategy strategy in Enum.GetValues(typeof(ChatStrategy)))
+        {
+            string text = strategy switch
+            {
+                ChatStrategy.Auto => _localizer["AutoRotation"],
+                ChatStrategy.OpenAI => AiProvider.OpenAI.DisplayName,
+                ChatStrategy.Gemini => AiProvider.Gemini.DisplayName,
+                ChatStrategy.DeepSeek => AiProvider.DeepSeek.DisplayName,
+                ChatStrategy.Grok => AiProvider.Grok.DisplayName,
+                _ => strategy.ToString()
+            };
+            choises.Add(new TgKeyboardRow { InlineKeyboardButton.WithCallbackData(text, $"{BotCommand.Provider}:{(int)strategy}") });
+        }
+
+        InlineKeyboardMarkup replyMarkup = new(choises);
+        return await botClient.SendMessage(
+            chatId: chatId,
+            text: _localizer["SelectProvider"] + "\n\n" + _localizer["SelectProviderHelp"],
+            replyMarkup: replyMarkup,
+            parseMode: ParseMode.Markdown,
+            cancellationToken: cancellationToken);
     }
 
     internal async Task<bool> CheckBalanceAndReplenish(long userId, long chatId, CancellationToken cancellationToken)
