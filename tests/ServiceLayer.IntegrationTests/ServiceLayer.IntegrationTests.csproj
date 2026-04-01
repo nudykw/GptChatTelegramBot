@@ -36,6 +36,15 @@
     <Content Include="..\..\TelegramBotApp\appsettings.json" Link="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Template: tracked in git, no real keys -->
+    <Content Include="..\..\Configs\appsettings.Test.json.example" Link="appsettings.Test.json.example">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <!-- Real API keys for integration tests (gitignored, lives in Configs/) -->
+    <Content Include="..\..\Configs\appsettings.Test.json" Link="appsettings.Test.json"
+             Condition="Exists('..\..\Configs\appsettings.Test.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

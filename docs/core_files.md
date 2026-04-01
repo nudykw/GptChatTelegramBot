@@ -1,5 +1,7 @@
 # Core Files Description
 
+🇺🇸 English | 🇺🇦 [Українська](core_files.uk.md)
+
 This document highlights the most important files in the repository to help you understand the application's flow and logic.
 
 ## [Program.cs](../TelegramBotApp/Program.cs)
@@ -40,8 +42,9 @@ This document highlights the most important files in the repository to help you 
 ## [OpenAIService.cs](../ServiceLayer/Services/OpenAI/OpenAIService.cs)
 **The Heart of OpenAI Integration**
 - Located in `ServiceLayer`.
-- Implements `IChatService` for OpenAI models.
-- **Multimodal Support**: Handles both text completions and visual analysis (Vision).
+- Implements `IChatService` for OpenAI models, and also serves Grok and DeepSeek (OpenAI-compatible APIs).
+- **Multimodal Support**: Handles text completions, image generation (DALL-E), image editing, vision analysis, and audio transcription.
+- **Provider Capability Guard**: `GenerateImage` throws `NotSupportedException` immediately for providers without a drawing model (Grok, DeepSeek), enabling `ResilientChatService` to fall back cleanly to OpenAI.
 - Calculates prices and generates billing items based on actual token usage.
 
 ## [AudioTranscriptorService.cs](../ServiceLayer/Services/AudioTranscriptor/AudioTranscriptorService.cs)
@@ -60,6 +63,21 @@ This document highlights the most important files in the repository to help you 
 **Configuration Structure**
 - A POCO (Plain Old CLR Object) class that maps the `appsettings.json` content into a strongly-typed object.
 - Highly useful for accessing secrets and limits across the entire solution.
+
+## [Configs/](../Configs)
+**Centralised Configuration Directory**
+- Contains all environment-specific configuration files. None of the files with real secrets are committed to git.
+
+| File | Tracked | Purpose |
+|------|---------|---------|
+| `appsettings.sample.json` | ✅ yes | Full template with placeholder values — reference for all available settings |
+| `appsettings.Test.json.example` | ✅ yes | Template for integration-test API keys |
+| `appsettings.json` | ❌ gitignored | Real keys used by the running bot |
+| `appsettings.web.json` | ❌ gitignored | Webhook-mode overrides |
+| `appsettings.console.json` | ❌ gitignored | Polling-mode overrides |
+| `appsettings.Test.json` | ❌ gitignored | Real API keys for integration tests |
+
+To set up locally: copy the relevant `*.example` file, rename it (drop `.example`), and fill in your keys.
 
 ## [ChatGeminiService.cs](../ServiceLayer/Services/GeminiChat.DotNet/ChatGeminiService.cs)
 **Google AI Implementation**

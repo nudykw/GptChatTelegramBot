@@ -2,23 +2,16 @@ using DataBaseLayer.Models;
 using DataBaseLayer.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moq;
-using ServiceLayer.Constans;
 using ServiceLayer.IntegrationTests.Fixtures;
 using ServiceLayer.Services;
-using ServiceLayer.Services.OpenAI;
 using ServiceLayer.Services.Localization;
 using Xunit;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace ServiceLayer.IntegrationTests.Services;
 
 public class ImageGenerationLogicTests : IClassFixture<TestAppFixture>
 {
-    private const string TestPrompt = "draw smal point";
+    private const string TestPrompt = "draw small point";
     private readonly IServiceProvider _serviceProvider;
     private readonly IRepository<TelegramUserInfo> _userRepo;
     private readonly ILogger<ResilientChatService> _resilientLogger;
@@ -34,80 +27,53 @@ public class ImageGenerationLogicTests : IClassFixture<TestAppFixture>
         _appSettings = _serviceProvider.GetRequiredService<AppSettings>();
     }
 
+    /// <summary>
+    /// Verifies that each configured provider either:
+    ///   - successfully generates an image (returns a URL), or
+    ///   - explicitly declares it does not support image generation (NotSupportedException).
+    /// Any other exception (auth errors, network errors, etc.) fails the test.
+    /// </summary>
     [Fact]
     public async Task TestAllConfiguredProviders_ImageGeneration()
     {
-        // This test verifies that all providers in appsettings.json are correctly wired.
-        // It treats API errors (like Unauthorized) as a "Pass" for wiring.
-        foreach (var provider in _appSettings.TelegramBotConfiguration.AiSettings.ChatProviders)
+        var providers = _appSettings.TelegramBotConfiguration.AiSettings.ChatProviders;
+
+        foreach (var provider in providers)
         {
             var service = _chatServiceFactory.CreateService(provider.Name);
             try
             {
-                // We use a dummy prompt to check connectivity/support
                 var result = await service.GenerateImage(0, 0, TestPrompt);
                 Assert.NotNull(result);
+                Assert.NotEmpty(result.Choices);
+                Assert.StartsWith("http", result.Choices[0]);
             }
             catch (NotSupportedException)
             {
-                // Expected for providers that don't support drawing (e.g., Grok, DeepSeek)
-            }
-            catch (Exception ex)
-            {
-                var errorMsg = ex.ToString();
-                bool isApiError = errorMsg.Contains("Unauthorized") || 
-                                 errorMsg.Contains("API") || 
-                                 errorMsg.Contains("key") ||
-                                 errorMsg.Contains("HTTP") ||
-                                 errorMsg.Contains("401") ||
-                                 errorMsg.Contains("403") ||
-                                 errorMsg.Contains("Status Code") ||
-                                 errorMsg.Contains("not found"); // DeepSeek error
-
-                if (!isApiError)
-                {
-                    throw new Exception($"Provider {provider.Name} failed unexpectedly: {ex.GetType().Name}: {ex.Message}", ex);
-                }
+                // Expected for providers that don't support image generation (Gemini, Grok, DeepSeek, etc.)
             }
         }
     }
 
+    /// <summary>
+    /// Real integration test of the fallback logic in ResilientChatService.
+    /// Uses real providers: the service iterates through all configured providers,
+    /// skips those that throw NotSupportedException, and succeeds when it reaches
+    /// one that supports image generation (typically OpenAI/dall-e).
+    /// </summary>
     [Fact]
-    public async Task ResilientGenerateImage_ShouldFallbackToOpenAI_WhenFirstProviderFails()
+    public async Task ResilientGenerateImage_ShouldSucceedViaProviderFallback()
     {
-        // Verified: "draw smal point" prompt is used as requested.
-        var mockFactory = new Mock<IChatServiceFactory>();
-        
-        var geminiConfig = new ChatProviderConfig { Name = "Gemini-Test", ProviderType = AiProvider.Gemini, ApiKey = "fake", ModelName = "g" };
-        var openAiConfig = new ChatProviderConfig { Name = "OpenAI-Test", ProviderType = AiProvider.OpenAI, ApiKey = "fake", ModelName = "o" };
+        // Arrange — all real dependencies, no mocks
+        var localizer = _serviceProvider.GetRequiredService<IDynamicLocalizer>();
+        var resilientService = new ResilientChatService(_chatServiceFactory, _resilientLogger, _userRepo, localizer);
 
-        mockFactory.Setup(f => f.GetAvailableProviders()).Returns(new List<ChatProviderConfig> { geminiConfig, openAiConfig });
-
-        var mockGeminiService = new Mock<IChatService>();
-        mockGeminiService.Setup(s => s.GenerateImage(It.IsAny<long>(), It.IsAny<long>(), TestPrompt))
-            .ThrowsAsync(new Exception("Gemini fails drawing attempt"));
-
-        var mockOpenAiService = new Mock<IChatService>();
-        var openAiResponse = new ChatServiceResponse 
-        { 
-            Choices = new List<string> { "http://fallback-result.com" },
-            ProviderName = "OpenAI-Test",
-            ModelName = "o"
-        };
-        mockOpenAiService.Setup(s => s.GenerateImage(It.IsAny<long>(), It.IsAny<long>(), TestPrompt))
-            .ReturnsAsync(openAiResponse);
-
-        mockFactory.Setup(f => f.CreateService(geminiConfig.Name)).Returns(mockGeminiService.Object);
-        mockFactory.Setup(f => f.CreateService(openAiConfig.Name)).Returns(mockOpenAiService.Object);
-
-        var mockLocalizer = new Mock<IDynamicLocalizer>();
-        var resilientService = new ResilientChatService(mockFactory.Object, _resilientLogger, _userRepo, mockLocalizer.Object);
-
+        // Act — ResilientChatService will try providers in order until one supports image generation
         var result = await resilientService.GenerateImage(1, 1, TestPrompt);
 
-        Assert.Single(result.Choices);
-        Assert.Equal("http://fallback-result.com", result.Choices[0]);
-        
-        mockGeminiService.Verify(s => s.GenerateImage(It.IsAny<long>(), It.IsAny<long>(), TestPrompt), Times.Once());
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Choices);
+        Assert.StartsWith("http", result.Choices[0]);
     }
 }

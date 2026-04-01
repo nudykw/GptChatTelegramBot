@@ -25,21 +25,26 @@ public class TestAppFixture : IDisposable
     {
         var services = new ServiceCollection();
 
-        // Build configuration
+        // Build configuration in layers:
+        //   1. appsettings.json   — linked from TelegramBotApp (base, optional)
+        //   2. appsettings.Test.json — local override with real API keys (optional, gitignored)
+        //      Copy appsettings.Test.json.example → appsettings.Test.json and fill in your keys.
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+            .AddJsonFile("appsettings.Test.json", optional: true, reloadOnChange: false)
             .Build();
 
         services.AddSingleton<IConfiguration>(configuration);
 
-        // Bind AppSettings
+        // Bind AppSettings; fall back to a safe default when the file is absent or incomplete
         var appSection = configuration.GetSection(AppSettings.Configuration);
         services.Configure<AppSettings>(appSection);
-        var appSettings = appSection.Get<AppSettings>();
-        if (appSettings == null)
-            throw new Exception("Cannot bind AppSettings from linked appsettings.json.");
-            
+        var appSettings = appSection.Get<AppSettings>() ?? new AppSettings();
+
+        // Ensure TelegramBotConfiguration is never null so DI consumers don't throw
+        appSettings.TelegramBotConfiguration ??= new ServiceLayer.Services.Telegram.Configuretions.TelegramBotConfiguration();
+
         services.AddSingleton(appSettings);
 
         // Add InMemory DB instead of actual SQLite
@@ -54,13 +59,14 @@ public class TestAppFixture : IDisposable
         // Add HttpClient for pricing service
         services.AddHttpClient();
 
-        // Register default OpenAI provider config for tests
-        var openAiConfig = appSettings.TelegramBotConfiguration.AiSettings.ChatProviders.FirstOrDefault(p => p.ProviderType == AiProvider.OpenAI)
+        // Register default OpenAI provider config for tests (falls back to a stub when no real key is configured)
+        var openAiConfig = appSettings.TelegramBotConfiguration.AiSettings.ChatProviders
+            .FirstOrDefault(p => p.ProviderType == AiProvider.OpenAI)
             ?? new ChatProviderConfig
             {
                 Name = "OpenAI-Default",
                 ProviderType = AiProvider.OpenAI,
-                ApiKey = "sk-test-key",
+                ApiKey = "sk-test-placeholder",
                 ModelName = AiModel.Gpt4oMini
             };
         services.AddSingleton(openAiConfig);

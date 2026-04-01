@@ -14,6 +14,21 @@ using ServiceLayer.Utils;
 using Telegram.Bot;
 
 IHost host = Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration((ctx, cfg) =>
+    {
+        // Load shared base config (AI keys, BotToken, SQLite default):
+        //   Dev:  Configs/ is at the repo root, 4 levels up from bin/Debug/net*/
+        //   Prod: Configs/ is copied next to the binary
+        var devBase = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Configs"));
+        var pubBase = Path.Combine(AppContext.BaseDirectory, "Configs");
+        var configsDir = Directory.Exists(devBase) && File.Exists(Path.Combine(devBase, "appsettings.json"))
+            ? devBase : pubBase;
+
+        cfg.AddJsonFile(Path.Combine(configsDir, "appsettings.json"), optional: true, reloadOnChange: true);
+        // appsettings.json in the project dir overrides (debug logging, local DB path)
+        // already added by CreateDefaultBuilder — no need to add again
+    })
     .ConfigureServices((context, services) =>
     {
         ConfigureServices(context, services);

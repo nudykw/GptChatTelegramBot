@@ -36,7 +36,7 @@ public class DatabaseSupportTests
         Assert.True(canConnect);
     }
 
-    [Fact(Skip = "To run this test you need to have Docker installed and running")]
+    [Fact]
     public async Task Postgres_Migrations_CanBeApplied()
     {
         // Arrange
@@ -67,7 +67,7 @@ public class DatabaseSupportTests
         }
     }
 
-    [Fact(Skip = "To run this test you need to have Docker installed and running")]
+    [Fact]
     public async Task SqlServer_Migrations_CanBeApplied()
     {
         // Arrange
@@ -98,7 +98,7 @@ public class DatabaseSupportTests
         }
     }
 
-    [Fact(Skip = "To run this test you need to have Docker installed and running")]
+    [Fact]
     public async Task MySql_Migrations_CanBeApplied()
     {
         // Arrange

@@ -12,7 +12,18 @@ The bot lets you chat with an AI via a Telegram bot, ask questions, and generate
 
 ## 🚀 Getting Started
 
-Before compiling the project, add your keys to the `TelegramBotApp/appsettings.sample.json` file and rename it to `appsettings.json`. The project targets **.NET 10**.
+The project targets **.NET 10**. Depending on your scenario, choose the right deployment method:
+
+| Method | Description |
+|---|---|
+| **🖥️ Local** (`dotnet run`) | Simplest for development. Console (polling) or web (polling/webhook). |
+| **🐳 Docker Compose** | Recommended for production. Web app + DB + CloudBeaver. |
+| **🐳 Docker (console)** | Lightweight container with no HTTP server, polling only. |
+| **🖥️ systemd (on Linux VPS)** | Without Docker as a system service. |
+
+📚 Step-by-step instructions for each method: [Hosting & Run Methods](docs/HOSTING.md).
+
+
 
 > [!IMPORTANT]
 > You **must** fill the `OwnerId` field with your Telegram User ID. To find your ID, use the [@userinfobot](https://t.me/userinfobot) bot in Telegram. Simply send a message to it and copy the numeric **ID**.
@@ -97,6 +108,12 @@ To restrict administrative commands (like `/billing` and `/restart`) and identif
 - Go to [DeepSeek Platform](https://platform.deepseek.com/api_keys).
 - Create a new API key.
 - In `appsettings.json`, set `ProviderType` to `"OpenAI"` and `BaseUrl` to `https://api.deepseek.com`.
+
+## 🐳 Deployment
+
+The bot supports multiple ways to run: locally, via Docker Compose (recommended), or as a systemd service.
+
+Full guide: [Hosting & Run Methods](docs/HOSTING.md)
 
 ## 🗄️ Database & Migrations
 
