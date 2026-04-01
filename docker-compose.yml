@@ -107,6 +107,13 @@ services:
       # Database
       AppSettings__Database__Provider:          ${DB_PROVIDER}
       AppSettings__Database__ConnectionString:  ${DB_CONNECTION_STRING}
+      # Dashboard — active profiles & ports (used to build service links on the dashboard page)
+      COMPOSE_PROFILES:        ${COMPOSE_PROFILES:-}
+      BOT_PORT:                ${BOT_PORT:-8080}
+      CLOUDBEAVER_PORT:        ${CLOUDBEAVER_PORT:-8978}
+      ASPIRE_PORT:             ${ASPIRE_PORT:-18888}
+      CLOUDBEAVER_PUBLIC_URL:  ${CLOUDBEAVER_PUBLIC_URL:-}
+      ASPIRE_PUBLIC_URL:       ${ASPIRE_PUBLIC_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -220,7 +227,8 @@ services:
       - otel_agent_jar:/otel-agent
       # Server config: sets rootURI=/cloudbeaver so nginx can proxy /cloudbeaver/ correctly.
       # Without nginx profile: CloudBeaver is still reachable directly at :8978/cloudbeaver/
-      - ./cloudbeaver/cloudbeaver.conf:/opt/cloudbeaver/conf/cloudbeaver.conf:ro
+      - ./cloudbeaver/cloudbeaver.conf:/opt/cloudbeaver/conf/cloudbeaver.conf
+      - ./Configs/cloudbeaver.runtime.conf:/opt/cloudbeaver/workspace/.data/.cloudbeaver.runtime.conf
     depends_on:
       otel-agent-init:
         condition: service_completed_successfully

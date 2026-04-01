@@ -83,6 +83,9 @@ app.Logger.LogInformation(
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 
+// Serve wwwroot/ static assets (logo.png, favicon.ico)
+app.UseStaticFiles();
+
 app.UseCors();
 
 // Prometheus: track HTTP request metrics automatically
@@ -90,6 +93,7 @@ app.UseHttpMetrics();
 
 // ── Endpoints ────────────────────────────────────────────────────────────────
 
+app.MapDashboardEndpoints(); // GET /
 app.MapHealthEndpoints();   // GET /health
 app.MapInfoEndpoints();     // GET /api/info
 

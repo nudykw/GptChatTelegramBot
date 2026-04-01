@@ -4,6 +4,7 @@ Configs/appsettings.json
 Configs/appsettings.web.json
 Configs/appsettings.console.json
 Configs/appsettings.Test.json
+Configs/cloudbeaver.runtime.conf
 # Configs/appsettings.sample.json is intentionally tracked (no real keys)
 # Configs/appsettings.Test.json.example is intentionally tracked (no real keys)
 
