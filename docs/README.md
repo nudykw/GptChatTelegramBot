@@ -27,7 +27,12 @@ Welcome to the **GPTChatTelegramBot** documentation. This folder contains detail
    - Local runs (console and web), Docker Compose, Docker console, systemd service on Linux.
    - Comparison table by complexity and feature set.
 
-7. **[API & Libraries Reference](./api_reference.md)**
+7. **[Observability — Aspire Dashboard & CloudBeaver](./OBSERVABILITY.md)**
+   - Real-time metrics, traces, and structured logs via Aspire Dashboard.
+   - CloudBeaver: first login, database connection, SQL queries.
+   - Animated demos included.
+
+8. **[API & Libraries Reference](./api_reference.md)**
    - Links to documentation for all libraries used and external AI APIs.
 
 ---

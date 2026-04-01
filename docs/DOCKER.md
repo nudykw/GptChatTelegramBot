@@ -192,6 +192,26 @@ CLOUDBEAVER_ADMIN_PASSWORD=yourpassword # admin password (≥ 8 chars)
 
 ---
 
+## Aspire Dashboard — Observability
+
+Add `aspire` to `COMPOSE_PROFILES` to enable real-time monitoring of metrics, traces, and logs for all services:
+
+```dotenv
+COMPOSE_PROFILES=postgres,cloudbeaver,aspire
+```
+
+This activates:
+- **Aspire Dashboard** UI at `http://localhost:18888`
+- **OTel Collector** — scrapes PostgreSQL / MySQL / MSSQL metrics every 30s
+- **CloudBeaver Java Agent** — auto-instruments CloudBeaver (JVM metrics, HTTP traces)
+
+> [!NOTE]
+> The `aspire` profile is optional and safe to omit in production if you use an external monitoring solution.
+
+📖 **Full guide with animated demos:** [docs/OBSERVABILITY.md](./OBSERVABILITY.md)
+
+---
+
 ## Useful Commands
 
 ```bash

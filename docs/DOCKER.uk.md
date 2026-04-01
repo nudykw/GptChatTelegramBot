@@ -192,6 +192,26 @@ CLOUDBEAVER_ADMIN_PASSWORD=yourpassword  # пароль (≥ 8 символів)
 
 ---
 
+## Aspire Dashboard — Спостережуваність
+
+Додай `aspire` до `COMPOSE_PROFILES` щоб увімкнути моніторинг метрик, трейсів і логів у реальному часі:
+
+```dotenv
+COMPOSE_PROFILES=postgres,cloudbeaver,aspire
+```
+
+Це активує:
+- **Aspire Dashboard** UI за адресою `http://localhost:18888`
+- **OTel Collector** — збирає метрики PostgreSQL / MySQL / MSSQL кожні 30с
+- **CloudBeaver Java Agent** — автоінструментує CloudBeaver (JVM метрики, HTTP трейси)
+
+> [!NOTE]
+> Профіль `aspire` є опціональним. Його можна не використовувати на продакшні, якщо вже є зовнішнє рішення для моніторингу.
+
+📖 **Повний посібник з анімованими демо:** [docs/OBSERVABILITY.uk.md](./OBSERVABILITY.uk.md)
+
+---
+
 ## Корисні команди
 
 ```bash
