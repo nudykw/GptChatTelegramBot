@@ -152,6 +152,12 @@ app.Lifetime.ApplicationStarted.Register(() =>
         app.Logger.LogInformation("🗄️   CloudBeaver →  http://localhost:{Port}", cbPort);
     }
 
+    if (composeProfiles.Contains("aspire", StringComparison.OrdinalIgnoreCase))
+    {
+        var aspirePort = app.Configuration["ASPIRE_PORT"] ?? "18888";
+        app.Logger.LogInformation("🔭  Aspire Dashboard →  http://localhost:{Port}", aspirePort);
+    }
+
     app.Logger.LogInformation("──────────────────────────────────────────────────────");
 });
 

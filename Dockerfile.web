@@ -14,14 +14,15 @@ COPY ServiceLayer/      ServiceLayer/
 COPY DataBaseLayer/     DataBaseLayer/
 COPY Configs/           Configs/
 
-# Self-contained + trimmed publication → no .NET runtime needed in final image
+# Self-contained publication → no .NET runtime needed in final image
+# NOTE: PublishTrimmed is intentionally disabled — EFCore and OpenTelemetry
+#       use reflection extensively and are not trim-safe.
 RUN dotnet publish TelegramBotWebApp/TelegramBotWebApp.csproj \
     -c Release \
     -r linux-musl-x64 \
     --self-contained true \
-    -p:PublishTrimmed=true \
-    -p:PublishSingleFile=true \
-    -o /app/publish
+    -o /app/publish/TelegramBotWebApp
+
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 # runtime-deps:alpine contains only the native libs required by a self-contained .NET app
@@ -29,7 +30,10 @@ FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS runtime
 WORKDIR /app
 
 # Non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN apk add --no-cache icu-libs && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup
+
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 COPY --from=build --chown=appuser:appgroup /app/publish/TelegramBotWebApp .
 # Include Configs so the web app can locate appsettings.web.json at runtime

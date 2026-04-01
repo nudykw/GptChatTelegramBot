@@ -1,6 +1,11 @@
 using DataBaseLayer;
 using DataBaseLayer.Contexts;
 using DataBaseLayer.Repositories;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using ServiceLayer.Services;
 using ServiceLayer.Services.AudioTranscriptor;
 using ServiceLayer.Services.Localization;
@@ -80,6 +85,58 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+        // ── OpenTelemetry → Aspire Dashboard ───────────────────────────────────
+        // Reads OTEL_EXPORTER_OTLP_ENDPOINT directly from the process environment
+        // (env vars are available from startup, before the full config pipeline runs).
+        var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
+
+        var otelBuilder = services.AddOpenTelemetry()
+            .ConfigureResource(r => r.AddService(
+                serviceName:        "GptChatTelegramBot",
+                serviceVersion:     typeof(ServiceCollectionExtensions).Assembly.GetName().Version?.ToString() ?? "1.0.0"))
+            .WithTracing(tracing =>
+            {
+                tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation();
+
+                if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+                    tracing.AddOtlpExporter(o =>
+                    {
+                        o.Endpoint = new Uri(otlpEndpoint);
+                        o.Protocol = OtlpExportProtocol.Grpc;
+                    });
+            })
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation();
+
+                if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+                    metrics.AddOtlpExporter(o =>
+                    {
+                        o.Endpoint = new Uri(otlpEndpoint);
+                        o.Protocol = OtlpExportProtocol.Grpc;
+                    });
+            });
+
+        // Forward structured logs to Aspire Dashboard
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+        {
+            builder.Logging.AddOpenTelemetry(logging =>
+            {
+                logging.IncludeFormattedMessage = true;
+                logging.IncludeScopes = true;
+                logging.AddOtlpExporter(o =>
+                {
+                    o.Endpoint = new Uri(otlpEndpoint);
+                    o.Protocol = OtlpExportProtocol.Grpc;
+                });
+            });
+        }
 
         return builder;
     }

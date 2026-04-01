@@ -8,6 +8,8 @@
 #   postgres              — PostgreSQL + Bot
 #   mysql                 — MySQL + Bot
 #   mssql                 — SQL Server + Bot
+#   aspire                — .NET Aspire Dashboard (metrics/traces/logs UI)
+#                           Also enables: OTel Collector (DB metrics) + CloudBeaver Java agent
 #   (empty)               — Bot only (SQLite, no DB container)
 # =============================================================================
 
@@ -94,6 +96,8 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: "http://+:8080"
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      # Telemetry → Aspire Dashboard (only effective when aspire profile is active)
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # Telegram
       AppSettings__TelegramBotConfiguration__BotToken:   ${TELEGRAM_BOT_TOKEN}
       AppSettings__TelegramBotConfiguration__OwnerId:    ${TELEGRAM_OWNER_ID}
@@ -111,6 +115,77 @@ services:
       mssql:
         condition: service_healthy
         required: false
+      aspire-dashboard:
+        condition: service_started
+        required: false
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # ASPIRE DASHBOARD — Metrics / Traces / Logs UI  (optional, profile: aspire)
+  # ──────────────────────────────────────────────────────────────────────────
+
+  aspire-dashboard:
+    profiles: ["aspire"]
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:9.2
+    container_name: gpt_aspire_dashboard
+    restart: unless-stopped
+    ports:
+      - "${ASPIRE_PORT:-18888}:18888"   # Browser UI
+      - "18889:18889"                    # OTLP/gRPC — receives telemetry from all services
+    environment:
+      # Allow anonymous access (safe for local dev; remove for production)
+      DASHBOARD__FRONTEND__AUTHMODE:    Unsecured
+      DASHBOARD__OTLP__AUTHMODE:        Unsecured
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # OTEL COLLECTOR — Collects DB metrics → Aspire Dashboard  (profile: aspire)
+  # ──────────────────────────────────────────────────────────────────────────
+
+  otelcol:
+    profiles: ["aspire"]
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    container_name: gpt_otelcol
+    restart: unless-stopped
+    volumes:
+      - ./otel/otelcol-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    environment:
+      # PostgreSQL credentials (used by postgresql receiver)
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_DB:       ${POSTGRES_DB:-gpt_chat_bot}
+      # MySQL credentials (used by mysql receiver)
+      MYSQL_USER:        ${MYSQL_USER:-gpt_bot}
+      MYSQL_PASSWORD:    ${MYSQL_PASSWORD:-}
+      MYSQL_DB:          ${MYSQL_DB:-gpt_chat_bot}
+      # SQL Server credentials (used by sqlserver receiver)
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-}
+    depends_on:
+      aspire-dashboard:
+        condition: service_started
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # OTEL JAVA AGENT INIT — Downloads OTel Java agent for CloudBeaver
+  # ──────────────────────────────────────────────────────────────────────────
+
+  otel-agent-init:
+    profiles: ["aspire", "cloudbeaver"]
+    image: alpine:latest
+    container_name: gpt_otel_agent_init
+    restart: no
+    # Download the OTel Java agent once into a named volume.
+    # Skip if already present (file size > 1MB means valid jar).
+    command: >
+      sh -c '
+        JAR=/otel-agent/opentelemetry-javaagent.jar;
+        if [ -f "$$JAR" ] && [ $$(wc -c < "$$JAR") -gt 1000000 ]; then
+          echo "OTel Java agent already present, skipping download.";
+        else
+          echo "Downloading OTel Java agent...";
+          wget -O "$$JAR"
+          https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.13.3/opentelemetry-javaagent.jar;
+        fi
+      '
+    volumes:
+      - otel_agent_jar:/otel-agent
 
   # ──────────────────────────────────────────────────────────────────────────
   # CLOUDBEAVER — Web database manager (optional, profile: cloudbeaver)
@@ -127,12 +202,24 @@ services:
       CLOUDBEAVER_WEB_SERVER_PORT: ${CLOUDBEAVER_PORT:-8978}
       CB_ADMIN_NAME:     ${CLOUDBEAVER_ADMIN_NAME}
       CB_ADMIN_PASSWORD: ${CLOUDBEAVER_ADMIN_PASSWORD}
+      # OTel Java Agent — auto-instruments CloudBeaver (active when aspire + cloudbeaver profiles)
+      JAVA_TOOL_OPTIONS:            ${CLOUDBEAVER_JAVA_TOOL_OPTIONS:-}
+      OTEL_SERVICE_NAME:            CloudBeaver
+      OTEL_EXPORTER_OTLP_ENDPOINT:  ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL:  grpc
+      OTEL_RESOURCE_ATTRIBUTES:     service.instance.id=cloudbeaver
     volumes:
       - cloudbeaver_workspace:/opt/cloudbeaver/workspace
       # Pre-configured DB connections (auto-loaded by CloudBeaver on first launch)
       - ./cloudbeaver/GlobalConfiguration/.dbeaver:/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver
       # Shared SQLite volume — lets CloudBeaver browse the bot database
       - sqlite_data:/sqlite
+      # OTel Java agent jar (downloaded by otel-agent-init)
+      - otel_agent_jar:/otel-agent
+    depends_on:
+      otel-agent-init:
+        condition: service_completed_successfully
+        required: false
 
 # ──────────────────────────────────────────────────────────────────────────
 # VOLUMES
@@ -144,3 +231,4 @@ volumes:
   mssql_data:
   cloudbeaver_workspace:
   sqlite_data:
+  otel_agent_jar:   # stores downloaded opentelemetry-javaagent.jar for CloudBeaver
